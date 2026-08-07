@@ -1,0 +1,31 @@
+services:
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes: ["pgdata:/var/lib/postgresql/data"]
+    restart: unless-stopped
+
+  redis:
+    image: redis:7
+    restart: unless-stopped
+
+  backend:
+    build: ./backend
+    depends_on: [postgres, redis]
+    environment:
+      SUELDOCLARO_DATABASE_URL: ${SUELDOCLARO_DATABASE_URL}
+      SUELDOCLARO_DATABASE_URL_SYNC: ${SUELDOCLARO_DATABASE_URL_SYNC}
+      SUELDOCLARO_REDIS_URL: ${SUELDOCLARO_REDIS_URL}
+      SUELDOCLARO_JWT_SECRET: ${SUELDOCLARO_JWT_SECRET}
+      SUELDOCLARO_ENV: prod
+    command: >
+      sh -c "alembic upgrade head &&
+             uvicorn main:app --app-dir src --host 0.0.0.0 --port 8000 --workers 4"
+    restart: unless-stopped
+    ports: ["8000:8000"]
+
+volumes:
+  pgdata:

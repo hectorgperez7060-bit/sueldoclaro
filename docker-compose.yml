@@ -1,0 +1,51 @@
+services:
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: sueldoclaro
+      POSTGRES_PASSWORD: sueldoclaro
+      POSTGRES_DB: sueldoclaro
+    ports: ["5432:5432"]
+    volumes: ["pgdata:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sueldoclaro"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7
+    ports: ["6379:6379"]
+
+  mailhog:
+    image: mailhog/mailhog
+    ports: ["1025:1025", "8025:8025"]
+
+  backend:
+    build: ./backend
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      SUELDOCLARO_DATABASE_URL: postgresql+asyncpg://sueldoclaro:sueldoclaro@postgres:5432/sueldoclaro
+      SUELDOCLARO_DATABASE_URL_SYNC: postgresql+psycopg://sueldoclaro:sueldoclaro@postgres:5432/sueldoclaro
+      SUELDOCLARO_REDIS_URL: redis://redis:6379/0
+      SUELDOCLARO_JWT_SECRET: dev-insecure-change-me
+    command: >
+      sh -c "alembic upgrade head &&
+             uvicorn main:app --app-dir src --host 0.0.0.0 --port 8000 --reload"
+    ports: ["8000:8000"]
+    volumes: ["./backend:/app"]
+
+  worker:
+    build: ./backend
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      SUELDOCLARO_DATABASE_URL: postgresql+asyncpg://sueldoclaro:sueldoclaro@postgres:5432/sueldoclaro
+      SUELDOCLARO_REDIS_URL: redis://redis:6379/0
+    command: sh -c "echo 'worker de liquidaciones masivas / updater legal (Fase 4)'; sleep infinity"
+
+volumes:
+  pgdata:
