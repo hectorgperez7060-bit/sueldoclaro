@@ -3,7 +3,7 @@
 SaaS de liquidación de sueldos para Argentina (Ley 27.802 de Modernización
 Laboral + Decreto 407/2026, recibo Anexo III). Orientado a estudios contables y
 PyMEs. Ver `SUELDOCLARO_PROMPT_MAESTRO_v2.md` (en la carpeta del proyecto) para
-la especificación completa y `DECISIONS.md` para las decisiones de diseño.
+ la especificación completa y `DECISIONS.md` para las decisiones de diseño.
 
 > ⚠️ Todos los valores legales cargados son **de ejemplo** (`is_verified = false`).
 > No usar para liquidaciones reales hasta que un contador matriculado verifique
