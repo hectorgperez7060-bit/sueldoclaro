@@ -1,0 +1,30 @@
+caso: "Comercio 130/75 - Administrativo A - 5 años - mes completo - SIN amparo"
+tipo: mensual
+empleado:
+  cuil: "20123456786"
+  fecha_ingreso: "2021-07-01"
+  cct: "130/75"
+  categoria: "Administrativo A"
+  afiliado: true
+periodo: "2026-07"
+escala_basico: "500000.00"
+amparo_vigente: false
+
+esperado_conceptos:
+  BASICO: "500000.00"
+  ANTIGUEDAD: "25000.00"        # 5% (1% x 5 años) sobre básico
+  PRESENTISMO: "43750.00"       # (básico + antigüedad) / 12
+  APORTE_JUBILACION: "62562.50" # 11% de 568.750
+  APORTE_LEY19032: "17062.50"   # 3%
+  APORTE_OBRA_SOCIAL: "17062.50" # 3%
+  CUOTA_SINDICAL: "11375.00"    # 2%
+  APORTE_MODERNIZACION: "5687.50" # 1% - Ley 27.802 art. 131 (rige, sin amparo)
+  CONTRIB_JUBILACION: "102375.00" # 18% patronal
+
+esperado_totales:
+  remunerativo: "568750.00"
+  deducciones: "113750.00"
+  neto: "455000.00"
+
+esperado_regimen:
+  APORTE_MODERNIZACION: "ley_27802"
