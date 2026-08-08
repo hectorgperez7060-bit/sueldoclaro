@@ -55,6 +55,20 @@ def _desc_nr(codigo: str) -> str:
     return codigo
 
 
+def _desc_ded(codigo: str) -> str:
+    """Descripción legible de una deducción porcentual de convenio (solo display)."""
+    prefijos = {
+        "APORTE_SINDICAL_ART100": "Aporte sindical 2% (art. 100 CCT)",
+        "APORTE_FAECYS": "Aporte FAECYS 0,5% (art. 100)",
+        "CUOTA_SINDICAL_ART101": "Cuota sindical (art. 101, afiliados)",
+        "APORTE_SOLIDARIO": "Aporte solidario (no afiliado)",
+    }
+    for pref, desc in prefijos.items():
+        if codigo.startswith(pref):
+            return desc
+    return codigo
+
+
 class MotorLiquidacion:
     def __init__(
         self,
@@ -192,14 +206,20 @@ class MotorLiquidacion:
             conceptos.append(Concepto("CUOTA_SINDICAL", "Cuota sindical",
                                       TipoConcepto.DEDUCCION, imp))
 
-        # ----- Aporte solidario para NO afiliados (deducción condicional por convenio) -----
-        # Único caso que depende de la afiliación; el importe y la vigencia salen
-        # del parámetro. (Pendiente: generalizar a "deducciones con condición".)
-        _cod_solidario = "APORTE_SOLIDARIO_" + empleado.cct_numero
-        if not empleado.afiliado_sindicato and self._p.existe(_cod_solidario):
-            imp = base.porcentaje(self._p.fraccion(_cod_solidario)).redondear()
-            conceptos.append(Concepto("APORTE_SOLIDARIO", "Aporte solidario (no afiliado)",
-                                      TipoConcepto.DEDUCCION, imp))
+        # ----- Deducciones porcentuales del convenio (aportes/cuotas, data-driven) -----
+        # Cada una lleva su condición de aplicación en 'ambito':
+        #   ded_todos  -> a todo trabajador comprendido (p.ej. aporte art.100, FAECYS)
+        #   ded_afil   -> solo afiliados (p.ej. cuota art.101)
+        #   ded_noafil -> solo no afiliados (p.ej. aporte solidario UOCRA)
+        # Base: la base sindical (remunerativo + NR cuya incidencia lo dispare).
+        for d in self._p.deducciones_convenio(cct.cct_numero):
+            aplica = (d.ambito == "ded_todos"
+                      or (d.ambito == "ded_afil" and empleado.afiliado_sindicato)
+                      or (d.ambito == "ded_noafil" and not empleado.afiliado_sindicato))
+            if aplica:
+                imp = base_sindical.porcentaje(d.valor).redondear()
+                conceptos.append(Concepto(d.codigo, _desc_ded(d.codigo),
+                                          TipoConcepto.DEDUCCION, imp))
 
         # ----- Concepto con estrategia por amparo (Ley 27.802 art. 131) -----
         conceptos.append(self._aporte_modernizacion(empleado, periodo, base))
