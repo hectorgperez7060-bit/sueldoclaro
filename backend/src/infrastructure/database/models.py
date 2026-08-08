@@ -65,6 +65,10 @@ class ParametroLegal(Base):
     fuente: Mapped[str] = mapped_column(Text, default="")
     is_verified: Mapped[bool] = mapped_column(Boolean, default=False)
     version: Mapped[int] = mapped_column(Integer, default=1)
+    # Concepto propio de un convenio (null = parámetro global de ley).
+    cct_numero: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
+    # Incidencias del concepto: qué bases integra y qué aportes dispara (data-driven).
+    incidencias: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True)
 
 
 class AmparoCct(Base):
