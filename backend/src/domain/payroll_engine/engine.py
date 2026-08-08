@@ -148,4 +148,160 @@ class MotorLiquidacion:
 
         # Horas extra (valor hora sobre básico + antigüedad)
         if novedades.horas_extra_50 > 0:
-            vh = self.
+            vh = self._valor_hora(basico, antiguedad, cct)
+            imp = vh.multiplicar(Decimal("1.5")).multiplicar(novedades.horas_extra_50).redondear()
+            conceptos.append(
+                Concepto("HORAS_EXTRA_50", "Horas extra al 50%", TipoConcepto.REMUNERATIVO,
+                         imp, cantidad=novedades.horas_extra_50)
+            )
+        if novedades.horas_extra_100 > 0:
+            vh = self._valor_hora(basico, antiguedad, cct)
+            imp = vh.multiplicar(Decimal("2")).multiplicar(novedades.horas_extra_100).redondear()
+            conceptos.append(
+                Concepto("HORAS_EXTRA_100", "Horas extra al 100%", TipoConcepto.REMUNERATIVO,
+                         imp, cantidad=novedades.horas_extra_100)
+            )
+
+        # Base remunerativa = suma de conceptos remunerativos
+        base = Dinero.cero()
+        for c in conceptos:
+            if c.tipo == TipoConcepto.REMUNERATIVO:
+                base = base + c.importe
+        base = base.redondear()
+
+        # Bases de aportes (data-driven): remunerativos + NR que disparan cada aporte
+        base_jubilacion = (base + _nr("aporte_jubilacion")).redondear()
+        base_obra_social = (base + _nr("aporte_obra_social")).redondear()
+        base_sindical = (base + _nr("aporte_sindicato")).redondear()
+
+        # Tope SIPA sobre la seguridad social
+        tope = self._p.valor_ars("TOPE_SIPA") if self._p.existe("TOPE_SIPA") else None
+        base_jub_t = Dinero.minimo(base_jubilacion, tope) if tope else base_jubilacion
+        base_os_t = Dinero.minimo(base_obra_social, tope) if tope else base_obra_social
+
+        # ----- Deducciones del trabajador (cada una sobre SU base) -----
+        conceptos.append(self._deduccion("APORTE_JUBILACION", "Jubilación (11%)", base_jub_t))
+        conceptos.append(self._deduccion("APORTE_LEY19032", "Ley 19.032 - INSSJP (3%)", base_jub_t))
+        conceptos.append(self._deduccion("APORTE_OBRA_SOCIAL", "Obra social (3%)", base_os_t))
+
+        if cct.aplica_cuota_sindical and empleado.afiliado_sindicato:
+            # Cuota propia del convenio si está definida; si no, parámetro global.
+            pct = cct.cuota_sindical_pct if cct.cuota_sindical_pct is not None \
+                else self._p.fraccion("CUOTA_SINDICAL")
+            imp = base_sindical.porcentaje(pct).redondear()
+            conceptos.append(Concepto("CUOTA_SINDICAL", "Cuota sindical",
+                                      TipoConcepto.DEDUCCION, imp))
+
+        # ----- Aporte solidario para NO afiliados (deducción condicional por convenio) -----
+        # Único caso que depende de la afiliación; el importe y la vigencia salen
+        # del parámetro. (Pendiente: generalizar a "deducciones con condición".)
+        _cod_solidario = "APORTE_SOLIDARIO_" + empleado.cct_numero
+        if not empleado.afiliado_sindicato and self._p.existe(_cod_solidario):
+            imp = base.porcentaje(self._p.fraccion(_cod_solidario)).redondear()
+            conceptos.append(Concepto("APORTE_SOLIDARIO", "Aporte solidario (no afiliado)",
+                                      TipoConcepto.DEDUCCION, imp))
+
+        # ----- Concepto con estrategia por amparo (Ley 27.802 art. 131) -----
+        conceptos.append(self._aporte_modernizacion(empleado, periodo, base))
+
+        # ----- Contribuciones patronales (desglose Anexo III) -----
+        conceptos.append(self._contribucion("CONTRIB_JUBILACION", "Contrib. jubilación (18%)", base))
+        conceptos.append(self._contribucion("CONTRIB_OBRA_SOCIAL", "Contrib. obra social (6%)", base))
+        if self._p.existe("CONTRIB_INSSJP"):
+            conceptos.append(self._contribucion("CONTRIB_INSSJP", "Contrib. INSSJP", base))
+        if self._p.existe("CONTRIB_ASIG_FAM"):
+            conceptos.append(self._contribucion("CONTRIB_ASIG_FAM", "Asignaciones familiares", base))
+
+        return ResultadoLiquidacion(empleado.cuil.valor, periodo, "mensual", conceptos)
+
+    def _deduccion(self, codigo: str, descripcion: str, base: Dinero) -> Concepto:
+        imp = base.porcentaje(self._p.fraccion(codigo)).redondear()
+        return Concepto(codigo, descripcion, TipoConcepto.DEDUCCION, imp)
+
+    def _contribucion(self, codigo: str, descripcion: str, base: Dinero) -> Concepto:
+        imp = base.porcentaje(self._p.fraccion(codigo)).redondear()
+        return Concepto(codigo, descripcion, TipoConcepto.CONTRIBUCION, imp)
+
+    def _aporte_modernizacion(
+        self, empleado: Empleado, periodo: Periodo, base: Dinero
+    ) -> Concepto:
+        """Aporte creado por el art. 131 de la Ley 27.802.
+
+        - ``regla_ley_27802``: se retiene ``APORTE_MODERNIZACION`` % de la base.
+        - ``regla_previa``: no existía => 0 (reactivada por amparo FAECYS/Comercio).
+        """
+        amparo = self._amparos.amparo_vigente(
+            empleado.cct_numero, _CONCEPTO_MODERNIZACION, periodo
+        )
+        if amparo is not None:
+            # regla_previa: el aporte no corre
+            return Concepto(
+                _CONCEPTO_MODERNIZACION,
+                "Aporte modernización (SUSPENDIDO por amparo)",
+                TipoConcepto.DEDUCCION,
+                Dinero.cero().redondear(),
+                regimen=Regimen.PREVIA,
+                articulo_amparo=amparo.articulo_suspendido,
+            )
+        # regla_ley_27802
+        imp = base.porcentaje(self._p.fraccion(_CONCEPTO_MODERNIZACION)).redondear()
+        return Concepto(
+            _CONCEPTO_MODERNIZACION,
+            "Aporte modernización (Ley 27.802 art. 131)",
+            TipoConcepto.DEDUCCION,
+            imp,
+            regimen=Regimen.LEY_27802,
+        )
+
+    # ------------------------------------------------------------------ #
+    # SAC (medio aguinaldo)
+    # ------------------------------------------------------------------ #
+    def liquidar_sac(
+        self,
+        empleado: Empleado,
+        periodo: Periodo,
+        mejor_remuneracion_semestre: Dinero,
+        dias_trabajados_semestre: int = 181,
+    ) -> ResultadoLiquidacion:
+        """SAC = 50% de la mejor remuneración del semestre, proporcional a días."""
+        proporcion = Decimal(dias_trabajados_semestre) / Decimal(181)
+        bruto = mejor_remuneracion_semestre.multiplicar(Decimal("0.5")).multiplicar(proporcion)
+        bruto = bruto.redondear()
+        conceptos: List[Concepto] = [
+            Concepto("SAC", "SAC (50% mejor remuneración)", TipoConcepto.REMUNERATIVO, bruto)
+        ]
+        # Aportes sobre el SAC (seguridad social)
+        conceptos.append(self._deduccion("APORTE_JUBILACION", "Jubilación (11%)", bruto))
+        conceptos.append(self._deduccion("APORTE_LEY19032", "Ley 19.032 - INSSJP (3%)", bruto))
+        conceptos.append(self._deduccion("APORTE_OBRA_SOCIAL", "Obra social (3%)", bruto))
+        return ResultadoLiquidacion(empleado.cuil.valor, periodo, "sac", conceptos)
+
+    # ------------------------------------------------------------------ #
+    # Vacaciones
+    # ------------------------------------------------------------------ #
+    @staticmethod
+    def dias_vacaciones(anios: int) -> int:
+        """LCT art. 150. Antigüedad computada al 31/12 (art. 151)."""
+        if anios < 5:
+            return 14
+        if anios < 10:
+            return 21
+        if anios < 20:
+            return 28
+        return 35
+
+    def liquidar_vacaciones(
+        self,
+        empleado: Empleado,
+        periodo: Periodo,
+        remuneracion_habitual: Dinero,
+    ) -> ResultadoLiquidacion:
+        anios = empleado.antiguedad_anios(periodo.ultimo_dia_del_anio())
+        dias = self.dias_vacaciones(anios)
+        valor_dia = remuneracion_habitual.dividir(Decimal("25"))  # LCT: /25
+        imp = valor_dia.multiplicar(Decimal(dias)).redondear()
+        conceptos = [
+            Concepto("VACACIONES", f"Vacaciones ({dias} días)", TipoConcepto.REMUNERATIVO,
+                     imp, cantidad=Decimal(dias))
+        ]
+        return ResultadoLiquidacion(empleado.cuil.valor, periodo, "vacaciones", conceptos)
