@@ -71,6 +71,15 @@ class ParametroSet:
         return [p for p in self._todos
                 if p.cct_numero == cct_numero and p.unidad == "ARS"]
 
+    def deducciones_convenio(self, cct_numero: str) -> List[ParametroLegal]:
+        """Deducciones porcentuales propias de un convenio (aportes/cuotas), ya
+        filtradas por período. La condición de aplicación va en ``ambito``:
+        ``ded_todos`` (todo comprendido) | ``ded_afil`` (solo afiliados) |
+        ``ded_noafil`` (solo no afiliados)."""
+        return [p for p in self._todos
+                if p.cct_numero == cct_numero and p.unidad == "%"
+                and (p.ambito or "").startswith("ded_")]
+
     def _obtener(self, codigo: str) -> ParametroLegal:
         if codigo not in self._por_codigo:
             raise KeyError(f"Parámetro legal faltante: {codigo}")
