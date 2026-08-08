@@ -1,4 +1,4 @@
-"""Motor de liquidación puro.
+ """Motor de liquidación puro.
 
 100% dominio: sin BD, sin FastAPI, sin WeasyPrint. Recibe entidades y
 parámetros; devuelve un ``ResultadoLiquidacion``. Todo importe es ``Decimal``
