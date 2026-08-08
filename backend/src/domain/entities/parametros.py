@@ -24,6 +24,8 @@ class ParametroLegal:
     valid_to: Optional[date] = None
     is_verified: bool = False
     fuente: str = ""
+    cct_numero: Optional[str] = None      # concepto propio de un convenio (null = global)
+    incidencias: Optional[dict] = None    # qué bases integra / qué aportes dispara
 
 
 @dataclass(frozen=True)
@@ -60,6 +62,14 @@ class ParametroSet:
 
     def __init__(self, parametros: List[ParametroLegal]):
         self._por_codigo: Dict[str, ParametroLegal] = {p.codigo: p for p in parametros}
+        self._todos: List[ParametroLegal] = list(parametros)
+
+    def conceptos_convenio(self, cct_numero: str) -> List[ParametroLegal]:
+        """Conceptos en ARS propios de un convenio (NR/adicionales), ya filtrados
+        por período. El motor los aplica leyendo sus ``incidencias`` —sin saber
+        de qué convenio se trata."""
+        return [p for p in self._todos
+                if p.cct_numero == cct_numero and p.unidad == "ARS"]
 
     def _obtener(self, codigo: str) -> ParametroLegal:
         if codigo not in self._por_codigo:
