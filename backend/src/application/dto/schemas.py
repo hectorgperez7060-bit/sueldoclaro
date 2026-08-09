@@ -61,6 +61,9 @@ class EmpleadoIn(BaseModel):
     # 1 efectivo, 2 cheque, 3 acreditación en cuenta (exige CBU), 4 otra.
     forma_pago: str
     lugar_trabajo: Optional[str] = None
+    # Datos estructurados para resolver la cuota sindical de afiliado (Art. 101).
+    localidad: Optional[str] = None
+    filial_sindical: Optional[str] = None
 
     @model_validator(mode="after")
     def _validar_forma_pago(self):
@@ -99,6 +102,8 @@ class EmpleadoOut(BaseModel):
     cbu: Optional[str] = None
     forma_pago: Optional[str] = None
     lugar_trabajo: Optional[str] = None
+    localidad: Optional[str] = None
+    filial_sindical: Optional[str] = None
 
 
 # --- Liquidación ---
