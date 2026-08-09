@@ -127,6 +127,12 @@ HTML = r"""<!DOCTYPE html>
           <div><label id="lblCbu">CBU (22 dígitos)</label><input id="eCbu" maxlength="22" placeholder="opcional"></div>
         </div>
 
+        <h3 style="font-size:.9rem;color:var(--verde);margin:14px 0 6px">Datos sindicales (para cuota de afiliado — Art. 101)</h3>
+        <div class="fila">
+          <div><label>Localidad / jurisdicción</label><input id="eLocalidad" placeholder="Ej.: CABA, Rosario, Córdoba"></div>
+          <div><label>Filial sindical (si aplica)</label><input id="eFilial" placeholder="opcional"></div>
+        </div>
+
         <button class="chico" onclick="crearEmpleado()">Guardar empleado</button>
         <div class="error" id="empError"></div>
         <div class="ok" id="empOk"></div>
@@ -283,11 +289,13 @@ async function crearEmpleado(){
       cbu:$('eCbu').value.trim() || null,
       forma_pago:$('eFormaPago').value,
       lugar_trabajo:$('eLugar').value.trim() || null,
+      localidad:$('eLocalidad').value.trim() || null,
+      filial_sindical:$('eFilial').value.trim() || null,
       remuneracion_pactada:$('eRemun').value ? $('eRemun').value : null
     };
     await api('/empleados','POST',cuerpo);
     $('empOk').textContent='Empleado guardado ✔'; $('empOk').style.display='block';
-    ['eNombre','eApellido','eCuil','eFecha','eNacimiento','eDomicilio','eLegajo','eObraSocial','eLugar','eCbu','eRemun','eFormaPago'].forEach(i=>$(i).value='');
+    ['eNombre','eApellido','eCuil','eFecha','eNacimiento','eDomicilio','eLegajo','eObraSocial','eLugar','eCbu','eRemun','eFormaPago','eLocalidad','eFilial'].forEach(i=>$(i).value='');
     $('eHijos').value='0'; toggleCbu();
     await cargarEmpleados();
   }catch(e){ mostrarError('empError', e.message); }
