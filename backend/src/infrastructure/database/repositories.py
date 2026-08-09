@@ -13,9 +13,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from domain.entities.parametros import (
     Amparo as AmparoDom,
     AmparoSet,
+    CuotaArt101 as CuotaArt101Dom,
     EscalaSalarial as EscalaDom,
     ParametroLegal as ParamDom,
     ParametroSet,
+    resolver_cuota_art101,
 )
 from domain.payroll_engine.config import CctConfig
 from domain.value_objects.dinero import Dinero
@@ -103,6 +105,34 @@ class ParametrosRepo:
             for p in r.scalars().all()
         ]
         return ParametroSet(params)
+
+    async def resolver_art101(
+        self, cct_numero: str, localidad: Optional[str],
+        filial: Optional[str], fecha: date,
+    ) -> Optional[CuotaArt101Dom]:
+        """Devuelve la cuota Art. 101 OFICIAL vigente que corresponde al afiliado
+        (por CCT + filial/localidad), o None si no hay ninguna cargada/verificada.
+        La decision de matching vive en la funcion pura ``resolver_cuota_art101``.
+        """
+        r = await self.s.execute(
+            select(m.CuotaSindicalArt101).where(
+                m.CuotaSindicalArt101.cct_numero == cct_numero,
+                m.CuotaSindicalArt101.is_verified.is_(True),
+                m.CuotaSindicalArt101.valid_from <= fecha,
+                (m.CuotaSindicalArt101.valid_to.is_(None))
+                | (m.CuotaSindicalArt101.valid_to >= fecha),
+            )
+        )
+        candidatas = [
+            CuotaArt101Dom(
+                cct_numero=c.cct_numero, porcentaje=Decimal(c.porcentaje),
+                valid_from=c.valid_from, valid_to=c.valid_to, sindicato=c.sindicato,
+                filial=c.filial, localidad=c.localidad, fuente=c.fuente,
+                is_verified=c.is_verified,
+            )
+            for c in r.scalars().all()
+        ]
+        return resolver_cuota_art101(candidatas, cct_numero, localidad, filial, fecha)
 
     async def escala(self, cct_numero: str, categoria: str, fecha: date) -> Optional[EscalaDom]:
         r = await self.s.execute(
