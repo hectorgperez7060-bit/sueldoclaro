@@ -72,6 +72,11 @@ class TrabajadorLSD:
     adherentes_os: int = 0         # cantidad de adherentes de obra social
     remun_total: Decimal = Decimal("0")   # remuneración total
     bases: List[Decimal] = field(default_factory=list)  # hasta 13 bases imponibles
+    # Objetos de liquidación opcionales para derivación dinámica con calculator.py
+    resultado_liquidacion: Optional[Any] = None
+    empleado: Optional[Any] = None
+    cct: Optional[Any] = None
+    parametros_lsd: Optional[Any] = None
 
 @dataclass
 class EmpleadorLSD:
@@ -121,7 +126,21 @@ def registro_03(cuil: str, c: ConceptoLSD) -> str:
 def registro_04(t: TrabajadorLSD) -> str:
     # 04 + CUIL(11) + atributos SUSS(147) + 14 campos de 15 (remun total + 13 bases) = 370
     attrs = _txt(t.attrs_suss, 147)
-    bases13 = (list(t.bases) + [Decimal("0")] * 13)[:13]
+    
+    # Integración con calculator.py: si t.bases está vacío pero se proveen los objetos de liquidación
+    if not t.bases and t.resultado_liquidacion and t.empleado and t.cct and t.parametros_lsd:
+        from infrastructure.lsd.calculator import calcular_bases_lsd
+        bases_fuente = calcular_bases_lsd(
+            resultado=t.resultado_liquidacion,
+            empleado=t.empleado,
+            cct=t.cct,
+            parametros=t.parametros_lsd,
+            periodo=t.parametros_lsd.periodo,
+        )
+    else:
+        bases_fuente = t.bases
+
+    bases13 = (list(bases_fuente) + [Decimal("0")] * 13)[:13]
     cuerpo = "".join(_cent(v, 15) for v in [t.remun_total, *bases13])
     r = "04" + _cuil(t.cuil) + attrs + cuerpo
     assert len(r) == 370, f"reg04 len {len(r)}"
