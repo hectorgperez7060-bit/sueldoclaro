@@ -57,12 +57,69 @@ class Amparo:
     is_verified: bool = False
 
 
+@dataclass(frozen=True)
+class CuotaArt101:
+    """Cuota sindical del Art. 101 (afiliados), configurable por filial/localidad.
+
+    NO existe un valor nacional por defecto: cada filial/jurisdiccion define su
+    porcentaje y vigencia, y solo se aplica si ``is_verified`` es True.
+    """
+
+    cct_numero: str
+    porcentaje: Decimal
+    valid_from: date
+    valid_to: Optional[date] = None
+    sindicato: Optional[str] = None
+    filial: Optional[str] = None
+    localidad: Optional[str] = None
+    fuente: str = ""
+    is_verified: bool = False
+
+
+def resolver_cuota_art101(
+    candidatas: List[CuotaArt101],
+    cct_numero: str,
+    localidad: Optional[str],
+    filial: Optional[str],
+    fecha: date,
+) -> Optional[CuotaArt101]:
+    """Elige la cuota Art. 101 OFICIAL vigente que corresponde a un afiliado.
+
+    Reglas (sin inventar nada):
+    - Solo cuotas del mismo CCT, ``is_verified`` y vigentes a ``fecha``.
+    - Prioridad: coincidencia por ``filial``; si no, por ``localidad``.
+    - Si hay varias, gana la de ``valid_from`` mas reciente.
+    - Si no hay coincidencia, devuelve None (el sistema NO aplica porcentaje).
+    """
+    def vigente(c: CuotaArt101) -> bool:
+        return c.valid_from <= fecha and (c.valid_to is None or c.valid_to >= fecha)
+
+    elegibles = [c for c in candidatas
+                 if c.cct_numero == cct_numero and c.is_verified and vigente(c)]
+    if not elegibles:
+        return None
+    if filial:
+        por_filial = [c for c in elegibles if (c.filial or "") == filial]
+        if por_filial:
+            return max(por_filial, key=lambda c: c.valid_from)
+    if localidad:
+        por_localidad = [c for c in elegibles if (c.localidad or "") == localidad]
+        if por_localidad:
+            return max(por_localidad, key=lambda c: c.valid_from)
+    return None
+
+
 class ParametroSet:
     """Conjunto de parámetros vigentes para una liquidación."""
 
     def __init__(self, parametros: List[ParametroLegal]):
         self._por_codigo: Dict[str, ParametroLegal] = {p.codigo: p for p in parametros}
         self._todos: List[ParametroLegal] = list(parametros)
+
+    def con_extra(self, parametro: ParametroLegal) -> "ParametroSet":
+        """Devuelve un ParametroSet nuevo con un parametro adicional (p.ej. la
+        cuota Art. 101 ya resuelta por filial/localidad). No muta el original."""
+        return ParametroSet(self._todos + [parametro])
 
     def conceptos_convenio(self, cct_numero: str) -> List[ParametroLegal]:
         """Conceptos en ARS propios de un convenio (NR/adicionales), ya filtrados
