@@ -11,6 +11,7 @@ from decimal import Decimal
 from typing import Dict
 
 from domain.entities.empleado import Empleado
+from domain.entities.parametros import ParametroLegal as ParamDom
 from domain.payroll_engine.engine import MotorLiquidacion, Novedades
 from domain.value_objects.cuil import Cuil
 from domain.value_objects.dinero import Dinero
@@ -48,7 +49,23 @@ class LiquidarPeriodo:
                 if cct_cfg is None or escala is None:
                     continue  # sin parámetros no se liquida a este empleado
 
-                motor = MotorLiquidacion(parametros, amparos)
+                # Cuota Art.101 (afiliados): el repositorio la resuelve por
+                # CCT + localidad/filial y la inyecta como ded_afil. Si no hay
+                # cuota oficial verificada, NO se aplica ningun % y se avisa.
+                aviso_art101 = None
+                params_emp = parametros
+                if emp.afiliado_sindicato:
+                    cuota = await params_repo.resolver_art101(
+                        emp.cct_numero, emp.localidad, emp.filial_sindical, fecha_ref)
+                    if cuota is not None:
+                        params_emp = parametros.con_extra(ParamDom(
+                            f"CUOTA_SINDICAL_ART101_{emp.cct_numero}", cuota.porcentaje, "%",
+                            "ded_afil", cuota.valid_from, cuota.valid_to, True, cuota.fuente,
+                            emp.cct_numero, {}))
+                    else:
+                        aviso_art101 = ("Cuota sindical de afiliado pendiente de verificar "
+                                        "para esta localidad/filial")
+                motor = MotorLiquidacion(params_emp, amparos)
                 dom_emp = Empleado(
                     nombre=emp.nombre, apellido=emp.apellido, cuil=Cuil(emp.cuil),
                     fecha_ingreso=emp.fecha_ingreso, cct_numero=emp.cct_numero,
@@ -56,6 +73,8 @@ class LiquidarPeriodo:
                     remuneracion_pactada=Dinero(Decimal(emp.remuneracion_pactada)) if emp.remuneracion_pactada else None,
                     afiliado_sindicato=emp.afiliado_sindicato,
                     proporcion_jornada=Decimal(emp.proporcion_jornada or 1),
+                    localidad=emp.localidad,
+                    filial_sindical=emp.filial_sindical,
                 )
                 nv = novedades.get(str(emp.id), {})
                 res = motor.liquidar_mensual(
@@ -89,6 +108,7 @@ class LiquidarPeriodo:
                     "total_deducciones": str(res.total_deducciones.monto),
                     "neto": str(res.neto.monto),
                     "conceptos": conceptos,
+                    "aviso_art101": aviso_art101,
                 })
 
             # Reasignar un objeto nuevo fuerza la detección de cambios de JSONB
