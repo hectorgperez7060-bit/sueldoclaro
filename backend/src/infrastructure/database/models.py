@@ -86,6 +86,28 @@ class AmparoCct(Base):
     is_verified: Mapped[bool] = mapped_column(Boolean, default=False)
 
 
+class CuotaSindicalArt101(Base):
+    """Cuota sindical del Art. 101 (afiliados), configurable por filial/localidad.
+
+    Tabla de CONFIGURACION (global): no hay valor nacional por defecto. Un afiliado
+    solo tributa Art. 101 si existe aca una fila ``is_verified`` vigente que coincida
+    con su CCT + filial/localidad. Art. 100 (2%) y FAECYS (0,5%) NO viven aca:
+    siguen en parametro_legal como ded_todos para todos los comprendidos.
+    """
+
+    __tablename__ = "cuota_sindical_art101"
+    id: Mapped[uuid.UUID] = UUIDPK()
+    cct_numero: Mapped[str] = mapped_column(String(20), index=True)
+    sindicato: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
+    filial: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
+    localidad: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
+    porcentaje: Mapped[Decimal] = mapped_column(Numeric(12, 8))
+    valid_from: Mapped[date] = mapped_column(Date)
+    valid_to: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
+    fuente: Mapped[str] = mapped_column(Text, default="")
+    is_verified: Mapped[bool] = mapped_column(Boolean, default=False)
+
+
 # --------------------------------------------------------------------------- #
 # USUARIOS (globales: un usuario puede pertenecer a varios tenants)
 # --------------------------------------------------------------------------- #
@@ -150,6 +172,10 @@ class Empleado(TenantMixin, Base):
     # 3 acreditación en cuenta (exige CBU), 4 otra.
     forma_pago: Mapped[Optional[str]] = mapped_column(String(1), nullable=True)
     lugar_trabajo: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
+    # Datos estructurados para resolver la cuota sindical de afiliado (Art. 101).
+    # NO se derivan del domicilio de texto libre.
+    localidad: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
+    filial_sindical: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc)
 
 
