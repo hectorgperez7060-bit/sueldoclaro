@@ -26,7 +26,8 @@ def _to_out(e) -> EmpleadoOut:
         domicilio=e.domicilio, cantidad_hijos=e.cantidad_hijos or 0,
         conyuge_a_cargo=e.conyuge_a_cargo or False, obra_social=e.obra_social,
         modalidad_contrato=e.modalidad_contrato, cbu=e.cbu, forma_pago=e.forma_pago,
-        lugar_trabajo=e.lugar_trabajo,
+        lugar_trabajo=e.lugar_trabajo, localidad=e.localidad,
+        filial_sindical=e.filial_sindical,
     )
 
 
