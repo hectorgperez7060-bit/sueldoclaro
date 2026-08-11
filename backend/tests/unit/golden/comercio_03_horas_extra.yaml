@@ -1,0 +1,26 @@
+caso: "Comercio 130/75 - Administrativo A - 5 años + 10 hs extra al 50% - SIN amparo"
+tipo: mensual
+empleado:
+  cuil: "20123456786"
+  fecha_ingreso: "2021-07-01"
+  cct: "130/75"
+  categoria: "Administrativo A"
+  afiliado: true
+periodo: "2026-07"
+escala_basico: "500000.00"
+amparo_vigente: false
+novedades:
+  horas_extra_50: "10"
+
+esperado_conceptos:
+  BASICO: "500000.00"
+  ANTIGUEDAD: "25000.00"
+  PRESENTISMO: "43750.00"
+  HORAS_EXTRA_50: "39375.00"   # valor hora (525.000/200=2.625) x 1,5 x 10
+  APORTE_JUBILACION: "66893.75"
+  APORTE_MODERNIZACION: "6081.25"
+
+esperado_totales:
+  remunerativo: "608125.00"
+  deducciones: "121625.00"
+  neto: "486500.00"

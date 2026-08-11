@@ -1,0 +1,20 @@
+caso: "Comercio 130/75 - Vacaciones - antigüedad 5 años al 31/12 -> 21 días"
+tipo: vacaciones
+empleado:
+  cuil: "20123456786"
+  fecha_ingreso: "2021-07-01"
+  cct: "130/75"
+  categoria: "Administrativo A"
+  afiliado: true
+periodo: "2026-01"
+escala_basico: "500000.00"
+amparo_vigente: false
+vacaciones:
+  remuneracion_habitual: "568750.00"
+
+esperado_conceptos:
+  VACACIONES: "477750.00"   # (568.750 / 25) x 21 días
+
+esperado_totales:
+  remunerativo: "477750.00"
+  neto: "477750.00"
