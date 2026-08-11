@@ -133,7 +133,10 @@ HTML = r"""<!DOCTYPE html>
           <div><label>Filial sindical (si aplica)</label><input id="eFilial" placeholder="opcional"></div>
         </div>
 
-        <button class="chico" onclick="crearEmpleado()">Guardar empleado</button>
+        <div style="display:flex;gap:8px;margin-top:10px">
+          <button class="chico" id="btnGuardarEmp" onclick="crearEmpleado()">Guardar empleado</button>
+          <button class="chico secundario" id="btnCancelarEmp" style="display:none" onclick="cancelarEdicion()">Cancelar edición</button>
+        </div>
         <div class="error" id="empError"></div>
         <div class="ok" id="empOk"></div>
       </div>
@@ -156,6 +159,7 @@ HTML = r"""<!DOCTYPE html>
 <script>
 const $ = id => document.getElementById(id);
 let empleadosCache = {};
+let editandoEmpleadoId = null;
 let convenios = [];
 let empresaCache = {razon_social:'', cuit:''};
 let ultimaLiq = null;
@@ -247,17 +251,64 @@ async function cargarEmpleados(){
     lista.forEach(e=>{
       empleadosCache[e.id] = e;
       const tr=document.createElement('tr');
-      tr.innerHTML = `<td>${e.apellido}, ${e.nombre}</td><td>${e.cuil}</td><td>${e.cct_numero}</td><td>${e.categoria}</td><td>${e.fecha_ingreso}</td><td><button class="chico secundario" onclick="borrarEmpleado('${e.id}','${(e.apellido||'')+', '+(e.nombre||'')}')" title="Eliminar">🗑</button></td>`;
+      tr.innerHTML = `<td>${e.apellido}, ${e.nombre}</td><td>${e.cuil}</td><td>${e.cct_numero}</td><td>${e.categoria}</td><td>${e.fecha_ingreso}</td><td><button class="chico secundario" onclick="editarEmpleado('${e.id}')" title="Editar">✏️</button> <button class="chico secundario" onclick="borrarEmpleado('${e.id}','${(e.apellido||'')+', '+(e.nombre||'')}')" title="Eliminar">🗑</button></td>`;
       tb.appendChild(tr);
     });
     $('sinEmpleados').style.display = lista.length? 'none':'block';
     $('tablaEmpleados').style.display = lista.length? 'table':'none';
   }catch(e){ /* silencioso */ }
 }
+
+function editarEmpleado(id){
+  ocultar('empError'); ocultar('empOk');
+  const e = empleadosCache[id];
+  if(!e) return;
+  editandoEmpleadoId = id;
+  $('eNombre').value = e.nombre || '';
+  $('eApellido').value = e.apellido || '';
+  $('eCuil').value = e.cuil || '';
+  $('eFecha').value = e.fecha_ingreso || '';
+  if(e.cct_numero) $('eConvenio').value = e.cct_numero;
+  llenarCategorias();
+  if(e.categoria) $('eCategoria').value = e.categoria;
+  $('eLegajo').value = e.legajo || '';
+  $('eNacimiento').value = e.fecha_nacimiento || '';
+  $('eSexo').value = e.sexo || '';
+  $('eEstadoCivil').value = e.estado_civil || '';
+  $('eDomicilio').value = e.domicilio || '';
+  $('eHijos').value = e.cantidad_hijos || 0;
+  $('eConyuge').value = e.conyuge_a_cargo ? 'true' : 'false';
+  $('eObraSocial').value = e.obra_social || '';
+  $('eModalidad').value = e.modalidad_contrato || 'Tiempo indeterminado';
+  $('eFormaPago').value = e.forma_pago || '';
+  $('eCbu').value = e.cbu || '';
+  $('eLugar').value = e.lugar_trabajo || '';
+  $('eLocalidad').value = e.localidad || '';
+  $('eFilial').value = e.filial_sindical || '';
+  $('eRemun').value = e.remuneracion_pactada || '';
+
+  $('btnGuardarEmp').textContent = 'Guardar cambios';
+  $('btnCancelarEmp').style.display = 'inline-block';
+  $('alta').style.display = 'block';
+  toggleCbu();
+}
+
+function cancelarEdicion(){
+  editandoEmpleadoId = null;
+  ['eNombre','eApellido','eCuil','eFecha','eNacimiento','eDomicilio','eLegajo','eObraSocial','eLugar','eCbu','eRemun','eFormaPago','eLocalidad','eFilial'].forEach(i=>$(i).value='');
+  $('eHijos').value='0';
+  $('eConyuge').value='false';
+  $('btnGuardarEmp').textContent = 'Guardar empleado';
+  $('btnCancelarEmp').style.display = 'none';
+  ocultar('empError'); ocultar('empOk');
+  toggleCbu();
+}
+
 async function borrarEmpleado(id, nombre){
   if(!confirm('¿Eliminar a '+(nombre||'este empleado')+'? Esta acción no se puede deshacer.')) return;
   try{
     await api('/empleados/'+id, 'DELETE');
+    if(editandoEmpleadoId === id) cancelarEdicion();
     await cargarEmpleados();
   }catch(e){ alert('No se pudo eliminar: '+e.message); }
 }
@@ -293,11 +344,14 @@ async function crearEmpleado(){
       filial_sindical:$('eFilial').value.trim() || null,
       remuneracion_pactada:$('eRemun').value ? $('eRemun').value : null
     };
-    await api('/empleados','POST',cuerpo);
-    $('empOk').textContent='Empleado guardado ✔'; $('empOk').style.display='block';
-    ['eNombre','eApellido','eCuil','eFecha','eNacimiento','eDomicilio','eLegajo','eObraSocial','eLugar','eCbu','eRemun','eFormaPago','eLocalidad','eFilial'].forEach(i=>$(i).value='');
-    $('eHijos').value='0'; toggleCbu();
+    const metodo = editandoEmpleadoId ? 'PUT' : 'POST';
+    const ruta = editandoEmpleadoId ? '/empleados/' + editandoEmpleadoId : '/empleados';
+    await api(ruta, metodo, cuerpo);
+    const msgExito = editandoEmpleadoId ? 'Empleado actualizado ✔' : 'Empleado guardado ✔';
+    cancelarEdicion();
+    $('empOk').textContent = msgExito; $('empOk').style.display = 'block';
     await cargarEmpleados();
+
   }catch(e){ mostrarError('empError', e.message); }
 }
 

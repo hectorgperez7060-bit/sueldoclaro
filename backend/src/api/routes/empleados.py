@@ -70,6 +70,25 @@ async def obtener(empleado_id: str, principal: Principal = Depends(require_tenan
         return _to_out(emp)
 
 
+@router.put("/{empleado_id}", response_model=EmpleadoOut)
+async def actualizar(empleado_id: str, body: EmpleadoIn, principal: Principal = Depends(require_rol("admin", "liquidador"))):
+    if not es_cuil_valido(body.cuil):
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "CUIL inválido")
+    async with tenant_session(principal.tenant_id) as s:
+        emp = await EmpleadoRepo(s).obtener(uuid.UUID(empleado_id))
+        if emp is None:  # RLS: si es de otro tenant, no existe para este
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "Empleado no encontrado")
+        datos = body.model_dump()
+        datos["cuil"] = body.cuil.replace("-", "")
+        for k, v in datos.items():
+            setattr(emp, k, v)
+        await AuditRepo(s).registrar(accion="actualizar", entidad="empleado", entidad_id=empleado_id,
+                                     tenant_id=uuid.UUID(principal.tenant_id),
+                                     usuario_id=uuid.UUID(principal.usuario_id))
+        return _to_out(emp)
+
+
+
 @router.delete("/{empleado_id}", status_code=204)
 async def eliminar(empleado_id: str, principal: Principal = Depends(require_rol("admin", "liquidador"))):
     async with tenant_session(principal.tenant_id) as s:
