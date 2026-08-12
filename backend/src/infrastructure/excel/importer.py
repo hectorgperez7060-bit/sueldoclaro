@@ -14,8 +14,15 @@ from openpyxl import Workbook, load_workbook
 
 from domain.value_objects.cuil import digito_verificador, es_cuil_valido
 
+COLUMNAS = [
+    "nombre", "apellido", "cuil", "fecha_ingreso", "cct_numero",
+    "categoria", "legajo", "remuneracion_pactada", "afiliado_sindicato", "email",
+]
+
+
 
 def generar_cuil_valido_unico(dni_int: int, cuils_existentes: set[str], prefijo: str = "20") -> str:
+
     while True:
         diez_dig = f"{prefijo}{dni_int:08d}"
         dv = digito_verificador(diez_dig)
