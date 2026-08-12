@@ -83,6 +83,7 @@ HTML = r"""<!DOCTYPE html>
         <div style="display:flex;gap:6px;flex-wrap:wrap">
           <button class="chico secundario" onclick="toggleAlta()">+ Agregar manual</button>
           <label class="chico secundario" style="cursor:pointer;display:inline-flex;align-items:center;margin:0">+ Importar Excel (.xlsx)<input type="file" id="inputExcel" accept=".xlsx" style="display:none" onchange="subirExcelPreview(this)"></label>
+          <button class="chico secundario" onclick="probarImportacionDemo()" title="Probar vista previa e importación con datos de prueba generados al instante sin descargar ni editar archivos localmente">🧪 Probar demo Excel</button>
           <button class="chico secundario" onclick="descargarPlantillaExcel()" title="Descargar plantilla de ejemplo">📥 Plantilla</button>
           <button class="chico secundario" onclick="salir()">Salir</button>
         </div>
@@ -356,6 +357,39 @@ async function descargarPlantillaExcel(){
   }catch(e){ alert(e.message); }
 }
 
+function renderizarVistaPrevia(file, res){
+  const validos = res.validos || [];
+  const errores = res.errores || [];
+  const total = res.total_filas || 0;
+
+  $('resumenExcel').textContent = `Se leyeron ${total} filas del archivo "${file.name}": ${validos.length} filas válidas para importar, ${errores.length} filas con errores.`;
+  $('countValidos').textContent = validos.length;
+  $('countErrores').textContent = errores.length;
+
+  // Rellenar tabla de válidos
+  const tbV = $('tablaValidos').querySelector('tbody'); tbV.innerHTML = '';
+  validos.forEach(v=>{
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>Fila ${v.fila || '-'}</td><td>${v.apellido || ''}, ${v.nombre || ''}</td><td>${v.cuil || ''}</td><td>${v.cct_numero || ''}</td><td>${v.categoria || ''}</td><td>${v.fecha_ingreso || ''}</td>`;
+    tbV.appendChild(tr);
+  });
+  $('boxValidos').style.display = validos.length ? 'block' : 'none';
+
+  // Rellenar tabla de errores
+  const tbE = $('tablaErrores').querySelector('tbody'); tbE.innerHTML = '';
+  errores.forEach(e=>{
+    const tr = document.createElement('tr');
+    const detErr = Array.isArray(e.errores) ? e.errores.join('; ') : (e.errores || '');
+    tr.innerHTML = `<td>Fila ${e.fila || '-'}</td><td>${e.cuil || e.nombre || '—'}</td><td>${detErr}</td>`;
+    tbE.appendChild(tr);
+  });
+  $('boxErrores').style.display = errores.length ? 'block' : 'none';
+
+  $('btnConfirmarImport').style.display = validos.length ? 'inline-block' : 'none';
+  $('btnConfirmarImport').textContent = `Confirmar e importar (${validos.length} filas válidas)`;
+  $('vistaPreviaExcel').style.display = 'block';
+}
+
 async function subirExcelPreview(input){
   if(!input.files || !input.files[0]) return;
   const file = input.files[0];
@@ -371,40 +405,34 @@ async function subirExcelPreview(input){
     const res = await r.json().catch(()=>({detail: 'Error procesando Excel'}));
     if(!r.ok) throw new Error(res.detail || 'Error en vista previa');
     
-    const validos = res.validos || [];
-    const errores = res.errores || [];
-    const total = res.total_filas || 0;
-    
-    $('resumenExcel').textContent = `Se leyeron ${total} filas del archivo "${file.name}": ${validos.length} filas válidas para importar, ${errores.length} filas con errores.`;
-    $('countValidos').textContent = validos.length;
-    $('countErrores').textContent = errores.length;
-    
-    // Rellenar tabla de válidos
-    const tbV = $('tablaValidos').querySelector('tbody'); tbV.innerHTML = '';
-    validos.forEach(v=>{
-      const tr = document.createElement('tr');
-      tr.innerHTML = `<td>Fila ${v.fila || '-'}</td><td>${v.apellido || ''}, ${v.nombre || ''}</td><td>${v.cuil || ''}</td><td>${v.cct_numero || ''}</td><td>${v.categoria || ''}</td><td>${v.fecha_ingreso || ''}</td>`;
-      tbV.appendChild(tr);
-    });
-    $('boxValidos').style.display = validos.length ? 'block' : 'none';
-    
-    // Rellenar tabla de errores
-    const tbE = $('tablaErrores').querySelector('tbody'); tbE.innerHTML = '';
-    errores.forEach(e=>{
-      const tr = document.createElement('tr');
-      const detErr = Array.isArray(e.errores) ? e.errores.join('; ') : (e.errores || '');
-      tr.innerHTML = `<td>Fila ${e.fila || '-'}</td><td>${e.cuil || e.nombre || '—'}</td><td>${detErr}</td>`;
-      tbE.appendChild(tr);
-    });
-    $('boxErrores').style.display = errores.length ? 'block' : 'none';
-    
-    $('btnConfirmarImport').style.display = validos.length ? 'inline-block' : 'none';
-    $('btnConfirmarImport').textContent = `Confirmar e importar (${validos.length} filas válidas)`;
-    $('vistaPreviaExcel').style.display = 'block';
+    renderizarVistaPrevia(file, res);
   }catch(e){
     alert('Error leyendo el archivo Excel: ' + e.message);
   } finally {
     input.value = '';
+  }
+}
+
+async function probarImportacionDemo(){
+  ocultar('excelError'); ocultar('excelOk');
+  try{
+    const h = {}; if(token()) h['Authorization'] = 'Bearer ' + token();
+    const r = await fetch('/empleados/demo-excel', {headers: h});
+    if(!r.ok) throw new Error('No se pudo generar el Excel de prueba');
+    const blob = await r.blob();
+    const file = new File([blob], 'demo_empleados_prueba.xlsx', {type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+
+    archivoExcelCargado = file;
+    const formData = new FormData();
+    formData.append('archivo', file);
+
+    const r2 = await fetch('/empleados/preview-import', {method: 'POST', headers: h, body: formData});
+    const res = await r2.json().catch(()=>({detail: 'Error en vista previa demo'}));
+    if(!r2.ok) throw new Error(res.detail || 'Error cargando vista previa demo');
+
+    renderizarVistaPrevia(file, res);
+  }catch(e){
+    alert('Error en prueba demo: ' + e.message);
   }
 }
 

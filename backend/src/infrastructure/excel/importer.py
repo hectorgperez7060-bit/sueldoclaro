@@ -12,26 +12,61 @@ from typing import List, Tuple
 
 from openpyxl import Workbook, load_workbook
 
-from domain.value_objects.cuil import es_cuil_valido
-
-COLUMNAS = [
-    "nombre", "apellido", "cuil", "fecha_ingreso", "cct_numero",
-    "categoria", "legajo", "remuneracion_pactada", "afiliado_sindicato", "email",
-]
+from domain.value_objects.cuil import digito_verificador, es_cuil_valido
 
 
-def generar_plantilla() -> bytes:
+def generar_cuil_valido_unico(dni_int: int, cuils_existentes: set[str], prefijo: str = "20") -> str:
+    while True:
+        diez_dig = f"{prefijo}{dni_int:08d}"
+        dv = digito_verificador(diez_dig)
+        if dv >= 0:
+            c = f"{diez_dig}{dv}"
+            if c not in cuils_existentes:
+                return c
+        dni_int += 1
+
+
+def generar_plantilla(cuils_existentes: set[str] = None) -> bytes:
+    cuils_existentes = cuils_existentes or set()
+    cuil_sample = generar_cuil_valido_unico(12345678, cuils_existentes, "20")
     wb = Workbook()
     ws = wb.active
     ws.title = "empleados"
     ws.append(COLUMNAS)
     ws.append([
-        "Juan", "Pérez", "20123456786", "2021-07-01", "130/75",
+        "Juan", "Pérez", cuil_sample, "2021-07-01", "130/75",
         "Administrativo A", "0001", "", "SI", "juan@ejemplo.com",
     ])
     buf = io.BytesIO()
     wb.save(buf)
     return buf.getvalue()
+
+
+def generar_demo_excel(cuils_existentes: set[str] = None) -> bytes:
+    cuils_existentes = cuils_existentes or set()
+    c1 = generar_cuil_valido_unico(12345678, cuils_existentes, "20")
+    c2 = generar_cuil_valido_unico(23456789, cuils_existentes, "27")
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "empleados"
+    ws.append(COLUMNAS)
+    # Fila 2: Válida 1 (CUIL no existe en nómina activa)
+    ws.append(["Carlos", "Gómez", c1, "2021-07-01", "130/75", "Administrativo A", "0001", "", "SI", "carlos@ejemplo.com"])
+    # Fila 3: Válida 2 (CUIL no existe en nómina activa)
+    ws.append(["María", "López", c2, "2022-03-15", "130/75", "Vendedor B", "0002", "", "NO", "maria@ejemplo.com"])
+    # Fila 4: Error - CUIL repetido dentro del mismo Excel
+    ws.append(["Carlos", "Gómez Duplicado", c1, "2021-07-01", "130/75", "Administrativo A", "0003", "", "SI", ""])
+    # Fila 5: Error - CUIL inválido
+    ws.append(["Pedro", "Mendoza", "20999999999", "2023-01-10", "130/75", "Maestranza A", "0004", "", "SI", ""])
+
+    buf = io.BytesIO()
+    wb.save(buf)
+    return buf.getvalue()
+
+
+
+
 
 
 def _a_fecha(valor) -> date:

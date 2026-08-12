@@ -12,7 +12,7 @@ from application.use_cases.importar_empleados import ImportarEmpleados
 from domain.value_objects.cuil import es_cuil_valido
 from infrastructure.database.repositories import AuditRepo, EmpleadoRepo
 from infrastructure.database.session import tenant_session
-from infrastructure.excel.importer import generar_plantilla
+from infrastructure.excel.importer import generar_demo_excel, generar_plantilla
 
 router = APIRouter(prefix="/empleados", tags=["empleados"])
 
@@ -32,13 +32,32 @@ def _to_out(e) -> EmpleadoOut:
 
 
 @router.get("/plantilla")
-async def descargar_plantilla(_: Principal = Depends(require_tenant)):
-    data = generar_plantilla()
+async def descargar_plantilla(principal: Principal = Depends(require_tenant)):
+    async with tenant_session(principal.tenant_id) as s:
+        existentes = await EmpleadoRepo(s).listar()
+        cuils_existentes = {str(e.cuil).replace("-", "").strip() for e in existentes}
+    data = generar_plantilla(cuils_existentes)
     return Response(
         content=data,
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         headers={"Content-Disposition": "attachment; filename=plantilla_empleados.xlsx"},
     )
+
+
+
+@router.get("/demo-excel")
+async def obtener_demo_excel(principal: Principal = Depends(require_tenant)):
+    async with tenant_session(principal.tenant_id) as s:
+        existentes = await EmpleadoRepo(s).listar()
+        cuils_existentes = {str(e.cuil).replace("-", "").strip() for e in existentes}
+    data = generar_demo_excel(cuils_existentes)
+    return Response(
+        content=data,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": "attachment; filename=demo_empleados_prueba.xlsx"},
+    )
+
+
 
 
 @router.post("", response_model=EmpleadoOut, status_code=201)
