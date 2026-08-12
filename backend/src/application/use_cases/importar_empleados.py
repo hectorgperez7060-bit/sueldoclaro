@@ -9,13 +9,36 @@ from infrastructure.excel.importer import parsear
 
 
 class ImportarEmpleados:
-    async def ejecutar(self, tenant_id: str, contenido: bytes, usuario_id: str) -> dict:
-        validos, errores = parsear(contenido)
-        importados = 0
+    async def preview(self, tenant_id: str, contenido: bytes) -> dict:
         async with tenant_session(tenant_id) as s:
             repo = EmpleadoRepo(s)
+            existentes = await repo.listar()
+            cuils_existentes = {str(e.cuil).replace("-", "").strip() for e in existentes}
+        validos, errores = parsear(contenido, cuils_existentes)
+        # Convert date objects to isoformat string for JSON serialization
+        validos_serializables = []
+        for v in validos:
+            item = dict(v)
+            if "fecha_ingreso" in item and item["fecha_ingreso"]:
+                item["fecha_ingreso"] = str(item["fecha_ingreso"])
+            validos_serializables.append(item)
+        return {
+            "validos": validos_serializables,
+            "errores": errores,
+            "total_filas": len(validos) + len(errores),
+        }
+
+    async def ejecutar(self, tenant_id: str, contenido: bytes, usuario_id: str) -> dict:
+        async with tenant_session(tenant_id) as s:
+            repo = EmpleadoRepo(s)
+            existentes = await repo.listar()
+            cuils_existentes = {str(e.cuil).replace("-", "").strip() for e in existentes}
+            validos, errores = parsear(contenido, cuils_existentes)
+            importados = 0
             for datos in validos:
-                await repo.crear(uuid.UUID(tenant_id), datos)
+                # Quitar 'fila' key antes de pasar a repo.crear
+                datos_db = {k: v for k, v in datos.items() if k != "fila"}
+                await repo.crear(uuid.UUID(tenant_id), datos_db)
                 importados += 1
             await AuditRepo(s).registrar(
                 accion="import_empleados", entidad="empleado",
@@ -27,3 +50,4 @@ class ImportarEmpleados:
             "total_filas": importados + len(errores),
             "errores": errores,
         }
+

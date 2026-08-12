@@ -102,8 +102,15 @@ async def eliminar(empleado_id: str, principal: Principal = Depends(require_rol(
     return None
 
 
+@router.post("/preview-import")
+async def vista_previa_importacion(archivo: UploadFile, principal: Principal = Depends(require_rol("admin", "liquidador"))):
+    contenido = await archivo.read()
+    return await ImportarEmpleados().preview(principal.tenant_id, contenido)
+
+
 @router.post("/import", response_model=ImportResultado)
 async def importar(archivo: UploadFile, principal: Principal = Depends(require_rol("admin", "liquidador"))):
     contenido = await archivo.read()
     res = await ImportarEmpleados().ejecutar(principal.tenant_id, contenido, principal.usuario_id)
     return ImportResultado(**res)
+

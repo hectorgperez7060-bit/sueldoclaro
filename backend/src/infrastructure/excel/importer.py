@@ -42,7 +42,7 @@ def _a_fecha(valor) -> date:
     return datetime.strptime(str(valor).strip(), "%Y-%m-%d").date()
 
 
-def parsear(contenido: bytes) -> Tuple[List[dict], List[dict]]:
+def parsear(contenido: bytes, cuils_existentes: set[str] = None) -> Tuple[List[dict], List[dict]]:
     """Devuelve (empleados_validos, errores_por_fila)."""
     wb = load_workbook(io.BytesIO(contenido), read_only=True, data_only=True)
     ws = wb.active
@@ -59,6 +59,9 @@ def parsear(contenido: bytes) -> Tuple[List[dict], List[dict]]:
     if faltantes:
         return validos, [{"fila": 1, "errores": [f"Faltan columnas obligatorias: {', '.join(faltantes)}"]}]
 
+    cuils_vistos_excel: set[str] = set()
+    cuils_existentes = cuils_existentes or set()
+
     for n, fila in enumerate(filas[1:], start=2):
         def val(col):
             i = idx.get(col)
@@ -68,6 +71,14 @@ def parsear(contenido: bytes) -> Tuple[List[dict], List[dict]]:
         cuil = str(val("cuil") or "").replace("-", "").strip()
         if not es_cuil_valido(cuil):
             errs.append(f"CUIL inválido: {val('cuil')!r}")
+        else:
+            if cuil in cuils_vistos_excel:
+                errs.append(f"CUIL {cuil} repetido dentro del mismo archivo Excel")
+            else:
+                cuils_vistos_excel.add(cuil)
+
+            if cuil in cuils_existentes:
+                errs.append(f"CUIL {cuil} ya existe registrado en la nómina activa")
 
         try:
             fecha_ing = _a_fecha(val("fecha_ingreso"))
@@ -87,14 +98,18 @@ def parsear(contenido: bytes) -> Tuple[List[dict], List[dict]]:
             except (InvalidOperation, ValueError):
                 errs.append(f"remuneracion_pactada inválida: {rem!r}")
 
+        nom = str(val("nombre") or "").strip()
+        ape = str(val("apellido") or "").strip()
+
         if errs:
-            errores.append({"fila": n, "errores": errs})
+            errores.append({"fila": n, "nombre": f"{ape}, {nom}".strip(", "), "cuil": cuil, "errores": errs})
             continue
 
         afil = str(val("afiliado_sindicato") or "SI").strip().upper()
         validos.append({
-            "nombre": str(val("nombre")).strip(),
-            "apellido": str(val("apellido")).strip(),
+            "fila": n,
+            "nombre": nom,
+            "apellido": ape,
             "cuil": cuil,
             "fecha_ingreso": fecha_ing,
             "cct_numero": str(val("cct_numero")).strip(),
@@ -106,3 +121,4 @@ def parsear(contenido: bytes) -> Tuple[List[dict], List[dict]]:
         })
 
     return validos, errores
+
