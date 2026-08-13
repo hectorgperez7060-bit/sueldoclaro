@@ -57,3 +57,10 @@ def test_ui_muestra_bloqueo_real_sin_confundir_calculo_con_confirmacion():
 def test_ui_formatea_fecha_en_hora_argentina_24_horas():
     assert "America/Argentina/Buenos_Aires" in HTML
     assert "hourCycle:'h23'" in HTML
+
+
+def test_ui_renueva_sesion_y_reintenta_sin_pedir_clave():
+    assert "async function renovarSesion()" in HTML
+    assert "fetch('/auth/refresh'" in HTML
+    assert "if(await renovarSesion()) return api(ruta,metodo,body,false)" in HTML
+    assert "else if(localStorage.getItem('sc_refresh'))" in HTML

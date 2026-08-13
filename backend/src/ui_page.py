@@ -279,11 +279,38 @@ function mostrarTab(t){
 function mostrarError(id,msg){ const e=$(id); e.textContent=msg; e.style.display='block'; }
 function ocultar(id){ $(id).style.display='none'; }
 
-async function api(ruta, metodo='GET', body=null){
+let renovacionEnCurso=null;
+async function renovarSesion(){
+  const refresh=localStorage.getItem('sc_refresh');
+  if(!refresh) return false;
+  if(!renovacionEnCurso){
+    renovacionEnCurso=(async()=>{
+      try{
+        const r=await fetch('/auth/refresh',{
+          method:'POST',headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({refresh_token:refresh})
+        });
+        if(!r.ok) return false;
+        const d=await r.json();
+        localStorage.setItem('sc_access',d.access_token);
+        localStorage.setItem('sc_refresh',d.refresh_token);
+        return true;
+      }catch(e){ return false; }
+      finally{ renovacionEnCurso=null; }
+    })();
+  }
+  return renovacionEnCurso;
+}
+
+async function api(ruta, metodo='GET', body=null, reintento=true){
   const h = {'Content-Type':'application/json'};
   if(token()) h['Authorization'] = 'Bearer ' + token();
   const r = await fetch(ruta,{method:metodo,headers:h,body:body?JSON.stringify(body):null});
-  if(r.status===401 && token()){ salir(); throw new Error('Tu sesión venció. Ingresá de nuevo.'); }
+  if(r.status===401 && token() && reintento){
+    if(await renovarSesion()) return api(ruta,metodo,body,false);
+    salir();
+    throw new Error('Tu sesión venció. Ingresá de nuevo.');
+  }
   const data = await r.json().catch(()=>({detail:'Error inesperado'}));
   if(!r.ok){
     let msg = data.detail;
@@ -857,6 +884,9 @@ function verRecibo(empId){
 }
 
 if(token()) entrar();
+else if(localStorage.getItem('sc_refresh')){
+  renovarSesion().then(ok=>{ if(ok) entrar(); else salir(); });
+}
 </script>
 </body>
 </html>
