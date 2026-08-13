@@ -92,7 +92,7 @@ HTML = r"""<!DOCTYPE html>
         <div style="display:flex;gap:6px;flex-wrap:wrap">
           <button class="chico secundario" onclick="toggleAlta()">+ Agregar manual</button>
           <label class="chico secundario" style="cursor:pointer;display:inline-flex;align-items:center;margin:0">+ Importar Excel (.xlsx)<input type="file" id="inputExcel" accept=".xlsx" style="display:none" onchange="subirExcelPreview(this)"></label>
-          <button class="chico secundario" onclick="descargarPlantillaExcel()" title="Descargar plantilla de ejemplo">📥 Plantilla</button>
+          <button class="chico secundario" onclick="descargarPlantillaExcel()" title="Descargar plantilla para importar empleados">📥 Plantilla de empleados</button>
           <button class="chico secundario" onclick="salir()">Salir</button>
         </div>
       </div>

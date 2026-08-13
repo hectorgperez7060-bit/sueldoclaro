@@ -3,6 +3,7 @@ from ui_page import HTML
 
 def test_ui_muestra_seccion_sin_overlay_ni_demo_excel():
     assert "Novedades mensuales" in HTML
+    assert "Plantilla de empleados" in HTML
     assert 'id="formNovedad"' in HTML
     assert 'id="tablaNovedades"' in HTML
     assert "Probar demo Excel" not in HTML
