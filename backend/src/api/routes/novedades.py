@@ -28,7 +28,7 @@ def _uuid(valor: str, nombre: str) -> uuid.UUID:
         ) from exc
 
 
-def _to_out(novedad) -> NovedadMensualOut:
+def _to_out(novedad, bloqueada: bool = False) -> NovedadMensualOut:
     return NovedadMensualOut(
         id=str(novedad.id),
         empleado_id=str(novedad.empleado_id),
@@ -44,6 +44,7 @@ def _to_out(novedad) -> NovedadMensualOut:
         tipo_premio=novedad.tipo_premio,
         descuentos_adicionales=novedad.descuentos_adicionales,
         observaciones=novedad.observaciones,
+        bloqueada=bloqueada,
     )
 
 
@@ -61,6 +62,8 @@ async def crear(
             )
         except LookupError as exc:
             raise HTTPException(status.HTTP_404_NOT_FOUND, str(exc)) from exc
+        except ValueError as exc:
+            raise HTTPException(status.HTTP_409_CONFLICT, str(exc)) from exc
         await AuditRepo(s).registrar(
             accion="crear", entidad="novedad_mensual", entidad_id=str(novedad.id),
             tenant_id=tid, usuario_id=_uuid(principal.usuario_id, "usuario"),
@@ -78,8 +81,15 @@ async def listar(
     DatosNovedadMensual(periodo=periodo)
     tid = _uuid(principal.tenant_id, "empresa")
     async with tenant_session(principal.tenant_id) as s:
-        novedades = await NovedadMensualRepo(s).listar_periodo(tid, periodo)
-        return [_to_out(n) for n in novedades]
+        repo = NovedadMensualRepo(s)
+        novedades = await repo.listar_periodo(tid, periodo)
+        return [
+            _to_out(
+                n,
+                await repo.esta_bloqueada(tid, n.empleado_id, n.periodo),
+            )
+            for n in novedades
+        ]
 
 
 @router.get("/{novedad_id}", response_model=NovedadMensualOut)
@@ -110,6 +120,8 @@ async def editar(
             novedad = await NovedadMensualRepo(s).editar(tid, nid, body.datos_dominio())
         except LookupError as exc:
             raise HTTPException(status.HTTP_404_NOT_FOUND, str(exc)) from exc
+        except ValueError as exc:
+            raise HTTPException(status.HTTP_409_CONFLICT, str(exc)) from exc
         await AuditRepo(s).registrar(
             accion="actualizar", entidad="novedad_mensual", entidad_id=novedad_id,
             tenant_id=tid, usuario_id=_uuid(principal.usuario_id, "usuario"),
@@ -126,7 +138,10 @@ async def eliminar(
     tid = _uuid(principal.tenant_id, "empresa")
     nid = _uuid(novedad_id, "novedad")
     async with tenant_session(principal.tenant_id) as s:
-        eliminado = await NovedadMensualRepo(s).eliminar(tid, nid)
+        try:
+            eliminado = await NovedadMensualRepo(s).eliminar(tid, nid)
+        except ValueError as exc:
+            raise HTTPException(status.HTTP_409_CONFLICT, str(exc)) from exc
         if not eliminado:
             raise HTTPException(status.HTTP_404_NOT_FOUND, "Novedad no encontrada")
         await AuditRepo(s).registrar(

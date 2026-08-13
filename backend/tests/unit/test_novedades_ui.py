@@ -39,3 +39,21 @@ def test_ui_incluye_identidad_visual_propia_en_app_y_recibo():
     assert 'aria-label="Logo Sueldo Claro"' in HTML
     assert 'class="marca-recibo"' in HTML
     assert "Google" not in HTML
+
+
+def test_ui_adapta_tablas_y_acciones_a_celular():
+    assert 'class="tabla-movil"' in HTML
+    assert 'data-label="Empleado"' in HTML
+    assert 'class="acciones-tabla"' in HTML
+    assert "table.tabla-movil thead{display:none}" in HTML
+
+
+def test_ui_muestra_bloqueo_real_sin_confundir_calculo_con_confirmacion():
+    assert "n.bloqueada" in HTML
+    assert "Cerrada por liquidación confirmada" in HTML
+    assert "Editable: la liquidación está calculada, no confirmada" in HTML
+
+
+def test_ui_formatea_fecha_en_hora_argentina_24_horas():
+    assert "America/Argentina/Buenos_Aires" in HTML
+    assert "hourCycle:'h23'" in HTML

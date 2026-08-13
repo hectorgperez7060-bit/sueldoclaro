@@ -46,6 +46,22 @@ HTML = r"""<!DOCTYPE html>
   #app{display:none}
   .cabecera-seccion{display:flex;justify-content:space-between;align-items:center}
   .detalle{margin-top:14px;border:1px solid var(--borde);border-radius:10px;padding:14px}
+  .acciones-tabla{display:flex;gap:6px;white-space:nowrap}
+  .estado-edicion{display:block;color:#6b7280;font-size:.75rem;margin-top:4px}
+  @media(max-width:640px){
+    .contenedor{padding:0 10px;margin:14px auto}
+    .tarjeta{padding:16px}
+    .cabecera-seccion{align-items:flex-start;gap:10px}
+    table.tabla-movil thead{display:none}
+    table.tabla-movil,table.tabla-movil tbody,table.tabla-movil tr,table.tabla-movil td{display:block;width:100%}
+    table.tabla-movil tr{border:1px solid var(--borde);border-radius:9px;margin:10px 0;padding:7px 10px}
+    table.tabla-movil td{display:grid;grid-template-columns:minmax(105px,40%) 1fr;gap:8px;padding:7px 0;border-bottom:1px solid var(--borde);overflow-wrap:anywhere}
+    table.tabla-movil td:last-child{border-bottom:0}
+    table.tabla-movil td::before{content:attr(data-label);font-weight:600;color:#374151}
+    table.tabla-movil td.acciones-celda{display:block}
+    table.tabla-movil td.acciones-celda::before{display:none}
+    .acciones-tabla button{flex:1;min-height:38px}
+  }
 </style>
 </head>
 <body>
@@ -174,7 +190,7 @@ HTML = r"""<!DOCTYPE html>
         <div class="error" id="empError"></div>
         <div class="ok" id="empOk"></div>
       </div>
-      <table id="tablaEmpleados"><thead><tr><th>Apellido y nombre</th><th>CUIL</th><th>Convenio</th><th>Categoría</th><th>Ingreso</th><th></th></tr></thead><tbody></tbody></table>
+      <table id="tablaEmpleados" class="tabla-movil"><thead><tr><th>Apellido y nombre</th><th>CUIL</th><th>Convenio</th><th>Categoría</th><th>Ingreso</th><th></th></tr></thead><tbody></tbody></table>
       <p id="sinEmpleados" style="margin-top:10px;color:#6b7280;font-size:.9rem">Todavía no cargaste empleados.</p>
     </div>
 
@@ -213,7 +229,7 @@ HTML = r"""<!DOCTYPE html>
 
       <div class="error" id="novError"></div>
       <div class="ok" id="novOk"></div>
-      <table id="tablaNovedades" style="display:none"><thead><tr><th>Empleado</th><th>Días</th><th>Faltas</th><th>Extras</th><th>Premios / descuentos</th><th></th></tr></thead><tbody></tbody></table>
+      <table id="tablaNovedades" class="tabla-movil" style="display:none"><thead><tr><th>Empleado</th><th>Días</th><th>Faltas</th><th>Extras</th><th>Premios / descuentos</th><th></th></tr></thead><tbody></tbody></table>
       <p id="sinNovedades" style="margin-top:10px;color:#6b7280;font-size:.9rem">No hay novedades cargadas para este mes.</p>
     </div>
 
@@ -235,7 +251,7 @@ HTML = r"""<!DOCTYPE html>
       </div>
       <p style="font-size:.85rem;color:#6b7280">Cada liquidación conserva una versión de sólo lectura. Las correcciones no borran las anteriores.</p>
       <div class="error" id="carpetasError"></div>
-      <table id="tablaCarpetas" style="display:none"><thead><tr><th>Mes</th><th>Versión</th><th>Estado</th><th>Creada</th><th>Huella</th></tr></thead><tbody></tbody></table>
+      <table id="tablaCarpetas" class="tabla-movil" style="display:none"><thead><tr><th>Mes</th><th>Versión</th><th>Estado</th><th>Creada</th><th>Huella</th></tr></thead><tbody></tbody></table>
       <p id="sinCarpetas" style="margin-top:10px;color:#6b7280;font-size:.9rem">Todavía no hay carpetas generadas para este mes.</p>
     </div>
   </div>
@@ -343,7 +359,7 @@ async function cargarEmpleados(){
     lista.forEach(e=>{
       empleadosCache[e.id] = e;
       const tr=document.createElement('tr');
-      tr.innerHTML = `<td>${e.apellido}, ${e.nombre}</td><td>${e.cuil}</td><td>${e.cct_numero}</td><td>${e.categoria}</td><td>${e.fecha_ingreso}</td><td><button class="chico secundario" onclick="editarEmpleado('${e.id}')" title="Editar">✏️</button> <button class="chico secundario" onclick="borrarEmpleado('${e.id}','${(e.apellido||'')+', '+(e.nombre||'')}')" title="Eliminar">🗑</button></td>`;
+      tr.innerHTML = `<td data-label="Empleado">${e.apellido}, ${e.nombre}</td><td data-label="CUIL">${e.cuil}</td><td data-label="Convenio">${e.cct_numero}</td><td data-label="Categoría">${e.categoria}</td><td data-label="Ingreso">${e.fecha_ingreso}</td><td class="acciones-celda"><div class="acciones-tabla"><button class="chico secundario" onclick="editarEmpleado('${e.id}')" title="Editar">✏️ Editar</button><button class="chico secundario" onclick="borrarEmpleado('${e.id}','${(e.apellido||'')+', '+(e.nombre||'')}')" title="Eliminar">🗑 Eliminar</button></div></td>`;
       tb.appendChild(tr);
     });
     $('sinEmpleados').style.display = lista.length? 'none':'block';
@@ -388,7 +404,10 @@ async function cargarNovedades(){
       const emp=empleadosCache[n.empleado_id] || {apellido:'Empleado',nombre:''};
       const tr=document.createElement('tr');
       const faltas=Number(n.faltas_justificadas)+Number(n.faltas_injustificadas);
-      tr.innerHTML=`<td>${emp.apellido}, ${emp.nombre}</td><td>${n.dias_trabajados}</td><td>${faltas}</td><td>50%: ${n.horas_extra_50} · 100%: ${n.horas_extra_100}</td><td>$ ${fmt(n.premios)} / $ ${fmt(n.descuentos_adicionales)}</td><td><button class="chico secundario" onclick="editarNovedad('${n.id}')" title="Editar">✏️</button> <button class="chico secundario" onclick="borrarNovedad('${n.id}')" title="Eliminar">🗑</button></td>`;
+      const acciones=n.bloqueada
+        ? '<span class="estado-edicion">🔒 Cerrada por liquidación confirmada</span>'
+        : `<div class="acciones-tabla"><button class="chico secundario" onclick="editarNovedad('${n.id}')" title="Editar">✏️ Editar</button><button class="chico secundario" onclick="borrarNovedad('${n.id}')" title="Eliminar">🗑 Eliminar</button></div><span class="estado-edicion">Editable: la liquidación está calculada, no confirmada</span>`;
+      tr.innerHTML=`<td data-label="Empleado">${emp.apellido}, ${emp.nombre}</td><td data-label="Días">${n.dias_trabajados}</td><td data-label="Faltas">${faltas}</td><td data-label="Extras">50%: ${n.horas_extra_50} · 100%: ${n.horas_extra_100}</td><td data-label="Premios / descuentos">$ ${fmt(n.premios)} / $ ${fmt(n.descuentos_adicionales)}</td><td class="acciones-celda">${acciones}</td>`;
       tb.appendChild(tr);
     });
     $('tablaNovedades').style.display=lista.length?'table':'none';
@@ -411,7 +430,10 @@ async function mostrarEstadoNormativo(){
 function fechaHora(valor){
   if(!valor) return '—';
   const d=new Date(valor);
-  return Number.isNaN(d.getTime())?valor:d.toLocaleString('es-AR');
+  return Number.isNaN(d.getTime())?valor:new Intl.DateTimeFormat('es-AR',{
+    timeZone:'America/Argentina/Buenos_Aires',day:'2-digit',month:'2-digit',year:'numeric',
+    hour:'2-digit',minute:'2-digit',second:'2-digit',hourCycle:'h23'
+  }).format(d);
 }
 
 async function cargarCarpetas(){
@@ -424,7 +446,7 @@ async function cargarCarpetas(){
     lista.forEach(c=>{
       const tr=document.createElement('tr');
       const huella=(c.hash_sha256||'').slice(0,12);
-      tr.innerHTML=`<td>${c.periodo}</td><td>v${c.version}</td><td><span class="etiqueta">${c.estado}</span></td><td>${fechaHora(c.created_at)}</td><td title="${c.hash_sha256||''}"><code>${huella}${huella?'…':''}</code></td>`;
+      tr.innerHTML=`<td data-label="Mes">${c.periodo}</td><td data-label="Versión">v${c.version}</td><td data-label="Estado"><span class="etiqueta">${c.estado}</span></td><td data-label="Creada (Argentina)">${fechaHora(c.created_at)}</td><td data-label="Huella" title="${c.hash_sha256||''}"><code>${huella}${huella?'…':''}</code></td>`;
       tb.appendChild(tr);
     });
     $('tablaCarpetas').style.display=lista.length?'table':'none';

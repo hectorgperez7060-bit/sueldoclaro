@@ -183,6 +183,7 @@ class NovedadMensualOut(BaseModel):
     tipo_premio: str
     descuentos_adicionales: Decimal
     observaciones: str
+    bloqueada: bool = False
 
 
 # --- Liquidación ---

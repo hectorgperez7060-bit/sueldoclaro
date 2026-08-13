@@ -138,6 +138,12 @@ class NovedadMensualRepo:
         )
         return r.scalar_one_or_none() is not None
 
+    async def esta_bloqueada(
+        self, tenant_id: uuid.UUID, empleado_id: uuid.UUID, periodo: str,
+    ) -> bool:
+        """Indica si una novedad ya es inmutable por confirmación de la liquidación."""
+        return await self._periodo_confirmado(tenant_id, empleado_id, periodo)
+
     async def crear(
         self, tenant_id: uuid.UUID, empleado_id: uuid.UUID, datos: DatosNovedadMensual,
     ) -> m.NovedadMensual:
