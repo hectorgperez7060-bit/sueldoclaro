@@ -14,7 +14,9 @@ HTML = r"""<!DOCTYPE html>
   *{box-sizing:border-box;margin:0;padding:0}
   body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--gris);color:var(--txt)}
   header{background:var(--verde);color:#fff;padding:14px 20px;display:flex;justify-content:space-between;align-items:center}
-  header h1{font-size:1.25rem;letter-spacing:.5px}
+  header h1{font-size:1.25rem;letter-spacing:.2px}
+  .marca{display:flex;align-items:center;gap:9px}
+  .marca svg{width:38px;height:38px;flex:none}
   header small{opacity:.85}
   .contenedor{max-width:960px;margin:24px auto;padding:0 16px}
   .tarjeta{background:#fff;border:1px solid var(--borde);border-radius:12px;padding:20px;margin-bottom:20px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
@@ -48,7 +50,14 @@ HTML = r"""<!DOCTYPE html>
 </head>
 <body>
 <header>
-  <h1>SUELDOCLARO</h1>
+  <div class="marca">
+    <svg viewBox="0 0 64 64" role="img" aria-label="Logo Sueldo Claro">
+      <path d="M12 7h27l10 10v25H12z" fill="none" stroke="#fff" stroke-width="5" stroke-linejoin="round"/>
+      <path d="M39 7v11h10M20 24h19M20 33h12" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="m31 45 8 8 15-18" fill="none" stroke="#fbbf24" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <h1>Sueldo Claro</h1>
+  </div>
   <small id="quien"></small>
 </header>
 <div class="contenedor">
@@ -777,6 +786,7 @@ function verRecibo(empId){
    +'<style>*{box-sizing:border-box;font-family:Arial,Helvetica,sans-serif}body{margin:0;background:#eef1f4;color:#111}'
    +'.hoja{background:#fff;max-width:800px;margin:16px auto;padding:24px;border:1px solid #ccc}'
    +'.barra{background:#0f766e;color:#fff;padding:10px 14px;border-radius:6px;display:flex;justify-content:space-between;align-items:center}'
+   +'.marca-recibo{display:flex;align-items:center;gap:9px}.marca-recibo svg{width:40px;height:40px;flex:none}'
    +'.barra h1{font-size:1.05rem;margin:0}.barra small{opacity:.9}'
    +'.aviso{background:#fef3c7;border:1px solid #fcd34d;color:#92400e;font-size:.72rem;padding:6px 10px;border-radius:4px;margin:10px 0}'
    +'h2{font-size:.78rem;background:#e6efee;color:#0f766e;padding:5px 8px;margin:14px 0 6px;border-left:4px solid #0f766e;text-transform:uppercase;letter-spacing:.5px}'
@@ -792,7 +802,7 @@ function verRecibo(empId){
    +'@media print{body{background:#fff}.hoja{border:0;margin:0;max-width:100%}.btn,.aviso{display:none}}</style></head><body>'
    +'<button class="btn" onclick="window.print()">⬇ Descargar / Imprimir PDF</button>'
    +'<div class="hoja">'
-   +'<div class="barra"><h1>RECIBO DE HABERES</h1><small>Anexo III · Dto. 407/2026 · Período '+per+'</small></div>'
+   +'<div class="barra"><div class="marca-recibo"><svg viewBox="0 0 64 64" role="img" aria-label="Logo Sueldo Claro"><path d="M12 7h27l10 10v25H12z" fill="none" stroke="#fff" stroke-width="5" stroke-linejoin="round"/><path d="M39 7v11h10M20 24h19M20 33h12" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/><path d="m31 45 8 8 15-18" fill="none" stroke="#fbbf24" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg><div><b>Sueldo Claro</b><h1>RECIBO DE HABERES</h1></div></div><small>Anexo III · Dto. 407/2026 · Período '+per+'</small></div>'
    +'<div class="aviso">Documento de PRUEBA — valores a verificar por contador matriculado.</div>'
    +'<h2>A · Cabecera</h2><div class="grid2">'
    +'<div class="caja"><b>EMPLEADOR</b>'

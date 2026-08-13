@@ -32,3 +32,9 @@ def test_ui_muestra_historial_de_carpetas_mensuales_solo_lectura():
     assert "api('/carpetas-mensuales?periodo='" in HTML
     assert "v${c.version}" in HTML
     assert "(c.hash_sha256||'').slice(0,12)" in HTML
+
+
+def test_ui_incluye_identidad_visual_propia_en_app_y_recibo():
+    assert 'aria-label="Logo Sueldo Claro"' in HTML
+    assert 'class="marca-recibo"' in HTML
+    assert "Google" not in HTML
