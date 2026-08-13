@@ -17,7 +17,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 from domain.entities.empleado import Empleado
 from domain.entities.parametros import ParametroLegal as P, ParametroSet, EscalaSalarial, AmparoSet, Amparo
-from domain.payroll_engine.engine import MotorLiquidacion
+from domain.payroll_engine.engine import MotorLiquidacion, Novedades
 from domain.payroll_engine.config import CctConfig
 from domain.value_objects.cuil import Cuil
 from domain.value_objects.dinero import Dinero
@@ -86,6 +86,50 @@ def test_comercio_afiliado_paga_art100_faecys_y_cuota_art101():
     assert _c(r, "APORTE_SINDICAL_ART100_130/75") == _pc("0.02")   # sigue pagando el art.100
     assert _c(r, "APORTE_FAECYS_ART100_130/75") == _pc("0.005")
     assert _c(r, "CUOTA_SINDICAL_ART101_130/75") == _pc("0.02")    # + cuota art.101 (afiliado)
+
+
+def test_premio_remunerativo_integra_bases_y_no_remunerativo_no():
+    base = _motor().liquidar_mensual(
+        _emp(False), Periodo(2026, 7), ESC, CCT, a_fecha=date(2026, 7, 28)
+    )
+    rem = _motor().liquidar_mensual(
+        _emp(False), Periodo(2026, 7), ESC, CCT,
+        Novedades(premio=D("10000"), tipo_premio="remunerativo"),
+        a_fecha=date(2026, 7, 28),
+    )
+    no_rem = _motor().liquidar_mensual(
+        _emp(False), Periodo(2026, 7), ESC, CCT,
+        Novedades(premio=D("10000"), tipo_premio="no_remunerativo"),
+        a_fecha=date(2026, 7, 28),
+    )
+    assert _c(rem, "PREMIO_REMUNERATIVO") == D("10000.00")
+    assert _c(no_rem, "PREMIO_NO_REMUNERATIVO") == D("10000.00")
+    assert _c(rem, "APORTE_JUBILACION") > _c(base, "APORTE_JUBILACION")
+    assert _c(no_rem, "APORTE_JUBILACION") == _c(base, "APORTE_JUBILACION")
+
+
+def test_premio_pendiente_no_se_calcula():
+    r = _motor().liquidar_mensual(
+        _emp(False), Periodo(2026, 7), ESC, CCT,
+        Novedades(premio=D("10000"), tipo_premio="pendiente"),
+        a_fecha=date(2026, 7, 28),
+    )
+    assert _c(r, "PREMIO_REMUNERATIVO") is None
+    assert _c(r, "PREMIO_NO_REMUNERATIVO") is None
+
+
+def test_descuento_baja_neto_sin_reducir_aportes():
+    base = _motor().liquidar_mensual(
+        _emp(False), Periodo(2026, 7), ESC, CCT, a_fecha=date(2026, 7, 28)
+    )
+    con_desc = _motor().liquidar_mensual(
+        _emp(False), Periodo(2026, 7), ESC, CCT,
+        Novedades(descuento_adicional=D("5000"), detalle_descuento="Adelanto"),
+        a_fecha=date(2026, 7, 28),
+    )
+    assert _c(con_desc, "DESCUENTO_ADICIONAL") == D("5000.00")
+    assert _c(con_desc, "APORTE_JUBILACION") == _c(base, "APORTE_JUBILACION")
+    assert con_desc.neto.monto == base.neto.monto - D("5000.00")
 
 
 if __name__ == "__main__":

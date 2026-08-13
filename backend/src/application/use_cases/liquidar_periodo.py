@@ -11,6 +11,7 @@ from decimal import Decimal
 from typing import Dict
 
 from domain.entities.empleado import Empleado
+from domain.entities.carpeta_mensual import construir_contenido_carpeta, huella_carpeta
 from domain.entities.parametros import ParametroLegal as ParamDom
 from domain.payroll_engine.engine import MotorLiquidacion, Novedades
 from domain.value_objects.cuil import Cuil
@@ -18,11 +19,45 @@ from domain.value_objects.dinero import Dinero
 from domain.value_objects.periodo import Periodo
 from infrastructure.database.repositories import (
     AuditRepo,
+    CarpetaMensualRepo,
     EmpleadoRepo,
     LiquidacionRepo,
+    NovedadMensualRepo,
     ParametrosRepo,
 )
 from infrastructure.database.session import tenant_session
+
+
+def resolver_horas_extra(
+    empleados: list,
+    novedades_guardadas: list,
+    novedades_legacy: Dict[str, dict],
+) -> Dict[str, dict]:
+    """Novedad persistida manda; el body anterior queda como compatibilidad."""
+    ids_validos = {str(emp.id) for emp in empleados}
+    res = {
+        empleado_id: {
+            "horas_extra_50": Decimal(str(datos.get("horas_extra_50", "0"))),
+            "horas_extra_100": Decimal(str(datos.get("horas_extra_100", "0"))),
+            "origen": "body_legacy",
+            "premio": Decimal("0"), "tipo_premio": "pendiente",
+            "descuento_adicional": Decimal("0"), "detalle_descuento": "",
+        }
+        for empleado_id, datos in novedades_legacy.items()
+        if empleado_id in ids_validos
+    }
+    for novedad in novedades_guardadas:
+        res[str(novedad.empleado_id)] = {
+            "horas_extra_50": Decimal(novedad.horas_extra_50 or 0),
+            "horas_extra_100": Decimal(novedad.horas_extra_100 or 0),
+            "origen": "novedad_mensual",
+            "novedad_id": str(novedad.id),
+            "premio": Decimal(novedad.premios or 0),
+            "tipo_premio": novedad.tipo_premio or "pendiente",
+            "descuento_adicional": Decimal(novedad.descuentos_adicionales or 0),
+            "detalle_descuento": novedad.observaciones or "",
+        }
+    return res
 
 
 class LiquidarPeriodo:
@@ -36,6 +71,10 @@ class LiquidarPeriodo:
             parametros = await params_repo.parametro_set(fecha_ref)
 
             empleados = await EmpleadoRepo(s).listar()
+            novedades_guardadas = await NovedadMensualRepo(s).listar_periodo(
+                uuid.UUID(tenant_id), periodo_str
+            )
+            horas_extra = resolver_horas_extra(empleados, novedades_guardadas, novedades)
             liq_repo = LiquidacionRepo(s)
 
             snapshot = {"periodo": periodo_str, "generado": fecha_ref.isoformat(), "empleados": {}}
@@ -76,12 +115,16 @@ class LiquidarPeriodo:
                     localidad=emp.localidad,
                     filial_sindical=emp.filial_sindical,
                 )
-                nv = novedades.get(str(emp.id), {})
+                nv = horas_extra.get(str(emp.id), {})
                 res = motor.liquidar_mensual(
                     dom_emp, periodo, escala, cct_cfg,
                     Novedades(
                         horas_extra_50=Decimal(str(nv.get("horas_extra_50", "0"))),
                         horas_extra_100=Decimal(str(nv.get("horas_extra_100", "0"))),
+                        premio=Decimal(str(nv.get("premio", "0"))),
+                        tipo_premio=nv.get("tipo_premio", "pendiente"),
+                        descuento_adicional=Decimal(str(nv.get("descuento_adicional", "0"))),
+                        detalle_descuento=nv.get("detalle_descuento", ""),
                     ),
                     a_fecha=fecha_ref,
                 )
@@ -101,6 +144,15 @@ class LiquidarPeriodo:
                     "cct": emp.cct_numero, "categoria": emp.categoria,
                     "basico": str(escala.basico.monto),
                     "amparos": [a[0] + ":" + (a[2] or "") for a in res.regimenes_aplicados()],
+                    "novedades": {
+                        "horas_extra_50": str(nv.get("horas_extra_50", "0")),
+                        "horas_extra_100": str(nv.get("horas_extra_100", "0")),
+                        "origen": nv.get("origen", "sin_novedades"),
+                        "novedad_id": nv.get("novedad_id"),
+                        "premio": str(nv.get("premio", "0")),
+                        "tipo_premio": nv.get("tipo_premio", "pendiente"),
+                        "descuento_adicional": str(nv.get("descuento_adicional", "0")),
+                    },
                 }
                 detalles_out.append({
                     "empleado_id": str(emp.id),
@@ -114,12 +166,42 @@ class LiquidarPeriodo:
             # Reasignar un objeto nuevo fuerza la detección de cambios de JSONB
             # (sin MutableDict, las mutaciones in-place no se marcan dirty).
             liq.snapshot_parametros = dict(snapshot)
+            reglas_pendientes = []
+            for p in parametros.pendientes_normativos():
+                reglas_pendientes.append({
+                    "codigo": p.codigo,
+                    "cct_numero": p.cct_numero,
+                    "verificado": p.is_verified,
+                    "fuente": p.fuente,
+                })
+            contenido_carpeta = construir_contenido_carpeta(
+                periodo=periodo_str, tipo=tipo, liquidacion_id=str(liq.id),
+                detalles=detalles_out, snapshot=dict(snapshot),
+                reglas_pendientes=reglas_pendientes,
+            )
+            carpeta = await CarpetaMensualRepo(s).crear_calculada(
+                uuid.UUID(tenant_id), periodo_str, liq.id,
+                contenido_carpeta, huella_carpeta(contenido_carpeta),
+            )
             await AuditRepo(s).registrar(
                 accion="liquidar", entidad="liquidacion", entidad_id=str(liq.id),
                 tenant_id=uuid.UUID(tenant_id), usuario_id=uuid.UUID(usuario_id),
                 payload_diff={"periodo": periodo_str, "detalles": len(detalles_out)},
             )
+            await AuditRepo(s).registrar(
+                accion="crear", entidad="carpeta_mensual", entidad_id=str(carpeta.id),
+                tenant_id=uuid.UUID(tenant_id), usuario_id=uuid.UUID(usuario_id),
+                payload_diff={
+                    "periodo": periodo_str, "version": carpeta.version,
+                    "estado": carpeta.estado, "hash_sha256": carpeta.hash_sha256,
+                },
+            )
             return {
                 "id": str(liq.id), "periodo": periodo_str, "tipo": tipo,
                 "estado": liq.estado, "detalles": detalles_out,
+                "carpeta_mensual": {
+                    "id": str(carpeta.id), "version": carpeta.version,
+                    "estado": carpeta.estado, "hash_sha256": carpeta.hash_sha256,
+                    "apto_produccion": contenido_carpeta["control_normativo"]["apto_produccion"],
+                },
             }

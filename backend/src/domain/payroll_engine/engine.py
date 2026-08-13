@@ -30,6 +30,10 @@ from .config import CctConfig
 class Novedades:
     horas_extra_50: Decimal = Decimal("0")
     horas_extra_100: Decimal = Decimal("0")
+    premio: Decimal = Decimal("0")
+    tipo_premio: str = "pendiente"
+    descuento_adicional: Decimal = Decimal("0")
+    detalle_descuento: str = ""
     # Para SAC: mejor remuneración mensual devengada del semestre y días trabajados.
     mejor_remuneracion_semestre: Dinero = None  # type: ignore[assignment]
     dias_trabajados_semestre: int = 181
@@ -176,6 +180,17 @@ class MotorLiquidacion:
                          imp, cantidad=novedades.horas_extra_100)
             )
 
+        if novedades.premio > 0 and novedades.tipo_premio == "remunerativo":
+            conceptos.append(Concepto(
+                "PREMIO_REMUNERATIVO", "Premio remunerativo",
+                TipoConcepto.REMUNERATIVO, Dinero(novedades.premio).redondear(),
+            ))
+        elif novedades.premio > 0 and novedades.tipo_premio == "no_remunerativo":
+            conceptos.append(Concepto(
+                "PREMIO_NO_REMUNERATIVO", "Premio no remunerativo",
+                TipoConcepto.NO_REMUNERATIVO, Dinero(novedades.premio).redondear(),
+            ))
+
         # Base remunerativa = suma de conceptos remunerativos
         base = Dinero.cero()
         for c in conceptos:
@@ -231,6 +246,15 @@ class MotorLiquidacion:
             conceptos.append(self._contribucion("CONTRIB_INSSJP", "Contrib. INSSJP", base))
         if self._p.existe("CONTRIB_ASIG_FAM"):
             conceptos.append(self._contribucion("CONTRIB_ASIG_FAM", "Asignaciones familiares", base))
+
+        if novedades.descuento_adicional > 0:
+            descripcion = "Descuento adicional"
+            if novedades.detalle_descuento.strip():
+                descripcion += f": {novedades.detalle_descuento.strip()}"
+            conceptos.append(Concepto(
+                "DESCUENTO_ADICIONAL", descripcion, TipoConcepto.DEDUCCION,
+                Dinero(novedades.descuento_adicional).redondear(),
+            ))
 
         return ResultadoLiquidacion(empleado.cuil.valor, periodo, "mensual", conceptos)
 

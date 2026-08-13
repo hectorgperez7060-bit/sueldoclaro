@@ -10,7 +10,10 @@ from datetime import date, datetime
 from decimal import Decimal
 from typing import Optional
 
-from sqlalchemy import Boolean, Date, DateTime, ForeignKey, Integer, Numeric, String, Text
+from sqlalchemy import (
+    Boolean, CheckConstraint, Date, DateTime, ForeignKey, Integer, Numeric,
+    String, Text, UniqueConstraint,
+)
 from sqlalchemy.dialects.postgresql import JSONB, UUID as PGUUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -136,7 +139,29 @@ class UsuarioTenant(TenantMixin, Base):
     usuario_id: Mapped[uuid.UUID] = mapped_column(
         PGUUID(as_uuid=True), ForeignKey("usuario.id"), index=True
     )
-    rol: Mapped[str] = mapped_column(String(20))  # admin | liquidador | consulta
+    rol: Mapped[str] = mapped_column(String(30))  # admin|liquidador|consulta|contador_revisor
+
+
+class ContadorProfesional(Base):
+    """Identidad profesional global vinculada a un usuario."""
+
+    __tablename__ = "contador_profesional"
+    __table_args__ = (
+        UniqueConstraint("consejo_profesional", "matricula", name="uq_contador_consejo_matricula"),
+    )
+    id: Mapped[uuid.UUID] = UUIDPK()
+    usuario_id: Mapped[uuid.UUID] = mapped_column(
+        PGUUID(as_uuid=True), ForeignKey("usuario.id"), unique=True, index=True
+    )
+    nombre_apellido: Mapped[str] = mapped_column(String(200))
+    cuit: Mapped[str] = mapped_column(String(11), index=True)
+    matricula: Mapped[str] = mapped_column(String(60))
+    jurisdiccion: Mapped[str] = mapped_column(String(120))
+    consejo_profesional: Mapped[str] = mapped_column(String(200))
+    matricula_vigente: Mapped[bool] = mapped_column(Boolean, default=False)
+    constancia_url: Mapped[str] = mapped_column(Text, default="")
+    verificado_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc)
 
 
 # --------------------------------------------------------------------------- #
@@ -179,6 +204,70 @@ class Empleado(TenantMixin, Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc)
 
 
+class NovedadMensual(TenantMixin, Base):
+    """Novedades capturadas para un empleado y período, aún sin calcular."""
+
+    __tablename__ = "novedad_mensual"
+    __table_args__ = (
+        UniqueConstraint(
+            "tenant_id", "empleado_id", "periodo",
+            name="uq_novedad_mensual_tenant_empleado_periodo",
+        ),
+        CheckConstraint(
+            "periodo ~ '^[0-9]{4}-(0[1-9]|1[0-2])$'",
+            name="periodo_yyyy_mm",
+        ),
+        CheckConstraint(
+            "dias_trabajados >= 0 AND faltas_justificadas >= 0 "
+            "AND faltas_injustificadas >= 0 AND licencias >= 0 AND vacaciones >= 0",
+            name="dias_no_negativos",
+        ),
+        CheckConstraint(
+            "horas_extra_50 >= 0 AND horas_extra_100 >= 0 "
+            "AND premios >= 0 AND descuentos_adicionales >= 0",
+            name="importes_horas_no_negativos",
+        ),
+        CheckConstraint(
+            "tipo_premio IN ('pendiente', 'remunerativo', 'no_remunerativo')",
+            name="tipo_premio_valido",
+        ),
+        CheckConstraint(
+            "dias_trabajados <= EXTRACT(DAY FROM "
+            "(TO_DATE(periodo || '-01', 'YYYY-MM-DD') + INTERVAL '1 month - 1 day')) "
+            "AND faltas_justificadas <= EXTRACT(DAY FROM "
+            "(TO_DATE(periodo || '-01', 'YYYY-MM-DD') + INTERVAL '1 month - 1 day')) "
+            "AND faltas_injustificadas <= EXTRACT(DAY FROM "
+            "(TO_DATE(periodo || '-01', 'YYYY-MM-DD') + INTERVAL '1 month - 1 day')) "
+            "AND licencias <= EXTRACT(DAY FROM "
+            "(TO_DATE(periodo || '-01', 'YYYY-MM-DD') + INTERVAL '1 month - 1 day')) "
+            "AND vacaciones <= EXTRACT(DAY FROM "
+            "(TO_DATE(periodo || '-01', 'YYYY-MM-DD') + INTERVAL '1 month - 1 day'))",
+            name="dias_segun_periodo",
+        ),
+    )
+
+    id: Mapped[uuid.UUID] = UUIDPK()
+    empleado_id: Mapped[uuid.UUID] = mapped_column(
+        PGUUID(as_uuid=True), ForeignKey("empleado.id"), nullable=False, index=True
+    )
+    periodo: Mapped[str] = mapped_column(String(7), nullable=False)
+    dias_trabajados: Mapped[int] = mapped_column(Integer, default=0)
+    faltas_justificadas: Mapped[int] = mapped_column(Integer, default=0)
+    faltas_injustificadas: Mapped[int] = mapped_column(Integer, default=0)
+    horas_extra_50: Mapped[Decimal] = mapped_column(Numeric(8, 2), default=Decimal("0"))
+    horas_extra_100: Mapped[Decimal] = mapped_column(Numeric(8, 2), default=Decimal("0"))
+    licencias: Mapped[int] = mapped_column(Integer, default=0)
+    vacaciones: Mapped[int] = mapped_column(Integer, default=0)
+    premios: Mapped[Decimal] = mapped_column(MONEY, default=Decimal("0"))
+    tipo_premio: Mapped[str] = mapped_column(String(20), default="pendiente")
+    descuentos_adicionales: Mapped[Decimal] = mapped_column(MONEY, default=Decimal("0"))
+    observaciones: Mapped[str] = mapped_column(Text, default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=now_utc, onupdate=now_utc
+    )
+
+
 class Liquidacion(TenantMixin, Base):
     __tablename__ = "liquidacion"
     id: Mapped[uuid.UUID] = UUIDPK()
@@ -206,6 +295,53 @@ class LiquidacionDetalle(TenantMixin, Base):
     total_deducciones: Mapped[Decimal] = mapped_column(MONEY, default=Decimal("0"))
     neto: Mapped[Decimal] = mapped_column(MONEY, default=Decimal("0"))
     liquidacion: Mapped["Liquidacion"] = relationship(back_populates="detalles")
+
+
+class CarpetaMensual(TenantMixin, Base):
+    __tablename__ = "carpeta_mensual"
+    __table_args__ = (
+        UniqueConstraint("tenant_id", "periodo", "version", name="uq_carpeta_tenant_periodo_version"),
+        CheckConstraint(
+            "estado IN ('borrador','calculada','revisada','presentada','aceptada','pagada')",
+            name="estado_valido",
+        ),
+    )
+    id: Mapped[uuid.UUID] = UUIDPK()
+    periodo: Mapped[str] = mapped_column(String(7), nullable=False)
+    version: Mapped[int] = mapped_column(Integer, default=1)
+    estado: Mapped[str] = mapped_column(String(20), default="borrador")
+    contenido: Mapped[dict] = mapped_column(JSONB, default=dict)
+    hash_sha256: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    liquidacion_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        PGUUID(as_uuid=True), ForeignKey("liquidacion.id"), nullable=True, index=True
+    )
+    comprobante_presentacion: Mapped[str] = mapped_column(Text, default="")
+    comprobante_aceptacion: Mapped[str] = mapped_column(Text, default="")
+    comprobante_pago: Mapped[str] = mapped_column(Text, default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc, onupdate=now_utc)
+
+
+class RevisionProfesional(TenantMixin, Base):
+    """Constancia inmutable del profesional y contenido revisado."""
+
+    __tablename__ = "revision_profesional"
+    id: Mapped[uuid.UUID] = UUIDPK()
+    carpeta_id: Mapped[uuid.UUID] = mapped_column(
+        PGUUID(as_uuid=True), ForeignKey("carpeta_mensual.id"), index=True
+    )
+    contador_id: Mapped[uuid.UUID] = mapped_column(
+        PGUUID(as_uuid=True), ForeignKey("contador_profesional.id"), index=True
+    )
+    usuario_id: Mapped[uuid.UUID] = mapped_column(PGUUID(as_uuid=True), ForeignKey("usuario.id"))
+    nombre_apellido: Mapped[str] = mapped_column(String(200))
+    matricula: Mapped[str] = mapped_column(String(60))
+    jurisdiccion: Mapped[str] = mapped_column(String(120))
+    consejo_profesional: Mapped[str] = mapped_column(String(200))
+    hash_revisado: Mapped[str] = mapped_column(String(64))
+    alcance: Mapped[str] = mapped_column(Text, default="Revisión mensual de liquidación laboral")
+    observaciones: Mapped[str] = mapped_column(Text, default="")
+    firmado_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc)
 
 
 class Recibo(TenantMixin, Base):
@@ -241,7 +377,10 @@ class AuditLog(Base):
 # aplicación con chequeo explícito de membresía (ver DECISIONS D-14).
 TABLAS_CON_RLS = (
     "empleado",
+    "novedad_mensual",
     "liquidacion",
     "liquidacion_detalle",
+    "carpeta_mensual",
+    "revision_profesional",
     "recibo",
 )

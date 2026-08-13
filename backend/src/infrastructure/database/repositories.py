@@ -11,7 +11,7 @@ from datetime import date
 from decimal import Decimal
 from typing import List, Optional
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from domain.entities.parametros import (
@@ -23,6 +23,7 @@ from domain.entities.parametros import (
     ParametroSet,
     resolver_cuota_art101,
 )
+from domain.entities.novedad import DatosNovedadMensual
 from domain.payroll_engine.config import CctConfig
 from domain.value_objects.dinero import Dinero
 
@@ -97,6 +98,127 @@ class EmpleadoRepo:
     async def listar(self) -> List[m.Empleado]:
         r = await self.s.execute(select(m.Empleado).order_by(m.Empleado.apellido))
         return list(r.scalars().all())
+
+
+# --------------------------------------------------------------------------- #
+# Novedades mensuales (RLS + defensa explícita por tenant)
+# --------------------------------------------------------------------------- #
+class NovedadMensualRepo:
+    def __init__(self, session: AsyncSession):
+        self.s = session
+
+    async def _empleado_del_tenant(
+        self, tenant_id: uuid.UUID, empleado_id: uuid.UUID,
+    ) -> Optional[m.Empleado]:
+        r = await self.s.execute(
+            select(m.Empleado).where(
+                m.Empleado.id == empleado_id,
+                m.Empleado.tenant_id == tenant_id,
+            )
+        )
+        return r.scalar_one_or_none()
+
+    async def _periodo_confirmado(
+        self, tenant_id: uuid.UUID, empleado_id: uuid.UUID, periodo: str,
+    ) -> bool:
+        r = await self.s.execute(
+            select(m.Liquidacion.id)
+            .join(
+                m.LiquidacionDetalle,
+                m.LiquidacionDetalle.liquidacion_id == m.Liquidacion.id,
+            )
+            .where(
+                m.Liquidacion.tenant_id == tenant_id,
+                m.LiquidacionDetalle.tenant_id == tenant_id,
+                m.LiquidacionDetalle.empleado_id == empleado_id,
+                m.Liquidacion.periodo == periodo,
+                m.Liquidacion.estado == "confirmada",
+            )
+            .limit(1)
+        )
+        return r.scalar_one_or_none() is not None
+
+    async def crear(
+        self, tenant_id: uuid.UUID, empleado_id: uuid.UUID, datos: DatosNovedadMensual,
+    ) -> m.NovedadMensual:
+        if not await self._empleado_del_tenant(tenant_id, empleado_id):
+            raise LookupError("Empleado inexistente para la empresa activa")
+        if await self.obtener_por_periodo(tenant_id, empleado_id, datos.periodo):
+            raise ValueError("Ya existen novedades para ese empleado y período")
+        if await self._periodo_confirmado(tenant_id, empleado_id, datos.periodo):
+            raise ValueError("No se pueden cargar novedades en una liquidación confirmada")
+
+        novedad = m.NovedadMensual(
+            tenant_id=tenant_id,
+            empleado_id=empleado_id,
+            **datos.para_persistir(),
+        )
+        self.s.add(novedad)
+        await self.s.flush()
+        return novedad
+
+    async def obtener(
+        self, tenant_id: uuid.UUID, novedad_id: uuid.UUID,
+    ) -> Optional[m.NovedadMensual]:
+        r = await self.s.execute(
+            select(m.NovedadMensual).where(
+                m.NovedadMensual.id == novedad_id,
+                m.NovedadMensual.tenant_id == tenant_id,
+            )
+        )
+        return r.scalar_one_or_none()
+
+    async def obtener_por_periodo(
+        self, tenant_id: uuid.UUID, empleado_id: uuid.UUID, periodo: str,
+    ) -> Optional[m.NovedadMensual]:
+        r = await self.s.execute(
+            select(m.NovedadMensual).where(
+                m.NovedadMensual.tenant_id == tenant_id,
+                m.NovedadMensual.empleado_id == empleado_id,
+                m.NovedadMensual.periodo == periodo,
+            )
+        )
+        return r.scalar_one_or_none()
+
+    async def listar_periodo(
+        self, tenant_id: uuid.UUID, periodo: str,
+    ) -> List[m.NovedadMensual]:
+        # Valida formato antes de consultar.
+        DatosNovedadMensual(periodo=periodo)
+        r = await self.s.execute(
+            select(m.NovedadMensual)
+            .where(
+                m.NovedadMensual.tenant_id == tenant_id,
+                m.NovedadMensual.periodo == periodo,
+            )
+            .order_by(m.NovedadMensual.empleado_id)
+        )
+        return list(r.scalars().all())
+
+    async def editar(
+        self, tenant_id: uuid.UUID, novedad_id: uuid.UUID, datos: DatosNovedadMensual,
+    ) -> m.NovedadMensual:
+        novedad = await self.obtener(tenant_id, novedad_id)
+        if not novedad:
+            raise LookupError("Novedad inexistente para la empresa activa")
+        if datos.periodo != novedad.periodo:
+            raise ValueError("El período de una novedad existente no se puede cambiar")
+        if await self._periodo_confirmado(tenant_id, novedad.empleado_id, novedad.periodo):
+            raise ValueError("No se puede editar una liquidación confirmada")
+        for campo, valor in datos.para_persistir().items():
+            setattr(novedad, campo, valor)
+        await self.s.flush()
+        return novedad
+
+    async def eliminar(self, tenant_id: uuid.UUID, novedad_id: uuid.UUID) -> bool:
+        novedad = await self.obtener(tenant_id, novedad_id)
+        if not novedad:
+            return False
+        if await self._periodo_confirmado(tenant_id, novedad.empleado_id, novedad.periodo):
+            raise ValueError("No se puede eliminar una liquidación confirmada")
+        await self.s.delete(novedad)
+        await self.s.flush()
+        return True
 
 
 # --------------------------------------------------------------------------- #
@@ -218,6 +340,48 @@ class LiquidacionRepo:
 
     async def obtener(self, liquidacion_id: uuid.UUID) -> Optional[m.Liquidacion]:
         return await self.s.get(m.Liquidacion, liquidacion_id)
+
+
+# --------------------------------------------------------------------------- #
+# Carpeta mensual versionada (RLS)
+# --------------------------------------------------------------------------- #
+class CarpetaMensualRepo:
+    def __init__(self, session: AsyncSession):
+        self.s = session
+
+    async def siguiente_version(self, tenant_id: uuid.UUID, periodo: str) -> int:
+        r = await self.s.execute(
+            select(func.max(m.CarpetaMensual.version)).where(
+                m.CarpetaMensual.tenant_id == tenant_id,
+                m.CarpetaMensual.periodo == periodo,
+            )
+        )
+        return int(r.scalar_one_or_none() or 0) + 1
+
+    async def crear_calculada(
+        self, tenant_id: uuid.UUID, periodo: str, liquidacion_id: uuid.UUID,
+        contenido: dict, hash_sha256: str,
+    ) -> m.CarpetaMensual:
+        version = await self.siguiente_version(tenant_id, periodo)
+        carpeta = m.CarpetaMensual(
+            tenant_id=tenant_id, periodo=periodo, version=version,
+            estado="calculada", contenido=contenido, hash_sha256=hash_sha256,
+            liquidacion_id=liquidacion_id,
+        )
+        self.s.add(carpeta)
+        await self.s.flush()
+        return carpeta
+
+    async def listar_periodo(
+        self, tenant_id: uuid.UUID, periodo: str,
+    ) -> List[m.CarpetaMensual]:
+        r = await self.s.execute(
+            select(m.CarpetaMensual).where(
+                m.CarpetaMensual.tenant_id == tenant_id,
+                m.CarpetaMensual.periodo == periodo,
+            ).order_by(m.CarpetaMensual.version.desc())
+        )
+        return list(r.scalars().all())
 
 
 # --------------------------------------------------------------------------- #

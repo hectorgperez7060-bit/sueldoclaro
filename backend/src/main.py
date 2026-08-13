@@ -8,7 +8,7 @@ from fastapi.responses import HTMLResponse, JSONResponse
 
 from api.dependencies.auth import Principal, require_tenant
 from api.middleware.rate_limit import RateLimitMiddleware
-from api.routes import auth, convenios, empleados, liquidaciones
+from api.routes import auth, carpetas, convenios, empleados, liquidaciones, novedades
 from infrastructure.database import models as m
 from infrastructure.database.session import dispose_engine, plain_session
 from ui_page import HTML as UI_HTML
@@ -26,6 +26,8 @@ def create_app() -> FastAPI:
     app.include_router(convenios.router)
     app.include_router(empleados.router)
     app.include_router(liquidaciones.router)
+    app.include_router(novedades.router)
+    app.include_router(carpetas.router)
 
     @app.exception_handler(ValueError)
     async def _value_error(_: Request, exc: ValueError):

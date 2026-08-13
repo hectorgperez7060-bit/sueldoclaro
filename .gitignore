@@ -1,0 +1,27 @@
+# Entornos y configuración local
+.venv/
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Cobertura, builds y temporales
+.coverage
+htmlcov/
+build/
+dist/
+*.egg-info/
+tmp*
+*.tmp
+
+# Editores y sistema operativo
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

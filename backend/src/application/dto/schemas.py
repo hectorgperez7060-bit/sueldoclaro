@@ -106,6 +106,85 @@ class EmpleadoOut(BaseModel):
     filial_sindical: Optional[str] = None
 
 
+# --- Novedades mensuales ---
+class NovedadMensualIn(BaseModel):
+    empleado_id: str
+    periodo: str
+    dias_trabajados: int = 0
+    faltas_justificadas: int = 0
+    faltas_injustificadas: int = 0
+    horas_extra_50: Decimal = Decimal("0")
+    horas_extra_100: Decimal = Decimal("0")
+    licencias: int = 0
+    vacaciones: int = 0
+    premios: Decimal = Decimal("0")
+    tipo_premio: str = "pendiente"
+    descuentos_adicionales: Decimal = Decimal("0")
+    observaciones: str = ""
+
+    @model_validator(mode="after")
+    def _validar_novedad(self):
+        import uuid
+
+        from domain.entities.novedad import DatosNovedadMensual
+
+        try:
+            uuid.UUID(self.empleado_id)
+        except (TypeError, ValueError) as exc:
+            raise ValueError("Identificador de empleado inválido") from exc
+        DatosNovedadMensual(**self.model_dump(exclude={"empleado_id"}))
+        return self
+
+    def datos_dominio(self):
+        from domain.entities.novedad import DatosNovedadMensual
+
+        return DatosNovedadMensual(**self.model_dump(exclude={"empleado_id"}))
+
+
+class NovedadMensualUpdate(BaseModel):
+    periodo: str
+    dias_trabajados: int = 0
+    faltas_justificadas: int = 0
+    faltas_injustificadas: int = 0
+    horas_extra_50: Decimal = Decimal("0")
+    horas_extra_100: Decimal = Decimal("0")
+    licencias: int = 0
+    vacaciones: int = 0
+    premios: Decimal = Decimal("0")
+    tipo_premio: str = "pendiente"
+    descuentos_adicionales: Decimal = Decimal("0")
+    observaciones: str = ""
+
+    @model_validator(mode="after")
+    def _validar_novedad(self):
+        from domain.entities.novedad import DatosNovedadMensual
+
+        DatosNovedadMensual(**self.model_dump())
+        return self
+
+    def datos_dominio(self):
+        from domain.entities.novedad import DatosNovedadMensual
+
+        return DatosNovedadMensual(**self.model_dump())
+
+
+class NovedadMensualOut(BaseModel):
+    id: str
+    empleado_id: str
+    periodo: str
+    dias_trabajados: int
+    faltas_justificadas: int
+    faltas_injustificadas: int
+    horas_extra_50: Decimal
+    horas_extra_100: Decimal
+    licencias: int
+    vacaciones: int
+    premios: Decimal
+    tipo_premio: str
+    descuentos_adicionales: Decimal
+    observaciones: str
+
+
 # --- Liquidación ---
 class NovedadEmpleado(BaseModel):
     empleado_id: str
@@ -142,6 +221,7 @@ class LiquidacionOut(BaseModel):
     tipo: str
     estado: str
     detalles: List[DetalleOut]
+    carpeta_mensual: Optional[dict] = None
 
 
 # --- Import xlsx ---

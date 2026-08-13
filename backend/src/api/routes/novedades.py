@@ -1,0 +1,136 @@
+"""CRUD de novedades mensuales, aislado por empresa mediante JWT + RLS."""
+from __future__ import annotations
+
+import uuid
+
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+
+from api.dependencies.auth import Principal, require_rol, require_tenant
+from application.dto.schemas import (
+    NovedadMensualIn,
+    NovedadMensualOut,
+    NovedadMensualUpdate,
+)
+from domain.entities.novedad import DatosNovedadMensual
+from infrastructure.database.repositories import AuditRepo, NovedadMensualRepo
+from infrastructure.database.session import tenant_session
+
+router = APIRouter(prefix="/novedades", tags=["novedades"])
+
+
+def _uuid(valor: str, nombre: str) -> uuid.UUID:
+    try:
+        return uuid.UUID(valor)
+    except (TypeError, ValueError) as exc:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            f"Identificador de {nombre} inválido",
+        ) from exc
+
+
+def _to_out(novedad) -> NovedadMensualOut:
+    return NovedadMensualOut(
+        id=str(novedad.id),
+        empleado_id=str(novedad.empleado_id),
+        periodo=novedad.periodo,
+        dias_trabajados=novedad.dias_trabajados,
+        faltas_justificadas=novedad.faltas_justificadas,
+        faltas_injustificadas=novedad.faltas_injustificadas,
+        horas_extra_50=novedad.horas_extra_50,
+        horas_extra_100=novedad.horas_extra_100,
+        licencias=novedad.licencias,
+        vacaciones=novedad.vacaciones,
+        premios=novedad.premios,
+        tipo_premio=novedad.tipo_premio,
+        descuentos_adicionales=novedad.descuentos_adicionales,
+        observaciones=novedad.observaciones,
+    )
+
+
+@router.post("", response_model=NovedadMensualOut, status_code=201)
+async def crear(
+    body: NovedadMensualIn,
+    principal: Principal = Depends(require_rol("admin", "liquidador")),
+):
+    tid = _uuid(principal.tenant_id, "empresa")
+    empleado_id = _uuid(body.empleado_id, "empleado")
+    async with tenant_session(principal.tenant_id) as s:
+        try:
+            novedad = await NovedadMensualRepo(s).crear(
+                tid, empleado_id, body.datos_dominio()
+            )
+        except LookupError as exc:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, str(exc)) from exc
+        await AuditRepo(s).registrar(
+            accion="crear", entidad="novedad_mensual", entidad_id=str(novedad.id),
+            tenant_id=tid, usuario_id=_uuid(principal.usuario_id, "usuario"),
+            payload_diff={"empleado_id": body.empleado_id, "periodo": body.periodo},
+        )
+        return _to_out(novedad)
+
+
+@router.get("", response_model=list[NovedadMensualOut])
+async def listar(
+    periodo: str = Query(..., description="Período AAAA-MM"),
+    principal: Principal = Depends(require_tenant),
+):
+    # Valida período antes de abrir la consulta.
+    DatosNovedadMensual(periodo=periodo)
+    tid = _uuid(principal.tenant_id, "empresa")
+    async with tenant_session(principal.tenant_id) as s:
+        novedades = await NovedadMensualRepo(s).listar_periodo(tid, periodo)
+        return [_to_out(n) for n in novedades]
+
+
+@router.get("/{novedad_id}", response_model=NovedadMensualOut)
+async def obtener(
+    novedad_id: str,
+    principal: Principal = Depends(require_tenant),
+):
+    tid = _uuid(principal.tenant_id, "empresa")
+    async with tenant_session(principal.tenant_id) as s:
+        novedad = await NovedadMensualRepo(s).obtener(
+            tid, _uuid(novedad_id, "novedad")
+        )
+        if not novedad:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "Novedad no encontrada")
+        return _to_out(novedad)
+
+
+@router.put("/{novedad_id}", response_model=NovedadMensualOut)
+async def editar(
+    novedad_id: str,
+    body: NovedadMensualUpdate,
+    principal: Principal = Depends(require_rol("admin", "liquidador")),
+):
+    tid = _uuid(principal.tenant_id, "empresa")
+    nid = _uuid(novedad_id, "novedad")
+    async with tenant_session(principal.tenant_id) as s:
+        try:
+            novedad = await NovedadMensualRepo(s).editar(tid, nid, body.datos_dominio())
+        except LookupError as exc:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, str(exc)) from exc
+        await AuditRepo(s).registrar(
+            accion="actualizar", entidad="novedad_mensual", entidad_id=novedad_id,
+            tenant_id=tid, usuario_id=_uuid(principal.usuario_id, "usuario"),
+            payload_diff={"periodo": body.periodo},
+        )
+        return _to_out(novedad)
+
+
+@router.delete("/{novedad_id}", status_code=204)
+async def eliminar(
+    novedad_id: str,
+    principal: Principal = Depends(require_rol("admin", "liquidador")),
+):
+    tid = _uuid(principal.tenant_id, "empresa")
+    nid = _uuid(novedad_id, "novedad")
+    async with tenant_session(principal.tenant_id) as s:
+        eliminado = await NovedadMensualRepo(s).eliminar(tid, nid)
+        if not eliminado:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "Novedad no encontrada")
+        await AuditRepo(s).registrar(
+            accion="eliminar", entidad="novedad_mensual", entidad_id=novedad_id,
+            tenant_id=tid, usuario_id=_uuid(principal.usuario_id, "usuario"),
+        )
+    return None

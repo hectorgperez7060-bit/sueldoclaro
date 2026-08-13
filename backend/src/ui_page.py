@@ -20,8 +20,8 @@ HTML = r"""<!DOCTYPE html>
   .tarjeta{background:#fff;border:1px solid var(--borde);border-radius:12px;padding:20px;margin-bottom:20px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
   h2{font-size:1.05rem;margin-bottom:12px;color:var(--verde)}
   label{display:block;font-size:.85rem;margin:10px 0 4px;color:#374151}
-  input,select{width:100%;padding:9px 10px;border:1px solid var(--borde);border-radius:8px;font-size:.95rem;background:#fff}
-  input:focus,select:focus{outline:2px solid var(--verde2);border-color:transparent}
+  input,select,textarea{width:100%;padding:9px 10px;border:1px solid var(--borde);border-radius:8px;font-size:.95rem;background:#fff;font-family:inherit}
+  input:focus,select:focus,textarea:focus{outline:2px solid var(--verde2);border-color:transparent}
   .fila{display:grid;grid-template-columns:1fr 1fr;gap:12px}
   @media(max-width:640px){.fila{grid-template-columns:1fr}}
   button{background:var(--verde);color:#fff;border:0;border-radius:8px;padding:10px 18px;font-size:.95rem;cursor:pointer;margin-top:14px}
@@ -170,11 +170,51 @@ HTML = r"""<!DOCTYPE html>
     </div>
 
     <div class="tarjeta">
+      <div class="cabecera-seccion">
+        <h2>Novedades mensuales</h2>
+        <button class="chico secundario" onclick="toggleNovedad()">+ Cargar novedad</button>
+      </div>
+      <div class="fila">
+        <div><label>Mes</label><input id="novPeriodo" type="month" onchange="cargarNovedades()"></div>
+        <div style="display:flex;align-items:end"><button class="secundario" onclick="cargarNovedades()" style="width:100%">Ver novedades del mes</button></div>
+      </div>
+
+      <div id="formNovedad" style="display:none;border:1px dashed var(--borde);border-radius:10px;padding:14px;margin-top:12px">
+        <h3 id="tituloNovedad" style="font-size:.9rem;color:var(--verde);margin:4px 0 6px">Nueva novedad</h3>
+        <div class="fila">
+          <div style="grid-column:1/-1"><label>Empleado</label><select id="novEmpleado"></select></div>
+          <div><label>Días trabajados</label><input id="novDias" type="number" min="0" value="0"></div>
+          <div><label>Faltas justificadas</label><input id="novFaltasJ" type="number" min="0" value="0"></div>
+          <div><label>Faltas injustificadas</label><input id="novFaltasI" type="number" min="0" value="0"></div>
+          <div><label>Licencias (días)</label><input id="novLicencias" type="number" min="0" value="0"></div>
+          <div><label>Vacaciones (días)</label><input id="novVacaciones" type="number" min="0" value="0"></div>
+          <div><label>Horas extra al 50%</label><input id="novHE50" type="number" min="0" step="0.01" value="0"></div>
+          <div><label>Horas extra al 100%</label><input id="novHE100" type="number" min="0" step="0.01" value="0"></div>
+          <div><label>Premios ($)</label><input id="novPremios" type="number" min="0" step="0.01" value="0"></div>
+          <div><label>Tratamiento del premio</label><select id="novTipoPremio"><option value="pendiente">Pendiente de definir (no calcular)</option><option value="remunerativo">Remunerativo (integra aportes)</option><option value="no_remunerativo">No remunerativo</option></select></div>
+          <div><label>Descuentos adicionales ($)</label><input id="novDescuentos" type="number" min="0" step="0.01" value="0"></div>
+          <div style="grid-column:1/-1"><label>Observaciones</label><textarea id="novObservaciones" rows="3" placeholder="Detalle opcional"></textarea></div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:10px">
+          <button class="chico" id="btnGuardarNovedad" onclick="guardarNovedad()">Guardar novedad</button>
+          <button class="chico secundario" onclick="cancelarNovedad()">Cancelar</button>
+        </div>
+        <div class="error" id="novFormError"></div>
+      </div>
+
+      <div class="error" id="novError"></div>
+      <div class="ok" id="novOk"></div>
+      <table id="tablaNovedades" style="display:none"><thead><tr><th>Empleado</th><th>Días</th><th>Faltas</th><th>Extras</th><th>Premios / descuentos</th><th></th></tr></thead><tbody></tbody></table>
+      <p id="sinNovedades" style="margin-top:10px;color:#6b7280;font-size:.9rem">No hay novedades cargadas para este mes.</p>
+    </div>
+
+    <div class="tarjeta">
       <h2>Liquidar sueldos</h2>
       <div class="fila">
         <div><label>Mes a liquidar</label><input id="periodo" type="month"></div>
         <div style="display:flex;align-items:end"><button onclick="liquidar()" style="width:100%">Liquidar todos los empleados</button></div>
       </div>
+      <div id="estadoNormativo" style="margin-top:12px;font-size:.9rem"></div>
       <div class="error" id="liqError"></div>
       <div id="resultados"></div>
     </div>
@@ -188,6 +228,8 @@ let editandoEmpleadoId = null;
 let convenios = [];
 let empresaCache = {razon_social:'', cuit:''};
 let ultimaLiq = null;
+let novedadesCache = {};
+let editandoNovedadId = null;
 
 function fmt(n){ return Number(n).toLocaleString('es-AR',{minimumFractionDigits:2,maximumFractionDigits:2}); }
 function token(){ return localStorage.getItem('sc_access'); }
@@ -241,10 +283,14 @@ function salir(){ localStorage.clear(); $('app').style.display='none'; $('auth')
 async function entrar(){
   $('auth').style.display='none'; $('app').style.display='block';
   $('quien').textContent='Sesión iniciada';
-  const hoy = new Date(); $('periodo').value = hoy.toISOString().slice(0,7);
+  const hoy = new Date();
+  $('periodo').value = hoy.toISOString().slice(0,7);
+  $('novPeriodo').value = $('periodo').value;
   try{ empresaCache = await api('/empresa'); }catch(e){ /* silencioso */ }
   await cargarConvenios();
   await cargarEmpleados();
+  await cargarNovedades();
+  await mostrarEstadoNormativo();
 }
 function toggleAlta(){ const a=$('alta'); a.style.display = a.style.display==='none'?'block':'none'; }
 
@@ -281,7 +327,121 @@ async function cargarEmpleados(){
     });
     $('sinEmpleados').style.display = lista.length? 'none':'block';
     $('tablaEmpleados').style.display = lista.length? 'table':'none';
+    const novSel = $('novEmpleado');
+    novSel.innerHTML = '<option value="">Elegí un empleado…</option>';
+    lista.forEach(e=>{
+      const o=document.createElement('option');
+      o.value=e.id; o.textContent=`${e.apellido}, ${e.nombre}`; novSel.appendChild(o);
+    });
   }catch(e){ /* silencioso */ }
+}
+
+function numeroNov(id){ return Number($(id).value || 0); }
+function limpiarNovedad(){
+  editandoNovedadId=null;
+  $('novEmpleado').value=''; $('novEmpleado').disabled=false;
+  ['novDias','novFaltasJ','novFaltasI','novLicencias','novVacaciones','novHE50','novHE100','novPremios','novDescuentos'].forEach(id=>$(id).value='0');
+  $('novObservaciones').value='';
+  $('novTipoPremio').value='pendiente';
+  $('tituloNovedad').textContent='Nueva novedad';
+  $('btnGuardarNovedad').textContent='Guardar novedad';
+  ocultar('novFormError');
+}
+function toggleNovedad(){
+  const f=$('formNovedad');
+  if(f.style.display==='none'){ limpiarNovedad(); f.style.display='block'; }
+  else cancelarNovedad();
+}
+function cancelarNovedad(){ limpiarNovedad(); $('formNovedad').style.display='none'; }
+
+async function cargarNovedades(){
+  ocultar('novError');
+  const periodo=$('novPeriodo').value;
+  if(!periodo) return;
+  try{
+    const lista=await api('/novedades?periodo='+encodeURIComponent(periodo));
+    novedadesCache={};
+    const tb=$('tablaNovedades').querySelector('tbody'); tb.innerHTML='';
+    lista.forEach(n=>{
+      novedadesCache[n.id]=n;
+      const emp=empleadosCache[n.empleado_id] || {apellido:'Empleado',nombre:''};
+      const tr=document.createElement('tr');
+      const faltas=Number(n.faltas_justificadas)+Number(n.faltas_injustificadas);
+      tr.innerHTML=`<td>${emp.apellido}, ${emp.nombre}</td><td>${n.dias_trabajados}</td><td>${faltas}</td><td>50%: ${n.horas_extra_50} · 100%: ${n.horas_extra_100}</td><td>$ ${fmt(n.premios)} / $ ${fmt(n.descuentos_adicionales)}</td><td><button class="chico secundario" onclick="editarNovedad('${n.id}')" title="Editar">✏️</button> <button class="chico secundario" onclick="borrarNovedad('${n.id}')" title="Eliminar">🗑</button></td>`;
+      tb.appendChild(tr);
+    });
+    $('tablaNovedades').style.display=lista.length?'table':'none';
+    $('sinNovedades').style.display=lista.length?'none':'block';
+  }catch(e){ mostrarError('novError',e.message); }
+}
+
+async function mostrarEstadoNormativo(){
+  const emp=Object.values(empleadosCache)[0];
+  if(!emp || !$('periodo').value){ $('estadoNormativo').innerHTML=''; return; }
+  try{
+    const e=await api(`/convenios/${encodeURIComponent(emp.cct_numero)}/estado-normativo?periodo=${encodeURIComponent($('periodo').value)}`);
+    const color=e.apto_produccion?'#065f46':'#92400e';
+    const fondo=e.apto_produccion?'#d1fae5':'#fef3c7';
+    const texto=e.apto_produccion?'Convenio verificado para uso real':'Convenio en revisión: usar sólo para pruebas';
+    $('estadoNormativo').innerHTML=`<div style="background:${fondo};color:${color};border-radius:8px;padding:10px 14px"><b>${texto}</b> · ${e.resumen.aprobadas}/${e.resumen.total_reglas} reglas aprobadas · ${e.resumen.pendientes} pendientes</div>`;
+  }catch(e){ $('estadoNormativo').innerHTML=''; }
+}
+
+function cuerpoNovedad(incluirEmpleado=true){
+  const cuerpo={
+    periodo:$('novPeriodo').value,
+    dias_trabajados:numeroNov('novDias'),
+    faltas_justificadas:numeroNov('novFaltasJ'),
+    faltas_injustificadas:numeroNov('novFaltasI'),
+    horas_extra_50:numeroNov('novHE50'),
+    horas_extra_100:numeroNov('novHE100'),
+    licencias:numeroNov('novLicencias'),
+    vacaciones:numeroNov('novVacaciones'),
+    premios:numeroNov('novPremios'),
+    tipo_premio:$('novTipoPremio').value,
+    descuentos_adicionales:numeroNov('novDescuentos'),
+    observaciones:$('novObservaciones').value.trim()
+  };
+  if(incluirEmpleado) cuerpo.empleado_id=$('novEmpleado').value;
+  return cuerpo;
+}
+
+async function guardarNovedad(){
+  ocultar('novFormError'); ocultar('novOk');
+  if(!$('novEmpleado').value){ mostrarError('novFormError','Elegí un empleado.'); return; }
+  try{
+    const eraEdicion=Boolean(editandoNovedadId);
+    const ruta=editandoNovedadId?'/novedades/'+editandoNovedadId:'/novedades';
+    await api(ruta,editandoNovedadId?'PUT':'POST',cuerpoNovedad(!editandoNovedadId));
+    cancelarNovedad();
+    $('novOk').textContent=eraEdicion?'Novedad actualizada ✔':'Novedad guardada ✔';
+    $('novOk').style.display='block';
+    await cargarNovedades();
+  }catch(e){ mostrarError('novFormError',e.message); }
+}
+
+function editarNovedad(id){
+  const n=novedadesCache[id]; if(!n) return;
+  editandoNovedadId=id;
+  $('novEmpleado').value=n.empleado_id; $('novEmpleado').disabled=true;
+  $('novDias').value=n.dias_trabajados; $('novFaltasJ').value=n.faltas_justificadas;
+  $('novFaltasI').value=n.faltas_injustificadas; $('novLicencias').value=n.licencias;
+  $('novVacaciones').value=n.vacaciones; $('novHE50').value=n.horas_extra_50;
+  $('novHE100').value=n.horas_extra_100; $('novPremios').value=n.premios;
+  $('novTipoPremio').value=n.tipo_premio||'pendiente';
+  $('novDescuentos').value=n.descuentos_adicionales; $('novObservaciones').value=n.observaciones||'';
+  $('tituloNovedad').textContent='Editar novedad'; $('btnGuardarNovedad').textContent='Guardar cambios';
+  $('formNovedad').style.display='block'; ocultar('novFormError');
+}
+
+async function borrarNovedad(id){
+  if(!confirm('¿Eliminar esta novedad mensual?')) return;
+  try{
+    await api('/novedades/'+id,'DELETE');
+    if(editandoNovedadId===id) cancelarNovedad();
+    $('novOk').textContent='Novedad eliminada ✔'; $('novOk').style.display='block';
+    await cargarNovedades();
+  }catch(e){ mostrarError('novError',e.message); }
 }
 
 function editarEmpleado(id){

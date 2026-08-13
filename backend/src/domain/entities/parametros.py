@@ -161,6 +161,13 @@ class ParametroSet:
     def hay_no_verificados(self) -> bool:
         return any(not p.is_verified for p in self._por_codigo.values())
 
+    def pendientes_normativos(self) -> List[ParametroLegal]:
+        """Reglas no aprobadas o sin respaldo documental."""
+        return [
+            p for p in self._todos
+            if not p.is_verified or not (p.fuente or "").strip()
+        ]
+
 
 class AmparoSet:
     """Conjunto de amparos; decide qué régimen aplicar por concepto."""
