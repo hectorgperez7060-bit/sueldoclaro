@@ -24,3 +24,11 @@ def test_ui_liquida_sin_duplicar_novedades_en_el_body():
 def test_ui_muestra_semaforo_normativo():
     assert 'id="estadoNormativo"' in HTML
     assert "Convenio en revisión: usar sólo para pruebas" in HTML
+
+
+def test_ui_muestra_historial_de_carpetas_mensuales_solo_lectura():
+    assert "Carpeta mensual" in HTML
+    assert 'id="tablaCarpetas"' in HTML
+    assert "api('/carpetas-mensuales?periodo='" in HTML
+    assert "v${c.version}" in HTML
+    assert "(c.hash_sha256||'').slice(0,12)" in HTML

@@ -211,12 +211,23 @@ HTML = r"""<!DOCTYPE html>
     <div class="tarjeta">
       <h2>Liquidar sueldos</h2>
       <div class="fila">
-        <div><label>Mes a liquidar</label><input id="periodo" type="month"></div>
+        <div><label>Mes a liquidar</label><input id="periodo" type="month" onchange="cargarCarpetas();mostrarEstadoNormativo()"></div>
         <div style="display:flex;align-items:end"><button onclick="liquidar()" style="width:100%">Liquidar todos los empleados</button></div>
       </div>
       <div id="estadoNormativo" style="margin-top:12px;font-size:.9rem"></div>
       <div class="error" id="liqError"></div>
       <div id="resultados"></div>
+    </div>
+
+    <div class="tarjeta">
+      <div class="cabecera-seccion">
+        <h2>Carpeta mensual</h2>
+        <button class="chico secundario" onclick="cargarCarpetas()">Actualizar historial</button>
+      </div>
+      <p style="font-size:.85rem;color:#6b7280">Cada liquidación conserva una versión de sólo lectura. Las correcciones no borran las anteriores.</p>
+      <div class="error" id="carpetasError"></div>
+      <table id="tablaCarpetas" style="display:none"><thead><tr><th>Mes</th><th>Versión</th><th>Estado</th><th>Creada</th><th>Huella</th></tr></thead><tbody></tbody></table>
+      <p id="sinCarpetas" style="margin-top:10px;color:#6b7280;font-size:.9rem">Todavía no hay carpetas generadas para este mes.</p>
     </div>
   </div>
 </div>
@@ -291,6 +302,7 @@ async function entrar(){
   await cargarEmpleados();
   await cargarNovedades();
   await mostrarEstadoNormativo();
+  await cargarCarpetas();
 }
 function toggleAlta(){ const a=$('alta'); a.style.display = a.style.display==='none'?'block':'none'; }
 
@@ -385,6 +397,30 @@ async function mostrarEstadoNormativo(){
     const texto=e.apto_produccion?'Convenio verificado para uso real':'Convenio en revisión: usar sólo para pruebas';
     $('estadoNormativo').innerHTML=`<div style="background:${fondo};color:${color};border-radius:8px;padding:10px 14px"><b>${texto}</b> · ${e.resumen.aprobadas}/${e.resumen.total_reglas} reglas aprobadas · ${e.resumen.pendientes} pendientes</div>`;
   }catch(e){ $('estadoNormativo').innerHTML=''; }
+}
+
+function fechaHora(valor){
+  if(!valor) return '—';
+  const d=new Date(valor);
+  return Number.isNaN(d.getTime())?valor:d.toLocaleString('es-AR');
+}
+
+async function cargarCarpetas(){
+  ocultar('carpetasError');
+  const periodo=$('periodo').value;
+  if(!periodo) return;
+  try{
+    const lista=await api('/carpetas-mensuales?periodo='+encodeURIComponent(periodo));
+    const tb=$('tablaCarpetas').querySelector('tbody'); tb.innerHTML='';
+    lista.forEach(c=>{
+      const tr=document.createElement('tr');
+      const huella=(c.hash_sha256||'').slice(0,12);
+      tr.innerHTML=`<td>${c.periodo}</td><td>v${c.version}</td><td><span class="etiqueta">${c.estado}</span></td><td>${fechaHora(c.created_at)}</td><td title="${c.hash_sha256||''}"><code>${huella}${huella?'…':''}</code></td>`;
+      tb.appendChild(tr);
+    });
+    $('tablaCarpetas').style.display=lista.length?'table':'none';
+    $('sinCarpetas').style.display=lista.length?'none':'block';
+  }catch(e){ mostrarError('carpetasError',e.message); }
 }
 
 function cuerpoNovedad(incluirEmpleado=true){
@@ -693,6 +729,7 @@ async function liquidar(){
         </div>`;
     });
     $('resultados').innerHTML = html + resumenF931(d);
+    await cargarCarpetas();
   }catch(e){ $('resultados').innerHTML=''; mostrarError('liqError', e.message); }
 }
 
