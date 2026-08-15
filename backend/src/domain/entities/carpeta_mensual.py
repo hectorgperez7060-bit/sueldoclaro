@@ -6,6 +6,8 @@ import json
 from dataclasses import dataclass
 from decimal import Decimal
 
+from .boleta_sindical import agrupar_obligaciones_sindicales
+
 
 ESTADOS_CARPETA = (
     "borrador", "calculada", "revisada", "presentada", "aceptada", "pagada",
@@ -50,6 +52,7 @@ def construir_contenido_carpeta(
             "neto": str(neto.quantize(Decimal("0.01"))),
         },
         "detalles": detalles,
+        "obligaciones_sindicales": agrupar_obligaciones_sindicales(detalles),
         "snapshot_parametros": snapshot,
         "control_normativo": {
             "apto_produccion": not reglas_pendientes,

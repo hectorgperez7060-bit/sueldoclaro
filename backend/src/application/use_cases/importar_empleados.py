@@ -3,7 +3,8 @@ from __future__ import annotations
 
 import uuid
 
-from infrastructure.database.repositories import AuditRepo, EmpleadoRepo
+from domain.entities.encuadramiento import validar_filas_encuadramiento
+from infrastructure.database.repositories import AuditRepo, EmpleadoRepo, ParametrosRepo
 from infrastructure.database.session import tenant_session
 from infrastructure.excel.importer import parsear
 
@@ -14,7 +15,10 @@ class ImportarEmpleados:
             repo = EmpleadoRepo(s)
             existentes = await repo.listar()
             cuils_existentes = {str(e.cuil).replace("-", "").strip() for e in existentes}
+            catalogo = await ParametrosRepo(s).catalogo_encuadramientos()
         validos, errores = parsear(contenido, cuils_existentes)
+        validos, errores_encuadramiento = validar_filas_encuadramiento(validos, catalogo)
+        errores.extend(errores_encuadramiento)
         # Convert date objects to isoformat string for JSON serialization
         validos_serializables = []
         for v in validos:
@@ -34,6 +38,10 @@ class ImportarEmpleados:
             existentes = await repo.listar()
             cuils_existentes = {str(e.cuil).replace("-", "").strip() for e in existentes}
             validos, errores = parsear(contenido, cuils_existentes)
+            validos, errores_encuadramiento = validar_filas_encuadramiento(
+                validos, await ParametrosRepo(s).catalogo_encuadramientos()
+            )
+            errores.extend(errores_encuadramiento)
             importados = 0
             for datos in validos:
                 # Quitar 'fila' key antes de pasar a repo.crear
@@ -50,4 +58,3 @@ class ImportarEmpleados:
             "total_filas": importados + len(errores),
             "errores": errores,
         }
-

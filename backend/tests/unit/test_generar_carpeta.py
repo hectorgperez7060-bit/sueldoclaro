@@ -22,6 +22,7 @@ def test_contenido_carpeta_suma_resultado_sin_recalcularlo():
     assert contenido["cantidad_conceptos"] == 3
     assert contenido["totales"] == {"bruto": "350.50", "deducciones": "70.10", "neto": "280.40"}
     assert contenido["control_normativo"]["apto_produccion"] is True
+    assert contenido["obligaciones_sindicales"] == []
     assert len(huella_carpeta(contenido)) == 64
 
 

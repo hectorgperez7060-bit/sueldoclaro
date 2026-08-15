@@ -64,27 +64,57 @@ def _estado_item(tipo: str, codigo: str, verificado: bool, fuente: str) -> dict:
 
 
 @router.get("")
-async def listar(_: Principal = Depends(require_tenant)):
-    """Convenios activos con sus categorías (datos globales, sin tenant)."""
+async def listar(
+    periodo: str | None = Query(None, description="Período AAAA-MM"),
+    _: Principal = Depends(require_tenant),
+):
+    """Convenios activos y categorías vigentes para el período solicitado."""
+    fecha = _fecha_periodo(periodo) if periodo else date.today()
     async with plain_session() as s:
         ccts = (await s.execute(
             select(m.Cct).where(m.Cct.activo.is_(True)).order_by(m.Cct.numero)
         )).scalars().all()
         filas = (await s.execute(
-            select(m.EscalaSalarial.cct_numero, m.EscalaSalarial.categoria).distinct()
+            select(
+                m.EscalaSalarial.cct_numero,
+                m.EscalaSalarial.categoria,
+                m.EscalaSalarial.is_verified,
+                m.EscalaSalarial.fuente,
+            ).where(
+                m.EscalaSalarial.valid_from <= fecha,
+                (m.EscalaSalarial.valid_to.is_(None))
+                | (m.EscalaSalarial.valid_to >= fecha),
+            ).distinct()
         )).all()
-    cats: dict[str, list[str]] = {}
-    for numero, categoria in filas:
-        cats.setdefault(numero, []).append(categoria)
-    return [
-        {
+    cats: dict[str, dict[str, dict]] = {}
+    for numero, categoria, verificada, fuente in filas:
+        estado = cats.setdefault(numero, {}).setdefault(
+            categoria,
+            {"nombre": categoria, "verificada": False, "fuentes": set()},
+        )
+        estado["verificada"] = estado["verificada"] or bool(verificada)
+        if (fuente or "").strip():
+            estado["fuentes"].add(fuente.strip())
+
+    salida = []
+    for c in ccts:
+        detalles = []
+        for item in sorted(cats.get(c.numero, {}).values(), key=lambda x: x["nombre"]):
+            detalles.append({
+                "nombre": item["nombre"],
+                "verificada": item["verificada"],
+                "fuentes": sorted(item["fuentes"]),
+            })
+        salida.append({
             "numero": c.numero,
             "nombre": c.nombre,
             "sindicato": c.sindicato,
-            "categorias": sorted(cats.get(c.numero, [])),
-        }
-        for c in ccts
-    ]
+            "periodo": periodo or fecha.strftime("%Y-%m"),
+            "categorias": [item["nombre"] for item in detalles],
+            "categorias_detalle": detalles,
+            "tiene_escala_vigente": bool(detalles),
+        })
+    return salida
 
 
 @router.get("/{numero}/estado-normativo")

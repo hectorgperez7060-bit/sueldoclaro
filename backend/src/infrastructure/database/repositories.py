@@ -234,6 +234,27 @@ class ParametrosRepo:
     def __init__(self, session: AsyncSession):
         self.s = session
 
+    async def catalogo_encuadramientos(self, fecha: date | None = None) -> dict[str, set[str]]:
+        """CCT activos y categorías vigentes, sin mezclar escalas históricas."""
+        fecha = fecha or date.today()
+        r = await self.s.execute(select(m.Cct.numero).where(m.Cct.activo.is_(True)))
+        catalogo = {numero: set() for numero in r.scalars().all()}
+        if not catalogo:
+            return catalogo
+        r = await self.s.execute(
+            select(m.EscalaSalarial.cct_numero, m.EscalaSalarial.categoria)
+            .where(
+                m.EscalaSalarial.cct_numero.in_(catalogo),
+                m.EscalaSalarial.valid_from <= fecha,
+                (m.EscalaSalarial.valid_to.is_(None))
+                | (m.EscalaSalarial.valid_to >= fecha),
+            )
+            .distinct()
+        )
+        for cct_numero, categoria in r.all():
+            catalogo[cct_numero].add(categoria)
+        return catalogo
+
     async def parametro_set(self, fecha: date) -> ParametroSet:
         r = await self.s.execute(
             select(m.ParametroLegal).where(
@@ -346,7 +367,6 @@ class LiquidacionRepo:
 
     async def obtener(self, liquidacion_id: uuid.UUID) -> Optional[m.Liquidacion]:
         return await self.s.get(m.Liquidacion, liquidacion_id)
-
 
 # --------------------------------------------------------------------------- #
 # Carpeta mensual versionada (RLS)

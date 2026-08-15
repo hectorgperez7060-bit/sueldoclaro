@@ -35,6 +35,13 @@ def test_ui_muestra_historial_de_carpetas_mensuales_solo_lectura():
     assert "(c.hash_sha256||'').slice(0,12)" in HTML
 
 
+def test_ui_muestra_obligaciones_sindicales_sin_presentarlas_como_boleta_oficial():
+    assert "function resumenSindical(d)" in HTML
+    assert "Obligaciones sindicales agrupadas" in HTML
+    assert "No es una boleta presentable" in HTML
+    assert "No se generó ningún pago por suposición" in HTML
+
+
 def test_ui_incluye_identidad_visual_propia_en_app_y_recibo():
     assert 'aria-label="Logo Sueldo Claro"' in HTML
     assert 'class="marca-recibo"' in HTML
@@ -64,3 +71,9 @@ def test_ui_renueva_sesion_y_reintenta_sin_pedir_clave():
     assert "fetch('/auth/refresh'" in HTML
     assert "if(await renovarSesion()) return api(ruta,metodo,body,false)" in HTML
     assert "else if(localStorage.getItem('sc_refresh'))" in HTML
+
+
+def test_ui_pide_convenios_del_periodo_y_bloquea_los_sin_escala():
+    assert "'/convenios'+(periodo?'?periodo='" in HTML
+    assert "o.disabled=!c.tiene_escala_vigente" in HTML
+    assert "sin escala vigente" in HTML

@@ -33,3 +33,7 @@ class Concepto:
     cantidad: Decimal = Decimal("1")
     regimen: Regimen = Regimen.NO_APLICA
     articulo_amparo: Optional[str] = None  # p.ej. "L27802:131" si se aplicó regla previa
+    # Metadatos de pago externo. No alteran el neto: permiten agrupar las
+    # obligaciones sindicales sin deducir el gremio a partir del código.
+    destino_pago: Optional[str] = None
+    codigo_boleta: Optional[str] = None

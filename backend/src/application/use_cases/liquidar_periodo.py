@@ -133,6 +133,8 @@ class LiquidarPeriodo:
                         "codigo": c.codigo, "descripcion": c.descripcion, "tipo": c.tipo.value,
                         "importe": str(c.importe.redondear().monto), "regimen": c.regimen.value,
                         "articulo_amparo": c.articulo_amparo,
+                        "destino_pago": c.destino_pago,
+                        "codigo_boleta": c.codigo_boleta,
                     }
                     for c in res.conceptos
                 ]
@@ -156,6 +158,9 @@ class LiquidarPeriodo:
                 }
                 detalles_out.append({
                     "empleado_id": str(emp.id),
+                    "cct_numero": emp.cct_numero,
+                    "localidad": emp.localidad,
+                    "filial_sindical": emp.filial_sindical,
                     "bruto": str(res.bruto.monto),
                     "total_deducciones": str(res.total_deducciones.monto),
                     "neto": str(res.neto.monto),

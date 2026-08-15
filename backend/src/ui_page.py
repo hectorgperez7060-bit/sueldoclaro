@@ -236,7 +236,7 @@ HTML = r"""<!DOCTYPE html>
     <div class="tarjeta">
       <h2>Liquidar sueldos</h2>
       <div class="fila">
-        <div><label>Mes a liquidar</label><input id="periodo" type="month" onchange="cargarCarpetas();mostrarEstadoNormativo()"></div>
+        <div><label>Mes a liquidar</label><input id="periodo" type="month" onchange="cargarConvenios();cargarCarpetas();mostrarEstadoNormativo()"></div>
         <div style="display:flex;align-items:end"><button onclick="liquidar()" style="width:100%">Liquidar todos los empleados</button></div>
       </div>
       <div id="estadoNormativo" style="margin-top:12px;font-size:.9rem"></div>
@@ -360,13 +360,18 @@ function toggleAlta(){ const a=$('alta'); a.style.display = a.style.display==='n
 
 async function cargarConvenios(){
   try{
-    convenios = await api('/convenios');
+    const periodo=$('periodo').value;
+    convenios = await api('/convenios'+(periodo?'?periodo='+encodeURIComponent(periodo):''));
     const sel = $('eConvenio'); sel.innerHTML='';
     convenios.forEach(c=>{
       const o=document.createElement('option');
       o.value=c.numero; o.textContent=`${c.nombre} (${c.sindicato}) — CCT ${c.numero}`;
+      o.disabled=!c.tiene_escala_vigente;
+      if(!c.tiene_escala_vigente) o.textContent+=' — sin escala vigente';
       sel.appendChild(o);
     });
+    const primeroVigente=convenios.find(c=>c.tiene_escala_vigente);
+    if(primeroVigente) sel.value=primeroVigente.numero;
     llenarCategorias();
   }catch(e){ /* silencioso */ }
 }
@@ -761,6 +766,42 @@ function resumenF931(d){
   </div>`;
 }
 
+function resumenSindical(d){
+  const grupos={};
+  d.detalles.forEach(det=>{
+    det.conceptos.forEach(c=>{
+      if(!c.destino_pago || !c.codigo_boleta) return;
+      const filial=det.filial_sindical||'';
+      const localidad=det.localidad||'';
+      const clave=[det.cct_numero||'',c.destino_pago,c.codigo_boleta,filial,localidad].join('|');
+      if(!grupos[clave]) grupos[clave]={
+        cct:det.cct_numero||'', destino:c.destino_pago, boleta:c.codigo_boleta,
+        filial, localidad, importe:0, empleados:new Set()
+      };
+      grupos[clave].importe+=Number(c.importe);
+      grupos[clave].empleados.add(det.empleado_id);
+    });
+  });
+  const lista=Object.values(grupos);
+  if(!lista.length) return `<div class="tarjeta" style="margin-top:20px;border:1px solid #f0c36d">
+    <h2>Obligaciones sindicales</h2>
+    <p style="color:#6b7280">No hay boletas sindicales configuradas con destino oficial para esta liquidación. No se generó ningún pago por suposición.</p>
+  </div>`;
+  let items=lista.map(g=>`<div class="detalle" style="margin-top:10px">
+    <b>${g.destino}</b> <span class="etiqueta">CCT ${g.cct}</span>
+    <div style="margin-top:6px"><b>Boleta:</b> ${g.boleta}</div>
+    ${g.filial?`<div><b>Filial:</b> ${g.filial}</div>`:''}
+    ${g.localidad?`<div><b>Localidad:</b> ${g.localidad}</div>`:''}
+    <div><b>Empleados:</b> ${g.empleados.size}</div>
+    <div class="neto" style="margin-top:6px">Importe agrupado: $ ${fmt(g.importe)}</div>
+  </div>`).join('');
+  return `<div class="tarjeta" style="margin-top:20px;border:2px solid var(--verde)">
+    <h2>Obligaciones sindicales agrupadas</h2>
+    <p style="font-size:.85rem;color:#6b7280">Control previo. No es una boleta presentable hasta incorporar y verificar el formulario oficial del gremio.</p>
+    ${items}
+  </div>`;
+}
+
 async function liquidar(){
   ocultar('liqError'); $('resultados').innerHTML='<p style="margin-top:12px">Calculando…</p>';
   try{
@@ -786,7 +827,7 @@ async function liquidar(){
         <div style="margin-top:10px"><button class="chico secundario" onclick="verRecibo('${det.empleado_id}')">📄 Ver recibo oficial (Anexo III) — descargar PDF</button></div>
         </div>`;
     });
-    $('resultados').innerHTML = html + resumenF931(d);
+    $('resultados').innerHTML = html + resumenF931(d) + resumenSindical(d);
     await cargarCarpetas();
   }catch(e){ $('resultados').innerHTML=''; mostrarError('liqError', e.message); }
 }

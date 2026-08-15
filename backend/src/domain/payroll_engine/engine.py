@@ -66,6 +66,8 @@ def _desc_ded(codigo: str) -> str:
         "APORTE_FAECYS": "Aporte FAECYS 0,5% (art. 100)",
         "CUOTA_SINDICAL_ART101": "Cuota sindical (art. 101, afiliados)",
         "APORTE_SOLIDARIO": "Aporte solidario (no afiliado)",
+        "APORTE_ADEF_REM": "Aporte ADEF sobre remunerativos",
+        "APORTE_ADEF_NR": "Aporte ADEF sobre no remunerativos",
     }
     for pref, desc in prefijos.items():
         if codigo.startswith(pref):
@@ -92,7 +94,7 @@ class MotorLiquidacion:
         return escala.basico.redondear()
 
     def _antiguedad(self, basico: Dinero, anios: int, cct: CctConfig) -> Dinero:
-        pct = cct.antiguedad_pct_por_anio * Decimal(anios)
+        pct = cct.antiguedad_fraccion(anios)
         return basico.porcentaje(pct).redondear()
 
     def _presentismo(self, basico: Dinero, antiguedad: Dinero, cct: CctConfig) -> Dinero:
@@ -150,7 +152,7 @@ class MotorLiquidacion:
 
         # Antigüedad: base = básico + NR que integran antigüedad
         base_antig = (basico + _nr("integra_antiguedad")).redondear()
-        antiguedad = base_antig.porcentaje(cct.antiguedad_pct_por_anio * Decimal(anios)).redondear()
+        antiguedad = base_antig.porcentaje(cct.antiguedad_fraccion(anios)).redondear()
         conceptos.append(
             Concepto("ANTIGUEDAD", f"Antigüedad ({anios} años)", TipoConcepto.REMUNERATIVO,
                      antiguedad, cantidad=Decimal(anios))
@@ -226,15 +228,30 @@ class MotorLiquidacion:
         #   ded_todos  -> a todo trabajador comprendido (p.ej. aporte art.100, FAECYS)
         #   ded_afil   -> solo afiliados (p.ej. cuota art.101)
         #   ded_noafil -> solo no afiliados (p.ej. aporte solidario UOCRA)
-        # Base: la base sindical (remunerativo + NR cuya incidencia lo dispare).
+        # Base predeterminada: la base sindical (remunerativo + NR cuya
+        # incidencia lo dispare). Convenios que exponen importes separados en
+        # el recibo pueden declarar ``base_deduccion`` en incidencias:
+        #   remunerativa | no_remunerativa_sindical | sindical.
         for d in self._p.deducciones_convenio(cct.cct_numero):
             aplica = (d.ambito == "ded_todos"
                       or (d.ambito == "ded_afil" and empleado.afiliado_sindicato)
                       or (d.ambito == "ded_noafil" and not empleado.afiliado_sindicato))
             if aplica:
-                imp = base_sindical.porcentaje(d.valor).redondear()
+                selector_base = (d.incidencias or {}).get("base_deduccion", "sindical")
+                bases_deduccion = {
+                    "sindical": base_sindical,
+                    "remunerativa": base,
+                    "no_remunerativa_sindical": _nr("aporte_sindicato").redondear(),
+                }
+                if selector_base not in bases_deduccion:
+                    raise ValueError(
+                        f"Base de deducción inválida para {d.codigo}: {selector_base}"
+                    )
+                imp = bases_deduccion[selector_base].porcentaje(d.valor).redondear()
                 conceptos.append(Concepto(d.codigo, _desc_ded(d.codigo),
-                                          TipoConcepto.DEDUCCION, imp))
+                                          TipoConcepto.DEDUCCION, imp,
+                                          destino_pago=(d.incidencias or {}).get("destino_pago"),
+                                          codigo_boleta=(d.incidencias or {}).get("codigo_boleta")))
 
         # ----- Concepto con estrategia por amparo (Ley 27.802 art. 131) -----
         conceptos.append(self._aporte_modernizacion(empleado, periodo, base))

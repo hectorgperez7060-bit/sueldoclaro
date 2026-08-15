@@ -9,8 +9,9 @@ from fastapi.responses import Response
 from api.dependencies.auth import Principal, require_rol, require_tenant
 from application.dto.schemas import EmpleadoIn, EmpleadoOut, ImportResultado
 from application.use_cases.importar_empleados import ImportarEmpleados
+from domain.entities.encuadramiento import resolver_encuadramiento
 from domain.value_objects.cuil import es_cuil_valido
-from infrastructure.database.repositories import AuditRepo, EmpleadoRepo
+from infrastructure.database.repositories import AuditRepo, EmpleadoRepo, ParametrosRepo
 from infrastructure.database.session import tenant_session
 from infrastructure.excel.importer import generar_demo_excel, generar_plantilla
 
@@ -68,6 +69,13 @@ async def crear(body: EmpleadoIn, principal: Principal = Depends(require_rol("ad
     async with tenant_session(principal.tenant_id) as s:
         datos = body.model_dump()
         datos["cuil"] = body.cuil.replace("-", "")
+        try:
+            datos["cct_numero"], datos["categoria"] = resolver_encuadramiento(
+                body.cct_numero, body.categoria,
+                await ParametrosRepo(s).catalogo_encuadramientos(),
+            )
+        except ValueError as exc:
+            raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, str(exc)) from exc
         emp = await EmpleadoRepo(s).crear(tid, datos)
         await AuditRepo(s).registrar(accion="crear", entidad="empleado", entidad_id=str(emp.id),
                                      tenant_id=tid, usuario_id=uuid.UUID(principal.usuario_id))
@@ -99,6 +107,13 @@ async def actualizar(empleado_id: str, body: EmpleadoIn, principal: Principal = 
             raise HTTPException(status.HTTP_404_NOT_FOUND, "Empleado no encontrado")
         datos = body.model_dump()
         datos["cuil"] = body.cuil.replace("-", "")
+        try:
+            datos["cct_numero"], datos["categoria"] = resolver_encuadramiento(
+                body.cct_numero, body.categoria,
+                await ParametrosRepo(s).catalogo_encuadramientos(),
+            )
+        except ValueError as exc:
+            raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, str(exc)) from exc
         for k, v in datos.items():
             setattr(emp, k, v)
         await AuditRepo(s).registrar(accion="actualizar", entidad="empleado", entidad_id=empleado_id,
@@ -132,4 +147,3 @@ async def importar(archivo: UploadFile, principal: Principal = Depends(require_r
     contenido = await archivo.read()
     res = await ImportarEmpleados().ejecutar(principal.tenant_id, contenido, principal.usuario_id)
     return ImportResultado(**res)
-

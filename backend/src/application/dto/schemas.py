@@ -206,10 +206,15 @@ class ConceptoOut(BaseModel):
     importe: Decimal
     regimen: str
     articulo_amparo: Optional[str] = None
+    destino_pago: Optional[str] = None
+    codigo_boleta: Optional[str] = None
 
 
 class DetalleOut(BaseModel):
     empleado_id: str
+    cct_numero: Optional[str] = None
+    localidad: Optional[str] = None
+    filial_sindical: Optional[str] = None
     bruto: Decimal
     total_deducciones: Decimal
     neto: Decimal
