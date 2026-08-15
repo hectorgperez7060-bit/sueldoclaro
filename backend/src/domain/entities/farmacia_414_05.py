@@ -8,6 +8,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from decimal import Decimal
 
+from domain.payroll_engine.config import ReglaAdicionalConfig
+
 
 CCT_FARMACIA = "414/05"
 
@@ -152,3 +154,37 @@ REGLAS_ADICIONALES_FARMACIA = (
     ReglaAdicionalFarmacia("BICICLETA_CICLOMOTOR", "Uso de bicicleta o ciclomotor propio", Decimal("0.15"), "basico_inicial_b_mas_antiguedad", "18.j", "vehiculo propio requerido"),
     ReglaAdicionalFarmacia("FALLA_CAJA", "Fondo compensador por falla de caja", Decimal("0.10"), "basico_categoria", "19", "tarea de cajero; saldo no compensado remunerativo"),
 )
+
+
+def configurar_adicionales_farmacia(
+    basico_inicial_a: Decimal,
+    basico_inicial_b: Decimal,
+    basico_farmaceutico: Decimal,
+) -> tuple[tuple[ReglaAdicionalConfig, ...], tuple[tuple[str, Decimal], ...]]:
+    """Traduce los arts. 17–19 al formato genérico consumido por el motor."""
+    bases_motor = {
+        "basico_categoria": "basico_categoria",
+        "basico_categoria_mas_antiguedad": "basico_categoria_mas_antiguedad",
+        "basico_inicial_a": "referencia:INICIAL_A",
+        "basico_inicial_a_mas_antiguedad": "referencia_mas_antiguedad:INICIAL_A",
+        "basico_inicial_b_mas_antiguedad": "referencia_mas_antiguedad:INICIAL_B",
+        "basico_farmaceutico_mas_antiguedad": "referencia_mas_antiguedad:FARMACEUTICO",
+    }
+    requieren_cantidad = {"NOCTURNO_VOLUNTARIO", "IDIOMA"}
+    reglas = tuple(
+        ReglaAdicionalConfig(
+            codigo=r.codigo,
+            descripcion=r.descripcion,
+            porcentaje=r.porcentaje,
+            base=bases_motor[r.base],
+            articulo=r.articulo,
+            requiere_cantidad=r.codigo in requieren_cantidad,
+        )
+        for r in REGLAS_ADICIONALES_FARMACIA
+    )
+    referencias = (
+        ("INICIAL_A", Decimal(basico_inicial_a)),
+        ("INICIAL_B", Decimal(basico_inicial_b)),
+        ("FARMACEUTICO", Decimal(basico_farmaceutico)),
+    )
+    return reglas, referencias

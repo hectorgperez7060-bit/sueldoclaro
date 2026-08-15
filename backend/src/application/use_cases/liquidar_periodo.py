@@ -82,7 +82,7 @@ class LiquidarPeriodo:
 
             detalles_out = []
             for emp in empleados:
-                cct_cfg = await params_repo.cct_config(emp.cct_numero)
+                cct_cfg = await params_repo.cct_config(emp.cct_numero, fecha_ref)
                 escala = await params_repo.escala(emp.cct_numero, emp.categoria, fecha_ref)
                 amparos = await params_repo.amparos(emp.cct_numero)
                 if cct_cfg is None or escala is None:

@@ -39,6 +39,10 @@ class Novedades:
     dias_trabajados_semestre: int = 181
     # Para vacaciones: remuneración habitual del mes.
     remuneracion_habitual: Dinero = None  # type: ignore[assignment]
+    # Adicionales habilitados por hechos del mes (título, tarea, idioma, etc.).
+    # Las fórmulas viven en CctConfig; aquí sólo ingresan códigos y cantidades.
+    adicionales_convencionales: tuple[str, ...] = ()
+    cantidades_adicionales: tuple[tuple[str, Decimal], ...] = ()
 
 
 # Concepto interno afectado por el amparo FAECYS/Comercio (art. 131 Ley 27.802).
@@ -157,6 +161,51 @@ class MotorLiquidacion:
             Concepto("ANTIGUEDAD", f"Antigüedad ({anios} años)", TipoConcepto.REMUNERATIVO,
                      antiguedad, cantidad=Decimal(anios))
         )
+
+        # Adicionales convencionales genéricos. El motor sólo interpreta bases
+        # declarativas; no contiene nombres de gremios ni artículos propios.
+        solicitados = set(novedades.adicionales_convencionales)
+        cantidades = dict(novedades.cantidades_adicionales)
+        reglas = {regla.codigo: regla for regla in cct.adicionales}
+        desconocidos = solicitados - set(reglas)
+        if desconocidos:
+            raise ValueError(
+                "Adicionales no configurados para el convenio: "
+                + ", ".join(sorted(desconocidos))
+            )
+        for codigo in sorted(solicitados):
+            regla = reglas[codigo]
+            cantidad = Decimal(cantidades.get(codigo, Decimal("1")))
+            if cantidad <= 0:
+                raise ValueError(f"La cantidad de {codigo} debe ser positiva")
+            if regla.requiere_cantidad and codigo not in cantidades:
+                raise ValueError(f"El adicional {codigo} requiere una cantidad informada")
+
+            if regla.base == "basico_categoria":
+                base_adicional = basico
+            elif regla.base == "basico_categoria_mas_antiguedad":
+                base_adicional = basico + antiguedad
+            elif regla.base.startswith("referencia:"):
+                clave = regla.base.split(":", 1)[1]
+                base_adicional = Dinero(cct.base_referencia(clave))
+                if empleado.proporcion_jornada != Decimal("1"):
+                    base_adicional = base_adicional.porcentaje(empleado.proporcion_jornada)
+            elif regla.base.startswith("referencia_mas_antiguedad:"):
+                clave = regla.base.split(":", 1)[1]
+                referencia = Dinero(cct.base_referencia(clave))
+                if empleado.proporcion_jornada != Decimal("1"):
+                    referencia = referencia.porcentaje(empleado.proporcion_jornada)
+                base_adicional = referencia + referencia.porcentaje(
+                    cct.antiguedad_fraccion(anios)
+                )
+            else:
+                raise ValueError(f"Base de adicional inválida para {codigo}: {regla.base}")
+
+            importe = base_adicional.porcentaje(regla.porcentaje).multiplicar(cantidad).redondear()
+            conceptos.append(Concepto(
+                codigo, regla.descripcion, TipoConcepto.REMUNERATIVO,
+                importe, cantidad=cantidad,
+            ))
 
         # Presentismo: base = básico + NR que integran presentismo + antigüedad
         if cct.aplica_presentismo:

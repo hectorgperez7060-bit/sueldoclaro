@@ -12,6 +12,17 @@ from typing import Optional, Tuple
 
 
 @dataclass(frozen=True)
+class ReglaAdicionalConfig:
+    """Fórmula auditable de un adicional convencional remunerativo."""
+    codigo: str
+    descripcion: str
+    porcentaje: Decimal
+    base: str
+    articulo: str
+    requiere_cantidad: bool = False
+
+
+@dataclass(frozen=True)
 class CctConfig:
     cct_numero: str
     # Antigüedad: porcentaje del básico por año (Comercio 130/75 = 1% => 0.01).
@@ -29,6 +40,10 @@ class CctConfig:
     # 10%, 5 años 20%, etc.). Cada elemento es (años_desde, fracción).
     # Si no se informa, se conserva el cálculo lineal existente.
     antiguedad_escalones: Optional[Tuple[Tuple[int, Decimal], ...]] = None
+    adicionales: Tuple[ReglaAdicionalConfig, ...] = ()
+    # Básicos de categorías usadas como referencia por otros adicionales.
+    # Se informan por período junto con la escala, nunca quedan en el motor.
+    bases_referencia: Tuple[Tuple[str, Decimal], ...] = ()
 
     def antiguedad_fraccion(self, anios: int) -> Decimal:
         """Porcentaje de antigüedad vigente para la cantidad de años.
@@ -46,3 +61,9 @@ class CctConfig:
                 break
             porcentaje = fraccion
         return porcentaje
+
+    def base_referencia(self, codigo: str) -> Decimal:
+        for clave, importe in self.bases_referencia:
+            if clave == codigo:
+                return Decimal(importe)
+        raise ValueError(f"Falta la base de referencia convencional {codigo}")

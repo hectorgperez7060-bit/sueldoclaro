@@ -24,6 +24,11 @@ from domain.entities.parametros import (
     resolver_cuota_art101,
 )
 from domain.entities.novedad import DatosNovedadMensual
+from domain.entities.farmacia_414_05 import (
+    CCT_FARMACIA,
+    categoria_farmacia_canonica,
+    configurar_adicionales_farmacia,
+)
 from domain.payroll_engine.config import CctConfig
 from domain.value_objects.dinero import Dinero
 
@@ -323,11 +328,44 @@ class ParametrosRepo:
         ]
         return AmparoSet(amps)
 
-    async def cct_config(self, cct_numero: str) -> Optional[CctConfig]:
+    async def cct_config(self, cct_numero: str, fecha: date | None = None) -> Optional[CctConfig]:
         r = await self.s.execute(select(m.Cct).where(m.Cct.numero == cct_numero))
         c = r.scalar_one_or_none()
         if not c:
             return None
+        adicionales = ()
+        referencias = ()
+        escalones = None
+        if cct_numero == CCT_FARMACIA:
+            escalones = (
+                (1, Decimal("0.05")), (2, Decimal("0.10")),
+                (5, Decimal("0.20")), (10, Decimal("0.30")),
+                (15, Decimal("0.35")), (20, Decimal("0.40")),
+                (25, Decimal("0.50")),
+            )
+            fecha = fecha or date.today()
+            escalas = (await self.s.execute(select(m.EscalaSalarial).where(
+                m.EscalaSalarial.cct_numero == cct_numero,
+                m.EscalaSalarial.valid_from <= fecha,
+                (m.EscalaSalarial.valid_to.is_(None))
+                | (m.EscalaSalarial.valid_to >= fecha),
+            ))).scalars().all()
+            por_categoria = {}
+            for escala in escalas:
+                try:
+                    por_categoria[categoria_farmacia_canonica(escala.categoria)] = Decimal(escala.basico)
+                except ValueError:
+                    continue
+            requeridas = {
+                "Categoría Inicial A", "Categoría Inicial B", "Farmacéutico",
+            }
+            if requeridas <= set(por_categoria):
+                adicionales, referencias = configurar_adicionales_farmacia(
+                    por_categoria["Categoría Inicial A"],
+                    por_categoria["Categoría Inicial B"],
+                    por_categoria["Farmacéutico"],
+                )
+
         return CctConfig(
             cct_numero=c.numero,
             antiguedad_pct_por_anio=Decimal(c.antiguedad_pct_por_anio),
@@ -336,6 +374,9 @@ class ParametrosRepo:
             aplica_presentismo=c.aplica_presentismo,
             aplica_cuota_sindical=c.aplica_cuota_sindical,
             cuota_sindical_pct=Decimal(c.cuota_sindical_pct) if c.cuota_sindical_pct is not None else None,
+            antiguedad_escalones=escalones,
+            adicionales=adicionales,
+            bases_referencia=referencias,
         )
 
 
