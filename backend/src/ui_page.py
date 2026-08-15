@@ -207,7 +207,7 @@ HTML = r"""<!DOCTYPE html>
       <div id="formNovedad" style="display:none;border:1px dashed var(--borde);border-radius:10px;padding:14px;margin-top:12px">
         <h3 id="tituloNovedad" style="font-size:.9rem;color:var(--verde);margin:4px 0 6px">Nueva novedad</h3>
         <div class="fila">
-          <div style="grid-column:1/-1"><label>Empleado</label><select id="novEmpleado"></select></div>
+          <div style="grid-column:1/-1"><label>Empleado</label><select id="novEmpleado" onchange="actualizarAdicionalesFarmacia()"></select></div>
           <div><label>Días trabajados</label><input id="novDias" type="number" min="0" value="0"></div>
           <div><label>Faltas justificadas</label><input id="novFaltasJ" type="number" min="0" value="0"></div>
           <div><label>Faltas injustificadas</label><input id="novFaltasI" type="number" min="0" value="0"></div>
@@ -218,6 +218,27 @@ HTML = r"""<!DOCTYPE html>
           <div><label>Premios ($)</label><input id="novPremios" type="number" min="0" step="0.01" value="0"></div>
           <div><label>Tratamiento del premio</label><select id="novTipoPremio"><option value="pendiente">Pendiente de definir (no calcular)</option><option value="remunerativo">Remunerativo (integra aportes)</option><option value="no_remunerativo">No remunerativo</option></select></div>
           <div><label>Descuentos adicionales ($)</label><input id="novDescuentos" type="number" min="0" step="0.01" value="0"></div>
+          <div id="novFarmacia" style="display:none;grid-column:1/-1;border:1px solid var(--borde);border-radius:8px;padding:12px">
+            <b>Adicionales Farmacia — CCT 414/05</b>
+            <p style="font-size:.82rem;color:#6b7280;margin:5px 0 10px">Marcá únicamente las condiciones reales del trabajador. La app aplica los porcentajes del convenio.</p>
+            <label>Función especial</label>
+            <select id="novRolFarmacia">
+              <option value="">Ninguna</option>
+              <option value="director">Dirección técnica</option>
+              <option value="auxiliar_con">Auxiliar con bloqueo de título</option>
+              <option value="auxiliar_sin">Auxiliar sin bloqueo de título</option>
+            </select>
+            <div class="fila" style="margin-top:8px">
+              <label><input id="novTituloFarmaceutico" type="checkbox"> Título farmacéutico</label>
+              <label><input id="novTituloAuxiliar" type="checkbox"> Título auxiliar</label>
+              <label><input id="novTituloSecundario" type="checkbox"> Título secundario</label>
+              <label><input id="novCajero" type="checkbox"> Función de cajero</label>
+              <label><input id="novAdminPerfumeria" type="checkbox"> Administración o perfumería</label>
+              <label><input id="novBicicleta" type="checkbox"> Uso de bicicleta/ciclomotor</label>
+              <label><input id="novFallaCaja" type="checkbox"> Fondo por falla de caja</label>
+              <div><label>Idiomas usados en la tarea</label><input id="novIdiomas" type="number" min="0" step="1" value="0"></div>
+            </div>
+          </div>
           <div style="grid-column:1/-1"><label>Observaciones</label><textarea id="novObservaciones" rows="3" placeholder="Detalle opcional"></textarea></div>
         </div>
         <div style="display:flex;gap:8px;margin-top:10px">
@@ -406,12 +427,37 @@ async function cargarEmpleados(){
 }
 
 function numeroNov(id){ return Number($(id).value || 0); }
+const checksFarmacia=['novTituloFarmaceutico','novTituloAuxiliar','novTituloSecundario','novCajero','novAdminPerfumeria','novBicicleta','novFallaCaja'];
+function actualizarAdicionalesFarmacia(){
+  const emp=empleadosCache[$('novEmpleado').value];
+  $('novFarmacia').style.display=emp && emp.cct_numero==='414/05'?'block':'none';
+}
+function limpiarAdicionalesFarmacia(){
+  $('novRolFarmacia').value=''; $('novIdiomas').value='0';
+  checksFarmacia.forEach(id=>$(id).checked=false);
+  actualizarAdicionalesFarmacia();
+}
+function datosAdicionalesFarmacia(){
+  const emp=empleadosCache[$('novEmpleado').value];
+  if(!emp || emp.cct_numero!=='414/05') return {adicionales_convencionales:[],cantidades_adicionales:{}};
+  const codigos=[]; const cantidades={};
+  const rol=$('novRolFarmacia').value;
+  if(rol==='director') codigos.push('DIRECCION_TECNICA','COMPLEMENTO_DIRECCION');
+  if(rol==='auxiliar_con') codigos.push('AUXILIAR_CON_BLOQUEO');
+  if(rol==='auxiliar_sin') codigos.push('AUXILIAR_SIN_BLOQUEO');
+  const opciones={novTituloFarmaceutico:'TITULO_FARMACEUTICO',novTituloAuxiliar:'TITULO_AUXILIAR',novTituloSecundario:'TITULO_SECUNDARIO',novCajero:'ADICIONAL_CAJERO',novAdminPerfumeria:'ADMIN_PERFUMERIA',novBicicleta:'BICICLETA_CICLOMOTOR',novFallaCaja:'FALLA_CAJA'};
+  Object.entries(opciones).forEach(([id,codigo])=>{if($(id).checked) codigos.push(codigo);});
+  const idiomas=numeroNov('novIdiomas');
+  if(idiomas>0){codigos.push('IDIOMA'); cantidades.IDIOMA=idiomas;}
+  return {adicionales_convencionales:codigos,cantidades_adicionales:cantidades};
+}
 function limpiarNovedad(){
   editandoNovedadId=null;
   $('novEmpleado').value=''; $('novEmpleado').disabled=false;
   ['novDias','novFaltasJ','novFaltasI','novLicencias','novVacaciones','novHE50','novHE100','novPremios','novDescuentos'].forEach(id=>$(id).value='0');
   $('novObservaciones').value='';
   $('novTipoPremio').value='pendiente';
+  limpiarAdicionalesFarmacia();
   $('tituloNovedad').textContent='Nueva novedad';
   $('btnGuardarNovedad').textContent='Guardar novedad';
   ocultar('novFormError');
@@ -439,7 +485,8 @@ async function cargarNovedades(){
       const acciones=n.bloqueada
         ? '<span class="estado-edicion">🔒 Cerrada por liquidación confirmada</span>'
         : `<div class="acciones-tabla"><button class="chico secundario" onclick="editarNovedad('${n.id}')" title="Editar">✏️ Editar</button><button class="chico secundario" onclick="borrarNovedad('${n.id}')" title="Eliminar">🗑 Eliminar</button></div><span class="estado-edicion">Editable: la liquidación está calculada, no confirmada</span>`;
-      tr.innerHTML=`<td data-label="Empleado">${emp.apellido}, ${emp.nombre}</td><td data-label="Días">${n.dias_trabajados}</td><td data-label="Faltas">${faltas}</td><td data-label="Extras">50%: ${n.horas_extra_50} · 100%: ${n.horas_extra_100}</td><td data-label="Premios / descuentos">$ ${fmt(n.premios)} / $ ${fmt(n.descuentos_adicionales)}</td><td class="acciones-celda">${acciones}</td>`;
+      const adicionales=(n.adicionales_convencionales||[]).length?`<br><small>Convenio: ${(n.adicionales_convencionales||[]).join(', ')}</small>`:'';
+      tr.innerHTML=`<td data-label="Empleado">${emp.apellido}, ${emp.nombre}</td><td data-label="Días">${n.dias_trabajados}</td><td data-label="Faltas">${faltas}</td><td data-label="Extras">50%: ${n.horas_extra_50} · 100%: ${n.horas_extra_100}${adicionales}</td><td data-label="Premios / descuentos">$ ${fmt(n.premios)} / $ ${fmt(n.descuentos_adicionales)}</td><td class="acciones-celda">${acciones}</td>`;
       tb.appendChild(tr);
     });
     $('tablaNovedades').style.display=lista.length?'table':'none';
@@ -501,6 +548,7 @@ function cuerpoNovedad(incluirEmpleado=true){
     descuentos_adicionales:numeroNov('novDescuentos'),
     observaciones:$('novObservaciones').value.trim()
   };
+  Object.assign(cuerpo,datosAdicionalesFarmacia());
   if(incluirEmpleado) cuerpo.empleado_id=$('novEmpleado').value;
   return cuerpo;
 }
@@ -529,6 +577,15 @@ function editarNovedad(id){
   $('novHE100').value=n.horas_extra_100; $('novPremios').value=n.premios;
   $('novTipoPremio').value=n.tipo_premio||'pendiente';
   $('novDescuentos').value=n.descuentos_adicionales; $('novObservaciones').value=n.observaciones||'';
+  limpiarAdicionalesFarmacia();
+  const adicionales=new Set(n.adicionales_convencionales||[]);
+  if(adicionales.has('DIRECCION_TECNICA')) $('novRolFarmacia').value='director';
+  else if(adicionales.has('AUXILIAR_CON_BLOQUEO')) $('novRolFarmacia').value='auxiliar_con';
+  else if(adicionales.has('AUXILIAR_SIN_BLOQUEO')) $('novRolFarmacia').value='auxiliar_sin';
+  const opciones={novTituloFarmaceutico:'TITULO_FARMACEUTICO',novTituloAuxiliar:'TITULO_AUXILIAR',novTituloSecundario:'TITULO_SECUNDARIO',novCajero:'ADICIONAL_CAJERO',novAdminPerfumeria:'ADMIN_PERFUMERIA',novBicicleta:'BICICLETA_CICLOMOTOR',novFallaCaja:'FALLA_CAJA'};
+  Object.entries(opciones).forEach(([id,codigo])=>$(id).checked=adicionales.has(codigo));
+  $('novIdiomas').value=(n.cantidades_adicionales||{}).IDIOMA||0;
+  actualizarAdicionalesFarmacia();
   $('tituloNovedad').textContent='Editar novedad'; $('btnGuardarNovedad').textContent='Guardar cambios';
   $('formNovedad').style.display='block'; ocultar('novFormError');
 }

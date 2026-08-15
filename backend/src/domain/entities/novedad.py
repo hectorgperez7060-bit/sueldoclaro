@@ -22,6 +22,8 @@ class DatosNovedadMensual:
     tipo_premio: str = "pendiente"
     descuentos_adicionales: Decimal = Decimal("0")
     observaciones: str = ""
+    adicionales_convencionales: tuple[str, ...] = ()
+    cantidades_adicionales: tuple[tuple[str, Decimal], ...] = ()
 
     def __post_init__(self) -> None:
         try:
@@ -65,6 +67,20 @@ class DatosNovedadMensual:
         if self.descuentos_adicionales > 0 and not self.observaciones.strip():
             raise ValueError("Los descuentos adicionales requieren una observación")
 
+        codigos = tuple(self.adicionales_convencionales)
+        if any(not isinstance(codigo, str) or not codigo.strip() for codigo in codigos):
+            raise ValueError("Los adicionales convencionales deben tener un código válido")
+        if len(codigos) != len(set(codigos)):
+            raise ValueError("No se puede informar dos veces el mismo adicional convencional")
+        cantidades = dict(self.cantidades_adicionales)
+        if len(cantidades) != len(tuple(self.cantidades_adicionales)):
+            raise ValueError("No se puede informar dos veces la cantidad de un adicional")
+        for codigo, cantidad in cantidades.items():
+            if codigo not in codigos:
+                raise ValueError("Toda cantidad debe corresponder a un adicional seleccionado")
+            if Decimal(str(cantidad)) <= 0:
+                raise ValueError("La cantidad de un adicional debe ser mayor que cero")
+
     def para_persistir(self) -> dict:
         return {
             "periodo": self.periodo,
@@ -79,4 +95,9 @@ class DatosNovedadMensual:
             "tipo_premio": self.tipo_premio,
             "descuentos_adicionales": Decimal(str(self.descuentos_adicionales)),
             "observaciones": self.observaciones.strip(),
+            "adicionales_convencionales": list(self.adicionales_convencionales),
+            "cantidades_adicionales": {
+                codigo: str(Decimal(str(cantidad)))
+                for codigo, cantidad in self.cantidades_adicionales
+            },
         }

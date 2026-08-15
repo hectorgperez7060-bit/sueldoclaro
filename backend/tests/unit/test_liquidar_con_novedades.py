@@ -9,12 +9,14 @@ def _empleado(empleado_id=None):
     return SimpleNamespace(id=empleado_id or uuid.uuid4())
 
 
-def _novedad(empleado_id, h50="0", h100="0"):
+def _novedad(empleado_id, h50="0", h100="0", adicionales=None, cantidades=None):
     return SimpleNamespace(
         id=uuid.uuid4(), empleado_id=empleado_id,
         horas_extra_50=Decimal(h50), horas_extra_100=Decimal(h100),
         premios=Decimal("0"), tipo_premio="pendiente",
         descuentos_adicionales=Decimal("0"), observaciones="",
+        adicionales_convencionales=adicionales or [],
+        cantidades_adicionales=cantidades or {},
     )
 
 
@@ -58,3 +60,15 @@ def test_descarta_body_de_empleado_ajeno_a_la_nomina():
     assert resolver_horas_extra(
         [emp], [], {ajeno: {"horas_extra_50": "50"}}
     ) == {}
+
+
+def test_lleva_adicionales_guardados_al_motor():
+    emp = _empleado()
+    nov = _novedad(
+        emp.id,
+        adicionales=["TITULO_SECUNDARIO", "IDIOMA"],
+        cantidades={"IDIOMA": "2"},
+    )
+    res = resolver_horas_extra([emp], [nov], {})[str(emp.id)]
+    assert res["adicionales_convencionales"] == ("TITULO_SECUNDARIO", "IDIOMA")
+    assert res["cantidades_adicionales"] == (("IDIOMA", Decimal("2")),)

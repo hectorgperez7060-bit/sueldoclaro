@@ -15,7 +15,9 @@ def test_novedad_mensual_tiene_columnas_y_claves_esperadas():
         "id", "tenant_id", "empleado_id", "periodo", "dias_trabajados",
         "faltas_justificadas", "faltas_injustificadas", "horas_extra_50",
         "horas_extra_100", "licencias", "vacaciones", "premios",
-        "tipo_premio", "descuentos_adicionales", "observaciones", "created_at", "updated_at",
+        "tipo_premio", "descuentos_adicionales", "observaciones",
+        "adicionales_convencionales", "cantidades_adicionales",
+        "created_at", "updated_at",
     }
     assert esperadas == set(tabla.columns.keys())
     assert {fk.target_fullname for fk in tabla.c.empleado_id.foreign_keys} == {"empleado.id"}

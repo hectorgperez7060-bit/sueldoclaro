@@ -121,6 +121,8 @@ class NovedadMensualIn(BaseModel):
     tipo_premio: str = "pendiente"
     descuentos_adicionales: Decimal = Decimal("0")
     observaciones: str = ""
+    adicionales_convencionales: List[str] = Field(default_factory=list)
+    cantidades_adicionales: dict[str, Decimal] = Field(default_factory=dict)
 
     @model_validator(mode="after")
     def _validar_novedad(self):
@@ -132,13 +134,19 @@ class NovedadMensualIn(BaseModel):
             uuid.UUID(self.empleado_id)
         except (TypeError, ValueError) as exc:
             raise ValueError("Identificador de empleado inválido") from exc
-        DatosNovedadMensual(**self.model_dump(exclude={"empleado_id"}))
+        DatosNovedadMensual(**self._datos())
         return self
+
+    def _datos(self):
+        datos = self.model_dump(exclude={"empleado_id"})
+        datos["adicionales_convencionales"] = tuple(datos["adicionales_convencionales"])
+        datos["cantidades_adicionales"] = tuple(datos["cantidades_adicionales"].items())
+        return datos
 
     def datos_dominio(self):
         from domain.entities.novedad import DatosNovedadMensual
 
-        return DatosNovedadMensual(**self.model_dump(exclude={"empleado_id"}))
+        return DatosNovedadMensual(**self._datos())
 
 
 class NovedadMensualUpdate(BaseModel):
@@ -154,18 +162,26 @@ class NovedadMensualUpdate(BaseModel):
     tipo_premio: str = "pendiente"
     descuentos_adicionales: Decimal = Decimal("0")
     observaciones: str = ""
+    adicionales_convencionales: List[str] = Field(default_factory=list)
+    cantidades_adicionales: dict[str, Decimal] = Field(default_factory=dict)
 
     @model_validator(mode="after")
     def _validar_novedad(self):
         from domain.entities.novedad import DatosNovedadMensual
 
-        DatosNovedadMensual(**self.model_dump())
+        DatosNovedadMensual(**self._datos())
         return self
+
+    def _datos(self):
+        datos = self.model_dump()
+        datos["adicionales_convencionales"] = tuple(datos["adicionales_convencionales"])
+        datos["cantidades_adicionales"] = tuple(datos["cantidades_adicionales"].items())
+        return datos
 
     def datos_dominio(self):
         from domain.entities.novedad import DatosNovedadMensual
 
-        return DatosNovedadMensual(**self.model_dump())
+        return DatosNovedadMensual(**self._datos())
 
 
 class NovedadMensualOut(BaseModel):
@@ -183,6 +199,8 @@ class NovedadMensualOut(BaseModel):
     tipo_premio: str
     descuentos_adicionales: Decimal
     observaciones: str
+    adicionales_convencionales: List[str] = Field(default_factory=list)
+    cantidades_adicionales: dict[str, Decimal] = Field(default_factory=dict)
     bloqueada: bool = False
 
 

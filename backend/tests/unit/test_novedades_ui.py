@@ -77,3 +77,14 @@ def test_ui_pide_convenios_del_periodo_y_bloquea_los_sin_escala():
     assert "'/convenios'+(periodo?'?periodo='" in HTML
     assert "o.disabled=!c.tiene_escala_vigente" in HTML
     assert "sin escala vigente" in HTML
+
+
+def test_ui_muestra_adicionales_farmacia_solo_para_cct_414_05():
+    assert 'id="novFarmacia"' in HTML
+    assert "emp.cct_numero==='414/05'" in HTML
+    assert "DIRECCION_TECNICA" in HTML
+    assert "COMPLEMENTO_DIRECCION" in HTML
+    assert "TITULO_FARMACEUTICO" in HTML
+    assert "IDIOMA" in HTML
+    assert "cantidades_adicionales" in HTML
+    assert "NOCTURNO_VOLUNTARIO" not in HTML

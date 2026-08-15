@@ -42,6 +42,7 @@ def resolver_horas_extra(
             "origen": "body_legacy",
             "premio": Decimal("0"), "tipo_premio": "pendiente",
             "descuento_adicional": Decimal("0"), "detalle_descuento": "",
+            "adicionales_convencionales": (), "cantidades_adicionales": (),
         }
         for empleado_id, datos in novedades_legacy.items()
         if empleado_id in ids_validos
@@ -56,6 +57,15 @@ def resolver_horas_extra(
             "tipo_premio": novedad.tipo_premio or "pendiente",
             "descuento_adicional": Decimal(novedad.descuentos_adicionales or 0),
             "detalle_descuento": novedad.observaciones or "",
+            "adicionales_convencionales": tuple(
+                getattr(novedad, "adicionales_convencionales", None) or []
+            ),
+            "cantidades_adicionales": tuple(
+                (codigo, Decimal(str(cantidad)))
+                for codigo, cantidad in (
+                    getattr(novedad, "cantidades_adicionales", None) or {}
+                ).items()
+            ),
         }
     return res
 
@@ -125,6 +135,8 @@ class LiquidarPeriodo:
                         tipo_premio=nv.get("tipo_premio", "pendiente"),
                         descuento_adicional=Decimal(str(nv.get("descuento_adicional", "0"))),
                         detalle_descuento=nv.get("detalle_descuento", ""),
+                        adicionales_convencionales=nv.get("adicionales_convencionales", ()),
+                        cantidades_adicionales=nv.get("cantidades_adicionales", ()),
                     ),
                     a_fecha=fecha_ref,
                 )

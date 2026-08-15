@@ -44,6 +44,8 @@ def _to_out(novedad, bloqueada: bool = False) -> NovedadMensualOut:
         tipo_premio=novedad.tipo_premio,
         descuentos_adicionales=novedad.descuentos_adicionales,
         observaciones=novedad.observaciones,
+        adicionales_convencionales=novedad.adicionales_convencionales or [],
+        cantidades_adicionales=novedad.cantidades_adicionales or {},
         bloqueada=bloqueada,
     )
 

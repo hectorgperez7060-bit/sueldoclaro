@@ -262,6 +262,8 @@ class NovedadMensual(TenantMixin, Base):
     tipo_premio: Mapped[str] = mapped_column(String(20), default="pendiente")
     descuentos_adicionales: Mapped[Decimal] = mapped_column(MONEY, default=Decimal("0"))
     observaciones: Mapped[str] = mapped_column(Text, default="")
+    adicionales_convencionales: Mapped[list] = mapped_column(JSONB, default=list)
+    cantidades_adicionales: Mapped[dict] = mapped_column(JSONB, default=dict)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=now_utc, onupdate=now_utc
