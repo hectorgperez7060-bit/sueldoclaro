@@ -101,19 +101,36 @@ class LiquidarPeriodo:
                 # Cuota Art.101 (afiliados): el repositorio la resuelve por
                 # CCT + localidad/filial y la inyecta como ded_afil. Si no hay
                 # cuota oficial verificada, NO se aplica ningun % y se avisa.
-                aviso_art101 = None
+                aviso_cuota_afiliado = None
                 params_emp = parametros
                 if emp.afiliado_sindicato:
                     cuota = await params_repo.resolver_art101(
                         emp.cct_numero, emp.localidad, emp.filial_sindical, fecha_ref)
                     if cuota is not None:
+                        if emp.cct_numero == "414/05":
+                            codigo_cuota = "CUOTA_SINDICAL_ART47_414/05"
+                            incidencias_cuota = {
+                                "base_deduccion": "sindical",
+                                "destino_pago": "ADEF",
+                                "codigo_boleta": "ADEF_APORTES",
+                                "absorbe_codigos": [
+                                    "APORTE_ADEF_REM_414/05",
+                                    "APORTE_ADEF_NR_414/05",
+                                ],
+                            }
+                        else:
+                            codigo_cuota = f"CUOTA_SINDICAL_ART101_{emp.cct_numero}"
+                            incidencias_cuota = {}
                         params_emp = parametros.con_extra(ParamDom(
-                            f"CUOTA_SINDICAL_ART101_{emp.cct_numero}", cuota.porcentaje, "%",
-                            "ded_afil", cuota.valid_from, cuota.valid_to, True, cuota.fuente,
-                            emp.cct_numero, {}))
+                            codigo_cuota, cuota.porcentaje, "%", "ded_afil",
+                            cuota.valid_from, cuota.valid_to, True, cuota.fuente,
+                            emp.cct_numero, incidencias_cuota))
                     else:
-                        aviso_art101 = ("Cuota sindical de afiliado pendiente de verificar "
-                                        "para esta localidad/filial")
+                        articulo = "art. 47 ADEF" if emp.cct_numero == "414/05" else "art. 101"
+                        aviso_cuota_afiliado = (
+                            f"Cuota sindical de afiliado ({articulo}) pendiente de verificar "
+                            "para esta localidad/filial"
+                        )
                 motor = MotorLiquidacion(params_emp, amparos)
                 dom_emp = Empleado(
                     nombre=emp.nombre, apellido=emp.apellido, cuil=Cuil(emp.cuil),
@@ -147,6 +164,10 @@ class LiquidarPeriodo:
                         "articulo_amparo": c.articulo_amparo,
                         "destino_pago": c.destino_pago,
                         "codigo_boleta": c.codigo_boleta,
+                        "canal_pago": c.canal_pago,
+                        "url_pago": c.url_pago,
+                        "regla_vencimiento": c.regla_vencimiento,
+                        "fuente_pago": c.fuente_pago,
                     }
                     for c in res.conceptos
                 ]
@@ -184,7 +205,8 @@ class LiquidarPeriodo:
                     "total_deducciones": str(res.total_deducciones.monto),
                     "neto": str(res.neto.monto),
                     "conceptos": conceptos,
-                    "aviso_art101": aviso_art101,
+                    "aviso_cuota_afiliado": aviso_cuota_afiliado,
+                    "aviso_art101": aviso_cuota_afiliado,
                 })
 
             # Reasignar un objeto nuevo fuerza la detección de cambios de JSONB

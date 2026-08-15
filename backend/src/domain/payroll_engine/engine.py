@@ -72,6 +72,8 @@ def _desc_ded(codigo: str) -> str:
         "APORTE_SOLIDARIO": "Aporte solidario (no afiliado)",
         "APORTE_ADEF_REM": "Aporte ADEF sobre remunerativos",
         "APORTE_ADEF_NR": "Aporte ADEF sobre no remunerativos",
+        "APORTE_ADEF_ASISTENCIA": "Aporte ADEF asistencia social (junio/diciembre)",
+        "CUOTA_SINDICAL_ART47": "Cuota sindical ADEF afiliado (art. 47)",
     }
     for pref, desc in prefijos.items():
         if codigo.startswith(pref):
@@ -313,6 +315,9 @@ class MotorLiquidacion:
         # el recibo pueden declarar ``base_deduccion`` en incidencias:
         #   remunerativa | no_remunerativa_sindical | sindical.
         for d in self._p.deducciones_convenio(cct.cct_numero):
+            meses = (d.incidencias or {}).get("meses_aplicacion")
+            if meses and periodo.mes not in {int(mes) for mes in meses}:
+                continue
             aplica = (d.ambito == "ded_todos"
                       or (d.ambito == "ded_afil" and empleado.afiliado_sindicato)
                       or (d.ambito == "ded_noafil" and not empleado.afiliado_sindicato))
@@ -328,10 +333,21 @@ class MotorLiquidacion:
                         f"Base de deducción inválida para {d.codigo}: {selector_base}"
                     )
                 imp = bases_deduccion[selector_base].porcentaje(d.valor).redondear()
+                absorbe_codigos = set((d.incidencias or {}).get("absorbe_codigos", []))
+                if absorbe_codigos:
+                    absorbido = Dinero.cero()
+                    for concepto_existente in conceptos:
+                        if concepto_existente.codigo in absorbe_codigos:
+                            absorbido = absorbido + concepto_existente.importe
+                    imp = Dinero(max(imp.monto - absorbido.monto, Decimal("0"))).redondear()
                 conceptos.append(Concepto(d.codigo, _desc_ded(d.codigo),
                                           TipoConcepto.DEDUCCION, imp,
                                           destino_pago=(d.incidencias or {}).get("destino_pago"),
-                                          codigo_boleta=(d.incidencias or {}).get("codigo_boleta")))
+                                          codigo_boleta=(d.incidencias or {}).get("codigo_boleta"),
+                                          canal_pago=(d.incidencias or {}).get("canal_pago"),
+                                          url_pago=(d.incidencias or {}).get("url_pago"),
+                                          regla_vencimiento=(d.incidencias or {}).get("regla_vencimiento"),
+                                          fuente_pago=(d.incidencias or {}).get("fuente_pago")))
 
         # ----- Concepto con estrategia por amparo (Ley 27.802 art. 131) -----
         conceptos.append(self._aporte_modernizacion(empleado, periodo, base))

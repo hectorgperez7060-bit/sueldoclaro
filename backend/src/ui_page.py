@@ -177,7 +177,7 @@ HTML = r"""<!DOCTYPE html>
           <div><label id="lblCbu">CBU (22 dígitos)</label><input id="eCbu" maxlength="22" placeholder="opcional"></div>
         </div>
 
-        <h3 style="font-size:.9rem;color:var(--verde);margin:14px 0 6px">Datos sindicales (para cuota de afiliado — Art. 101)</h3>
+        <h3 style="font-size:.9rem;color:var(--verde);margin:14px 0 6px">Datos sindicales (para cuota de afiliado según el convenio)</h3>
         <div class="fila">
           <div><label>Localidad / jurisdicción</label><input id="eLocalidad" placeholder="Ej.: CABA, Rosario, Córdoba"></div>
           <div><label>Filial sindical (si aplica)</label><input id="eFilial" placeholder="opcional"></div>
@@ -865,8 +865,14 @@ function resumenSindical(d){
       const clave=[det.cct_numero||'',c.destino_pago,c.codigo_boleta,filial,localidad].join('|');
       if(!grupos[clave]) grupos[clave]={
         cct:det.cct_numero||'', destino:c.destino_pago, boleta:c.codigo_boleta,
-        filial, localidad, importe:0, empleados:new Set()
+        filial, localidad, importe:0, empleados:new Set(),
+        canal:c.canal_pago||'', url:c.url_pago||'',
+        vencimiento:c.regla_vencimiento||'', fuente:c.fuente_pago||''
       };
+      ['canal_pago','url_pago','regla_vencimiento','fuente_pago'].forEach((campo,i)=>{
+        const destinoCampo=['canal','url','vencimiento','fuente'][i];
+        if(!grupos[clave][destinoCampo] && c[campo]) grupos[clave][destinoCampo]=c[campo];
+      });
       grupos[clave].importe+=Number(c.importe);
       grupos[clave].empleados.add(det.empleado_id);
     });
@@ -881,6 +887,9 @@ function resumenSindical(d){
     <div style="margin-top:6px"><b>Boleta:</b> ${g.boleta}</div>
     ${g.filial?`<div><b>Filial:</b> ${g.filial}</div>`:''}
     ${g.localidad?`<div><b>Localidad:</b> ${g.localidad}</div>`:''}
+    ${g.canal?`<div><b>Canal oficial:</b> ${g.url?`<a href="${g.url}" target="_blank" rel="noopener">${g.canal}</a>`:g.canal}</div>`:''}
+    ${g.vencimiento?`<div><b>Vencimiento:</b> ${g.vencimiento}</div>`:''}
+    ${g.fuente?`<div><b>Fuente:</b> ${g.fuente}</div>`:''}
     <div><b>Empleados:</b> ${g.empleados.size}</div>
     <div class="neto" style="margin-top:6px">Importe agrupado: $ ${fmt(g.importe)}</div>
   </div>`).join('');

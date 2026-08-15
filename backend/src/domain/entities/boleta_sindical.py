@@ -27,12 +27,19 @@ def agrupar_obligaciones_sindicales(detalles: list[dict]) -> list[dict]:
                 "cct_numero": cct,
                 "destino_pago": destino,
                 "codigo_boleta": codigo_boleta,
+                "canal_pago": concepto.get("canal_pago") or None,
+                "url_pago": concepto.get("url_pago") or None,
+                "regla_vencimiento": concepto.get("regla_vencimiento") or None,
+                "fuente_pago": concepto.get("fuente_pago") or None,
                 "filial_sindical": filial or None,
                 "localidad": localidad or None,
                 "importe": Decimal("0"),
                 "empleados": set(),
                 "conceptos": {},
             })
+            for campo in ("canal_pago", "url_pago", "regla_vencimiento", "fuente_pago"):
+                if not grupo[campo] and concepto.get(campo):
+                    grupo[campo] = concepto[campo]
             importe = Decimal(str(concepto["importe"]))
             grupo["importe"] += importe
             if empleado_id:

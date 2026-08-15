@@ -37,3 +37,7 @@ class Concepto:
     # obligaciones sindicales sin deducir el gremio a partir del código.
     destino_pago: Optional[str] = None
     codigo_boleta: Optional[str] = None
+    canal_pago: Optional[str] = None
+    url_pago: Optional[str] = None
+    regla_vencimiento: Optional[str] = None
+    fuente_pago: Optional[str] = None

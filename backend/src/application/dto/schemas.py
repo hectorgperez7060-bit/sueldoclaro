@@ -226,6 +226,10 @@ class ConceptoOut(BaseModel):
     articulo_amparo: Optional[str] = None
     destino_pago: Optional[str] = None
     codigo_boleta: Optional[str] = None
+    canal_pago: Optional[str] = None
+    url_pago: Optional[str] = None
+    regla_vencimiento: Optional[str] = None
+    fuente_pago: Optional[str] = None
 
 
 class DetalleOut(BaseModel):
