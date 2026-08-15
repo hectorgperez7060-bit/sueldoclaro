@@ -20,6 +20,10 @@ class ReglaAdicionalConfig:
     base: str
     articulo: str
     requiere_cantidad: bool = False
+    # multiplicador: base × porcentaje × cantidad.
+    # proporcion_periodo: base × porcentaje × cantidad / cantidad_base.
+    modo_calculo: str = "multiplicador"
+    clave_cantidad_base: Optional[str] = None
 
 
 @dataclass(frozen=True)

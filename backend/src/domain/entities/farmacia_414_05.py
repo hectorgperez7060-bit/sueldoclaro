@@ -140,7 +140,7 @@ class ReglaAdicionalFarmacia:
 # Arts. 17 a 19. Las bases se expresan, no se calculan aquí con una fórmula
 # genérica, porque cada adicional tiene una base convencional distinta.
 REGLAS_ADICIONALES_FARMACIA = (
-    ReglaAdicionalFarmacia("NOCTURNO_VOLUNTARIO", "Servicio nocturno voluntario", Decimal("1"), "basico_categoria", "17", "horas nocturnas voluntarias"),
+    ReglaAdicionalFarmacia("NOCTURNO_VOLUNTARIO", "Servicio nocturno voluntario", Decimal("1"), "basico_categoria", "17", "horas entre 21 y 6 en servicio voluntario o extendido; excluye serenos y vigilancia"),
     ReglaAdicionalFarmacia("TITULO_FARMACEUTICO", "Título farmacéutico", Decimal("0.58"), "basico_inicial_a_mas_antiguedad", "18.a", "farmaceutico con titulo"),
     ReglaAdicionalFarmacia("DIRECCION_TECNICA", "Dirección técnica con bloqueo", Decimal("0.88"), "basico_inicial_a", "18.b", "director tecnico con bloqueo"),
     ReglaAdicionalFarmacia("COMPLEMENTO_DIRECCION", "Complemento dirección técnica", Decimal("0.10"), "basico_farmaceutico_mas_antiguedad", "18.b", "director tecnico con bloqueo"),
@@ -179,6 +179,15 @@ def configurar_adicionales_farmacia(
             base=bases_motor[r.base],
             articulo=r.articulo,
             requiere_cantidad=r.codigo in requieren_cantidad,
+            modo_calculo=(
+                "proporcion_periodo" if r.codigo == "NOCTURNO_VOLUNTARIO"
+                else "remanente_fondo" if r.codigo == "FALLA_CAJA"
+                else "multiplicador"
+            ),
+            clave_cantidad_base=(
+                "HORAS_TOTALES_PERIODO" if r.codigo == "NOCTURNO_VOLUNTARIO"
+                else None
+            ),
         )
         for r in REGLAS_ADICIONALES_FARMACIA
     )

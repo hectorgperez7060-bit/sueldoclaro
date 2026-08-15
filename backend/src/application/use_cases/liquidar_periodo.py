@@ -166,6 +166,13 @@ class LiquidarPeriodo:
                         "premio": str(nv.get("premio", "0")),
                         "tipo_premio": nv.get("tipo_premio", "pendiente"),
                         "descuento_adicional": str(nv.get("descuento_adicional", "0")),
+                        "adicionales_convencionales": list(
+                            nv.get("adicionales_convencionales", ())
+                        ),
+                        "cantidades_adicionales": {
+                            codigo: str(cantidad)
+                            for codigo, cantidad in nv.get("cantidades_adicionales", ())
+                        },
                     },
                 }
                 detalles_out.append({

@@ -176,7 +176,7 @@ class MotorLiquidacion:
         for codigo in sorted(solicitados):
             regla = reglas[codigo]
             cantidad = Decimal(cantidades.get(codigo, Decimal("1")))
-            if cantidad <= 0:
+            if regla.modo_calculo != "remanente_fondo" and cantidad <= 0:
                 raise ValueError(f"La cantidad de {codigo} debe ser positiva")
             if regla.requiere_cantidad and codigo not in cantidades:
                 raise ValueError(f"El adicional {codigo} requiere una cantidad informada")
@@ -201,7 +201,38 @@ class MotorLiquidacion:
             else:
                 raise ValueError(f"Base de adicional inválida para {codigo}: {regla.base}")
 
-            importe = base_adicional.porcentaje(regla.porcentaje).multiplicar(cantidad).redondear()
+            multiplicador = cantidad
+            importe_directo = None
+            if regla.modo_calculo == "proporcion_periodo":
+                if not regla.clave_cantidad_base:
+                    raise ValueError(f"Falta configurar la base de cantidad para {codigo}")
+                cantidad_base = Decimal(cantidades.get(regla.clave_cantidad_base, 0))
+                if cantidad_base <= 0:
+                    raise ValueError(
+                        f"El adicional {codigo} requiere {regla.clave_cantidad_base} positivo"
+                    )
+                if cantidad > cantidad_base:
+                    raise ValueError(
+                        f"Las horas de {codigo} no pueden superar las horas totales del período"
+                    )
+                multiplicador = cantidad / cantidad_base
+            elif regla.modo_calculo == "remanente_fondo":
+                faltante = Decimal(cantidades.get(codigo, 0))
+                if faltante < 0:
+                    raise ValueError(f"El faltante informado para {codigo} no puede ser negativo")
+                fondo = base_adicional.porcentaje(regla.porcentaje)
+                importe_directo = max(fondo.monto - faltante, Decimal("0"))
+                cantidad = faltante
+            elif regla.modo_calculo != "multiplicador":
+                raise ValueError(f"Modo de cálculo inválido para {codigo}")
+
+            importe = (
+                Dinero(importe_directo).redondear()
+                if importe_directo is not None
+                else base_adicional.porcentaje(regla.porcentaje).multiplicar(
+                    multiplicador
+                ).redondear()
+            )
             conceptos.append(Concepto(
                 codigo, regla.descripcion, TipoConcepto.REMUNERATIVO,
                 importe, cantidad=cantidad,

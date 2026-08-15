@@ -235,8 +235,17 @@ HTML = r"""<!DOCTYPE html>
               <label><input id="novCajero" type="checkbox"> Función de cajero</label>
               <label><input id="novAdminPerfumeria" type="checkbox"> Administración o perfumería</label>
               <label><input id="novBicicleta" type="checkbox"> Uso de bicicleta/ciclomotor</label>
-              <label><input id="novFallaCaja" type="checkbox"> Fondo por falla de caja</label>
+              <label><input id="novFallaCaja" type="checkbox" onchange="actualizarFallaCaja()"> Fondo por falla de caja</label>
+              <div id="novFallaCajaDatos" style="display:none"><label>Faltantes absorbidos por el fondo ($)</label><input id="novFaltanteCaja" type="number" min="0" step="0.01" value="0"></div>
               <div><label>Idiomas usados en la tarea</label><input id="novIdiomas" type="number" min="0" step="1" value="0"></div>
+            </div>
+            <div style="margin-top:10px;border-top:1px solid var(--borde);padding-top:10px">
+              <label><input id="novNocturnoVoluntario" type="checkbox" onchange="actualizarNocturnoFarmacia()"> Servicio nocturno voluntario o extendido (21 a 6)</label>
+              <div id="novNocturnoDatos" class="fila" style="display:none;margin-top:8px">
+                <div><label>Horas nocturnas del mes</label><input id="novHorasNocturnas" type="number" min="0" step="0.01" value="0"></div>
+                <div><label>Horas totales trabajadas del mes</label><input id="novHorasTotales" type="number" min="0" step="0.01" value="0"></div>
+              </div>
+              <p style="font-size:.78rem;color:#6b7280;margin:6px 0 0">No marcar para turno obligatorio, sereno ni vigilancia: el art. 17 los excluye del recargo del 100%.</p>
             </div>
           </div>
           <div style="grid-column:1/-1"><label>Observaciones</label><textarea id="novObservaciones" rows="3" placeholder="Detalle opcional"></textarea></div>
@@ -432,9 +441,20 @@ function actualizarAdicionalesFarmacia(){
   const emp=empleadosCache[$('novEmpleado').value];
   $('novFarmacia').style.display=emp && emp.cct_numero==='414/05'?'block':'none';
 }
+function actualizarNocturnoFarmacia(){
+  $('novNocturnoDatos').style.display=$('novNocturnoVoluntario').checked?'grid':'none';
+}
+function actualizarFallaCaja(){
+  $('novFallaCajaDatos').style.display=$('novFallaCaja').checked?'block':'none';
+}
 function limpiarAdicionalesFarmacia(){
   $('novRolFarmacia').value=''; $('novIdiomas').value='0';
+  $('novNocturnoVoluntario').checked=false;
+  $('novHorasNocturnas').value='0'; $('novHorasTotales').value='0';
+  $('novFaltanteCaja').value='0';
   checksFarmacia.forEach(id=>$(id).checked=false);
+  actualizarFallaCaja();
+  actualizarNocturnoFarmacia();
   actualizarAdicionalesFarmacia();
 }
 function datosAdicionalesFarmacia(){
@@ -447,8 +467,14 @@ function datosAdicionalesFarmacia(){
   if(rol==='auxiliar_sin') codigos.push('AUXILIAR_SIN_BLOQUEO');
   const opciones={novTituloFarmaceutico:'TITULO_FARMACEUTICO',novTituloAuxiliar:'TITULO_AUXILIAR',novTituloSecundario:'TITULO_SECUNDARIO',novCajero:'ADICIONAL_CAJERO',novAdminPerfumeria:'ADMIN_PERFUMERIA',novBicicleta:'BICICLETA_CICLOMOTOR',novFallaCaja:'FALLA_CAJA'};
   Object.entries(opciones).forEach(([id,codigo])=>{if($(id).checked) codigos.push(codigo);});
+  if($('novFallaCaja').checked) cantidades.FALLA_CAJA=numeroNov('novFaltanteCaja');
   const idiomas=numeroNov('novIdiomas');
   if(idiomas>0){codigos.push('IDIOMA'); cantidades.IDIOMA=idiomas;}
+  if($('novNocturnoVoluntario').checked){
+    codigos.push('NOCTURNO_VOLUNTARIO');
+    cantidades.NOCTURNO_VOLUNTARIO=numeroNov('novHorasNocturnas');
+    cantidades.HORAS_TOTALES_PERIODO=numeroNov('novHorasTotales');
+  }
   return {adicionales_convencionales:codigos,cantidades_adicionales:cantidades};
 }
 function limpiarNovedad(){
@@ -585,6 +611,12 @@ function editarNovedad(id){
   const opciones={novTituloFarmaceutico:'TITULO_FARMACEUTICO',novTituloAuxiliar:'TITULO_AUXILIAR',novTituloSecundario:'TITULO_SECUNDARIO',novCajero:'ADICIONAL_CAJERO',novAdminPerfumeria:'ADMIN_PERFUMERIA',novBicicleta:'BICICLETA_CICLOMOTOR',novFallaCaja:'FALLA_CAJA'};
   Object.entries(opciones).forEach(([id,codigo])=>$(id).checked=adicionales.has(codigo));
   $('novIdiomas').value=(n.cantidades_adicionales||{}).IDIOMA||0;
+  $('novNocturnoVoluntario').checked=adicionales.has('NOCTURNO_VOLUNTARIO');
+  $('novHorasNocturnas').value=(n.cantidades_adicionales||{}).NOCTURNO_VOLUNTARIO||0;
+  $('novHorasTotales').value=(n.cantidades_adicionales||{}).HORAS_TOTALES_PERIODO||0;
+  $('novFaltanteCaja').value=(n.cantidades_adicionales||{}).FALLA_CAJA||0;
+  actualizarFallaCaja();
+  actualizarNocturnoFarmacia();
   actualizarAdicionalesFarmacia();
   $('tituloNovedad').textContent='Editar novedad'; $('btnGuardarNovedad').textContent='Guardar cambios';
   $('formNovedad').style.display='block'; ocultar('novFormError');

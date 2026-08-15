@@ -100,3 +100,80 @@ def test_rechaza_adicional_que_no_pertenece_al_convenio():
             Novedades(adicionales_convencionales=("BONO_INVENTADO",)),
             a_fecha=date(2026, 7, 28),
         )
+
+
+def test_nocturno_voluntario_prorratea_el_cien_por_ciento_del_basico():
+    empleado, escala, config = _caso()
+    resultado = _motor().liquidar_mensual(
+        empleado, Periodo(2026, 7), escala, config,
+        Novedades(
+            adicionales_convencionales=("NOCTURNO_VOLUNTARIO",),
+            cantidades_adicionales=(
+                ("NOCTURNO_VOLUNTARIO", D("40")),
+                ("HORAS_TOTALES_PERIODO", D("160")),
+            ),
+        ),
+        a_fecha=date(2026, 7, 28),
+    )
+    adicional = next(c for c in resultado.conceptos if c.codigo == "NOCTURNO_VOLUNTARIO")
+    assert adicional.importe.monto == D("450000.00")
+    assert adicional.cantidad == D("40")
+
+
+def test_nocturno_completo_equivale_al_cien_por_ciento_del_basico():
+    empleado, escala, config = _caso()
+    resultado = _motor().liquidar_mensual(
+        empleado, Periodo(2026, 7), escala, config,
+        Novedades(
+            adicionales_convencionales=("NOCTURNO_VOLUNTARIO",),
+            cantidades_adicionales=(
+                ("NOCTURNO_VOLUNTARIO", D("168")),
+                ("HORAS_TOTALES_PERIODO", D("168")),
+            ),
+        ),
+        a_fecha=date(2026, 7, 28),
+    )
+    adicional = next(c for c in resultado.conceptos if c.codigo == "NOCTURNO_VOLUNTARIO")
+    assert adicional.importe.monto == D("1800000.00")
+
+
+def test_nocturno_rechaza_horas_mayores_al_total_del_periodo():
+    empleado, escala, config = _caso()
+    with pytest.raises(ValueError, match="no pueden superar"):
+        _motor().liquidar_mensual(
+            empleado, Periodo(2026, 7), escala, config,
+            Novedades(
+                adicionales_convencionales=("NOCTURNO_VOLUNTARIO",),
+                cantidades_adicionales=(
+                    ("NOCTURNO_VOLUNTARIO", D("170")),
+                    ("HORAS_TOTALES_PERIODO", D("160")),
+                ),
+            ),
+            a_fecha=date(2026, 7, 28),
+        )
+
+
+def test_falla_caja_solo_paga_como_remunerativo_el_saldo_no_compensado():
+    empleado, escala, config = _caso()
+    resultado = _motor().liquidar_mensual(
+        empleado, Periodo(2026, 7), escala, config,
+        Novedades(
+            adicionales_convencionales=("FALLA_CAJA",),
+            cantidades_adicionales=(("FALLA_CAJA", D("50000")),),
+        ),
+        a_fecha=date(2026, 7, 28),
+    )
+    adicional = next(c for c in resultado.conceptos if c.codigo == "FALLA_CAJA")
+    # Fondo 10% de 1.800.000 = 180.000; faltante absorbido 50.000; saldo 130.000.
+    assert adicional.importe.monto == D("130000.00")
+
+
+def test_falla_caja_sin_faltantes_paga_el_fondo_completo():
+    empleado, escala, config = _caso()
+    resultado = _motor().liquidar_mensual(
+        empleado, Periodo(2026, 7), escala, config,
+        Novedades(adicionales_convencionales=("FALLA_CAJA",)),
+        a_fecha=date(2026, 7, 28),
+    )
+    adicional = next(c for c in resultado.conceptos if c.codigo == "FALLA_CAJA")
+    assert adicional.importe.monto == D("180000.00")

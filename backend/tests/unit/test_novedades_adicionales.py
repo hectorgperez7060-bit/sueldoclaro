@@ -25,6 +25,21 @@ def test_novedad_rechaza_cantidad_sin_adicional_seleccionado():
         )
 
 
+def test_novedad_nocturna_conserva_horas_nocturnas_y_totales():
+    datos = DatosNovedadMensual(
+        periodo="2026-08",
+        adicionales_convencionales=("NOCTURNO_VOLUNTARIO",),
+        cantidades_adicionales=(
+            ("NOCTURNO_VOLUNTARIO", Decimal("40")),
+            ("HORAS_TOTALES_PERIODO", Decimal("160")),
+        ),
+    ).para_persistir()
+    assert datos["cantidades_adicionales"] == {
+        "NOCTURNO_VOLUNTARIO": "40",
+        "HORAS_TOTALES_PERIODO": "160",
+    }
+
+
 def test_dto_convierte_listas_y_diccionarios_al_dominio():
     dto = NovedadMensualIn(
         empleado_id="11111111-1111-4111-8111-111111111111",

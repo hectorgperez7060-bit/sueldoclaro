@@ -87,4 +87,9 @@ def test_ui_muestra_adicionales_farmacia_solo_para_cct_414_05():
     assert "TITULO_FARMACEUTICO" in HTML
     assert "IDIOMA" in HTML
     assert "cantidades_adicionales" in HTML
-    assert "NOCTURNO_VOLUNTARIO" not in HTML
+    assert "NOCTURNO_VOLUNTARIO" in HTML
+    assert 'id="novHorasNocturnas"' in HTML
+    assert 'id="novHorasTotales"' in HTML
+    assert "turno obligatorio, sereno ni vigilancia" in HTML
+    assert 'id="novFaltanteCaja"' in HTML
+    assert "Faltantes absorbidos por el fondo" in HTML

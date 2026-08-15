@@ -75,10 +75,13 @@ class DatosNovedadMensual:
         cantidades = dict(self.cantidades_adicionales)
         if len(cantidades) != len(tuple(self.cantidades_adicionales)):
             raise ValueError("No se puede informar dos veces la cantidad de un adicional")
+        cantidades_auxiliares = {"HORAS_TOTALES_PERIODO": "NOCTURNO_VOLUNTARIO"}
         for codigo, cantidad in cantidades.items():
-            if codigo not in codigos:
+            principal = cantidades_auxiliares.get(codigo, codigo)
+            if principal not in codigos:
                 raise ValueError("Toda cantidad debe corresponder a un adicional seleccionado")
-            if Decimal(str(cantidad)) <= 0:
+            minimo_cero = codigo == "FALLA_CAJA"
+            if Decimal(str(cantidad)) < 0 or (not minimo_cero and Decimal(str(cantidad)) == 0):
                 raise ValueError("La cantidad de un adicional debe ser mayor que cero")
 
     def para_persistir(self) -> dict:
