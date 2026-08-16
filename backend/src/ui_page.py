@@ -141,7 +141,7 @@ HTML = r"""<!DOCTYPE html>
           <div><label>Nombre</label><input id="eNombre"></div>
           <div><label>Apellido</label><input id="eApellido"></div>
           <div><label>CUIL (11 dígitos)</label><input id="eCuil" placeholder="20123456786" maxlength="13"></div>
-          <div><label>Fecha de nacimiento</label><input id="eNacimiento" type="date"></div>
+          <div><label>Fecha de nacimiento</label><input id="eNacimiento" type="text" inputmode="numeric" placeholder="DD/MM/AAAA" maxlength="10"><small style="color:#6b7280">Escribila directamente, por ejemplo 15/08/1974.</small></div>
           <div><label>Sexo</label><select id="eSexo"><option value="">—</option><option value="M">Masculino</option><option value="F">Femenino</option><option value="X">X</option></select></div>
           <div><label>Estado civil</label><select id="eEstadoCivil"><option value="">—</option><option>Soltero/a</option><option>Casado/a</option><option>Divorciado/a</option><option>Viudo/a</option><option>Unión convivencial</option></select></div>
           <div style="grid-column:1/-1"><label>Domicilio</label><input id="eDomicilio" placeholder="Calle, número, localidad"></div>
@@ -155,9 +155,9 @@ HTML = r"""<!DOCTYPE html>
 
         <h3 style="font-size:.9rem;color:var(--verde);margin:14px 0 6px">Datos laborales</h3>
         <div class="fila">
-          <div><label>Fecha de ingreso</label><input id="eFecha" type="date"></div>
+          <div><label>Fecha de ingreso</label><input id="eFecha" type="text" inputmode="numeric" placeholder="DD/MM/AAAA" maxlength="10"></div>
           <div><label>Legajo</label><input id="eLegajo" placeholder="0001"></div>
-          <div><label>Convenio / Sindicato</label>
+          <div><label>Actividad, convenio y sindicato</label>
             <select id="eConvenio" onchange="llenarCategorias()"></select></div>
           <div><label>Categoría</label>
             <select id="eCategoria"></select></div>
@@ -165,7 +165,7 @@ HTML = r"""<!DOCTYPE html>
             <select id="eModalidad"><option>Tiempo indeterminado</option><option>Plazo fijo</option><option>Eventual</option><option>Temporada</option><option>Período de prueba</option></select></div>
           <div><label>Jornada</label>
             <select id="eJornada"><option value="1">Completa</option><option value="0.5">Media jornada</option></select></div>
-          <div><label>Obra social</label><input id="eObraSocial" placeholder="OSECAC, OSPACA..."></div>
+          <div><label>Obra social (independiente del sindicato)</label><input id="eObraSocial" list="obrasSociales" placeholder="Elegí o escribí la obra social"><datalist id="obrasSociales"><option value="OSADEF - Obra Social de las Asociaciones de Empleados de Farmacia"><option value="OSPSA - Obra Social del Personal de la Sanidad Argentina"><option value="OSECAC - Obra Social de Empleados de Comercio"><option value="OSPF - Obra Social del Personal de Farmacia"></datalist></div>
           <div><label>Lugar de trabajo / sucursal</label><input id="eLugar" placeholder="Casa central"></div>
           <div><label>Remuneración pactada (si supera el básico)</label><input id="eRemun" type="number" min="0" placeholder="opcional"></div>
         </div>
@@ -414,6 +414,32 @@ async function entrar(){
 }
 function toggleAlta(){ const a=$('alta'); a.style.display = a.style.display==='none'?'block':'none'; }
 
+const IDENTIDAD_CONVENIO={
+  '414/05':{actividad:'Farmacia',sindicato:'ADEF',obraSocial:'OSADEF - Obra Social de las Asociaciones de Empleados de Farmacia'},
+  '122/75':{actividad:'Sanidad',sindicato:'FATSA',obraSocial:'OSPSA - Obra Social del Personal de la Sanidad Argentina'},
+  '130/75':{actividad:'Comercio',sindicato:'FAECYS',obraSocial:'OSECAC - Obra Social de Empleados de Comercio'}
+};
+function fechaParaPantalla(valor){
+  if(!valor) return '';
+  const m=String(valor).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  return m?`${m[3]}/${m[2]}/${m[1]}`:String(valor);
+}
+function fechaIso(valor,nombre){
+  const texto=String(valor||'').trim();
+  if(!texto) return null;
+  let d,m,a,partes=texto.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})$/);
+  if(partes){d=Number(partes[1]);m=Number(partes[2]);a=Number(partes[3]);}
+  else{
+    partes=texto.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+    if(!partes) throw new Error(`${nombre}: usá DD/MM/AAAA, por ejemplo 15/08/1974.`);
+    a=Number(partes[1]);m=Number(partes[2]);d=Number(partes[3]);
+  }
+  const prueba=new Date(Date.UTC(a,m-1,d));
+  if(prueba.getUTCFullYear()!==a||prueba.getUTCMonth()!==m-1||prueba.getUTCDate()!==d)
+    throw new Error(`${nombre}: la fecha no existe.`);
+  return `${String(a).padStart(4,'0')}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+}
+
 async function cargarConvenios(){
   try{
     const periodo=$('periodo').value;
@@ -421,7 +447,9 @@ async function cargarConvenios(){
     const sel = $('eConvenio'); sel.innerHTML='';
     convenios.forEach(c=>{
       const o=document.createElement('option');
-      o.value=c.numero; o.textContent=`${c.nombre} (${c.sindicato}) — CCT ${c.numero}`;
+      const identidad=IDENTIDAD_CONVENIO[c.numero];
+      o.value=c.numero;
+      o.textContent=identidad?`${identidad.actividad} — ${identidad.sindicato} — CCT ${c.numero}`:`${c.nombre} (${c.sindicato}) — CCT ${c.numero}`;
       o.disabled=!c.tiene_escala_vigente;
       if(!c.tiene_escala_vigente) o.textContent+=' — sin escala vigente';
       sel.appendChild(o);
@@ -437,6 +465,8 @@ function llenarCategorias(){
   (c?c.categorias:[]).forEach(cat=>{
     const o=document.createElement('option'); o.value=cat; o.textContent=cat; sel.appendChild(o);
   });
+  const identidad=IDENTIDAD_CONVENIO[$('eConvenio').value];
+  if(identidad && !$('eObraSocial').value.trim()) $('eObraSocial').value=identidad.obraSocial;
 }
 
 async function cargarEmpleados(){
@@ -719,12 +749,12 @@ function editarEmpleado(id){
   $('eNombre').value = e.nombre || '';
   $('eApellido').value = e.apellido || '';
   $('eCuil').value = e.cuil || '';
-  $('eFecha').value = e.fecha_ingreso || '';
+  $('eFecha').value = fechaParaPantalla(e.fecha_ingreso);
   if(e.cct_numero) $('eConvenio').value = e.cct_numero;
   llenarCategorias();
   if(e.categoria) $('eCategoria').value = e.categoria;
   $('eLegajo').value = e.legajo || '';
-  $('eNacimiento').value = e.fecha_nacimiento || '';
+  $('eNacimiento').value = fechaParaPantalla(e.fecha_nacimiento);
   $('eSexo').value = e.sexo || '';
   $('eEstadoCivil').value = e.estado_civil || '';
   $('eDomicilio').value = e.domicilio || '';
@@ -874,11 +904,11 @@ async function crearEmpleado(){
   try{
     const cuerpo = {
       nombre:$('eNombre').value.trim(), apellido:$('eApellido').value.trim(),
-      cuil:$('eCuil').value.replace(/\D/g,''), fecha_ingreso:$('eFecha').value,
+      cuil:$('eCuil').value.replace(/\D/g,''), fecha_ingreso:fechaIso($('eFecha').value,'Fecha de ingreso'),
       cct_numero:$('eConvenio').value, categoria:$('eCategoria').value,
       legajo:$('eLegajo').value.trim(),
       proporcion_jornada:$('eJornada').value,
-      fecha_nacimiento:$('eNacimiento').value || null,
+      fecha_nacimiento:fechaIso($('eNacimiento').value,'Fecha de nacimiento'),
       sexo:$('eSexo').value || null,
       estado_civil:$('eEstadoCivil').value || null,
       domicilio:$('eDomicilio').value.trim() || null,

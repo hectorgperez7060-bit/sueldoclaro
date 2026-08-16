@@ -126,3 +126,12 @@ def test_ui_muestra_y_persiste_adicionales_sanidad_solo_para_cct_122_75():
     assert "NOCTURNIDAD" in HTML
     assert 'id="novHorasNocturnasSanidad"' in HTML
     assert "datosAdicionalesConvenio()" in HTML
+
+
+def test_edicion_empleado_permite_fecha_manual_y_separa_convenio_de_obra_social():
+    assert 'id="eNacimiento" type="text" inputmode="numeric"' in HTML
+    assert "function fechaIso(valor,nombre)" in HTML
+    assert "'414/05':{actividad:'Farmacia',sindicato:'ADEF'" in HTML
+    assert "`${identidad.actividad} — ${identidad.sindicato} — CCT ${c.numero}`" in HTML
+    assert "OSADEF - Obra Social de las Asociaciones de Empleados de Farmacia" in HTML
+    assert "Obra social (independiente del sindicato)" in HTML
