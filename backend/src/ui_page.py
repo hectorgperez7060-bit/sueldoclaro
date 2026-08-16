@@ -157,8 +157,12 @@ HTML = r"""<!DOCTYPE html>
         <div class="fila">
           <div><label>Fecha de ingreso</label><input id="eFecha" type="text" inputmode="numeric" placeholder="DD/MM/AAAA" maxlength="10"></div>
           <div><label>Legajo</label><input id="eLegajo" placeholder="0001"></div>
-          <div><label>Actividad, convenio y sindicato</label>
+          <div><label>Actividad del establecimiento</label>
+            <select id="eActividad" onchange="llenarConvenios()"></select></div>
+          <div><label>Convenio colectivo aplicable</label>
             <select id="eConvenio" onchange="llenarCategorias()"></select></div>
+          <div><label>Sindicato / federación del convenio</label>
+            <input id="eSindicato" readonly placeholder="Se completa según el convenio"></div>
           <div><label>Categoría</label>
             <select id="eCategoria"></select></div>
           <div><label>Modalidad de contrato</label>
@@ -318,6 +322,7 @@ const $ = id => document.getElementById(id);
 let empleadosCache = {};
 let editandoEmpleadoId = null;
 let convenios = [];
+let obraSocialSugeridaAnterior = '';
 let empresaCache = {razon_social:'', cuit:''};
 let ultimaLiq = null;
 let novedadesCache = {};
@@ -419,6 +424,19 @@ const IDENTIDAD_CONVENIO={
   '122/75':{actividad:'Sanidad',sindicato:'FATSA',obraSocial:'OSPSA - Obra Social del Personal de la Sanidad Argentina'},
   '130/75':{actividad:'Comercio',sindicato:'FAECYS',obraSocial:'OSECAC - Obra Social de Empleados de Comercio'}
 };
+function actividadConvenio(c){
+  const conocida=IDENTIDAD_CONVENIO[c.numero];
+  if(conocida) return conocida.actividad;
+  const texto=`${c.nombre||''} ${c.sindicato||''}`.toLowerCase();
+  if(texto.includes('sanidad')||texto.includes('fatsa')) return 'Sanidad';
+  if(texto.includes('farmac')) return 'Farmacia';
+  if(texto.includes('comerc')||texto.includes('faecys')) return 'Comercio';
+  if(texto.includes('metal')||texto.includes('uom')) return 'Metalúrgicos';
+  if(texto.includes('gastron')||texto.includes('hotel')||texto.includes('uthgra')) return 'Gastronomía y hotelería';
+  if(texto.includes('camion')||texto.includes('fedcam')) return 'Camioneros';
+  if(texto.includes('constru')||texto.includes('uocra')) return 'Construcción';
+  return c.nombre||'Otra actividad';
+}
 function fechaParaPantalla(valor){
   if(!valor) return '';
   const m=String(valor).match(/^(\d{4})-(\d{2})-(\d{2})$/);
@@ -444,20 +462,32 @@ async function cargarConvenios(){
   try{
     const periodo=$('periodo').value;
     convenios = await api('/convenios'+(periodo?'?periodo='+encodeURIComponent(periodo):''));
-    const sel = $('eConvenio'); sel.innerHTML='';
-    convenios.forEach(c=>{
+    const actividades=[...new Set(convenios.map(actividadConvenio))].sort((a,b)=>a.localeCompare(b,'es'));
+    const selActividad=$('eActividad'); selActividad.innerHTML='';
+    actividades.forEach(nombre=>{
       const o=document.createElement('option');
-      const identidad=IDENTIDAD_CONVENIO[c.numero];
-      o.value=c.numero;
-      o.textContent=identidad?`${identidad.actividad} — ${identidad.sindicato} — CCT ${c.numero}`:`${c.nombre} (${c.sindicato}) — CCT ${c.numero}`;
-      o.disabled=!c.tiene_escala_vigente;
-      if(!c.tiene_escala_vigente) o.textContent+=' — sin escala vigente';
-      sel.appendChild(o);
+      o.value=nombre; o.textContent=nombre; selActividad.appendChild(o);
     });
     const primeroVigente=convenios.find(c=>c.tiene_escala_vigente);
-    if(primeroVigente) sel.value=primeroVigente.numero;
-    llenarCategorias();
+    if(primeroVigente) selActividad.value=actividadConvenio(primeroVigente);
+    llenarConvenios(primeroVigente?primeroVigente.numero:null);
   }catch(e){ /* silencioso */ }
+}
+function llenarConvenios(preseleccion=null){
+  const actividad=$('eActividad').value;
+  const sel=$('eConvenio'); sel.innerHTML='';
+  convenios.filter(c=>actividadConvenio(c)===actividad).forEach(c=>{
+    const o=document.createElement('option');
+    const identidad=IDENTIDAD_CONVENIO[c.numero];
+    const sindicato=identidad?identidad.sindicato:(c.sindicato||'Sin sindicato informado');
+    o.value=c.numero; o.textContent=`CCT ${c.numero} — ${sindicato}`;
+    o.disabled=!c.tiene_escala_vigente;
+    if(!c.tiene_escala_vigente) o.textContent+=' — sin escala vigente';
+    sel.appendChild(o);
+  });
+  const elegida=preseleccion||[...sel.options].find(o=>!o.disabled)?.value;
+  if(elegida) sel.value=elegida;
+  llenarCategorias();
 }
 function llenarCategorias(){
   const c = convenios.find(x=>x.numero===$('eConvenio').value);
@@ -466,7 +496,12 @@ function llenarCategorias(){
     const o=document.createElement('option'); o.value=cat; o.textContent=cat; sel.appendChild(o);
   });
   const identidad=IDENTIDAD_CONVENIO[$('eConvenio').value];
-  if(identidad && !$('eObraSocial').value.trim()) $('eObraSocial').value=identidad.obraSocial;
+  $('eSindicato').value=identidad?identidad.sindicato:(c?c.sindicato:'');
+  const obraActual=$('eObraSocial').value.trim();
+  if(identidad && (!obraActual||obraActual===obraSocialSugeridaAnterior)){
+    $('eObraSocial').value=identidad.obraSocial;
+    obraSocialSugeridaAnterior=identidad.obraSocial;
+  }
 }
 
 async function cargarEmpleados(){
@@ -750,8 +785,11 @@ function editarEmpleado(id){
   $('eApellido').value = e.apellido || '';
   $('eCuil').value = e.cuil || '';
   $('eFecha').value = fechaParaPantalla(e.fecha_ingreso);
-  if(e.cct_numero) $('eConvenio').value = e.cct_numero;
-  llenarCategorias();
+  const convenioEmpleado=convenios.find(c=>c.numero===e.cct_numero);
+  if(convenioEmpleado){
+    $('eActividad').value=actividadConvenio(convenioEmpleado);
+    llenarConvenios(e.cct_numero);
+  }else llenarConvenios();
   if(e.categoria) $('eCategoria').value = e.categoria;
   $('eLegajo').value = e.legajo || '';
   $('eNacimiento').value = fechaParaPantalla(e.fecha_nacimiento);
@@ -761,6 +799,7 @@ function editarEmpleado(id){
   $('eHijos').value = e.cantidad_hijos || 0;
   $('eConyuge').value = e.conyuge_a_cargo ? 'true' : 'false';
   $('eObraSocial').value = e.obra_social || '';
+  obraSocialSugeridaAnterior = '';
   $('eModalidad').value = e.modalidad_contrato || 'Tiempo indeterminado';
   $('eFormaPago').value = e.forma_pago || '';
   $('eCbu').value = e.cbu || '';
@@ -777,7 +816,8 @@ function editarEmpleado(id){
 
 function cancelarEdicion(){
   editandoEmpleadoId = null;
-  ['eNombre','eApellido','eCuil','eFecha','eNacimiento','eDomicilio','eLegajo','eObraSocial','eLugar','eCbu','eRemun','eFormaPago','eLocalidad','eFilial'].forEach(i=>$(i).value='');
+  obraSocialSugeridaAnterior = '';
+  ['eNombre','eApellido','eCuil','eFecha','eNacimiento','eDomicilio','eLegajo','eObraSocial','eLugar','eCbu','eRemun','eFormaPago','eLocalidad','eFilial','eSindicato'].forEach(i=>$(i).value='');
   $('eHijos').value='0';
   $('eConyuge').value='false';
   $('btnGuardarEmp').textContent = 'Guardar empleado';
