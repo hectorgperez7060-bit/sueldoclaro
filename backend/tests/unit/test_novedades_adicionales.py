@@ -40,6 +40,21 @@ def test_novedad_nocturna_conserva_horas_nocturnas_y_totales():
     }
 
 
+def test_novedad_nocturnidad_sanidad_acepta_horas_totales_auxiliares():
+    datos = DatosNovedadMensual(
+        periodo="2026-08",
+        adicionales_convencionales=("NOCTURNIDAD",),
+        cantidades_adicionales=(
+            ("NOCTURNIDAD", Decimal("40")),
+            ("HORAS_TOTALES_PERIODO", Decimal("160")),
+        ),
+    ).para_persistir()
+    assert datos["cantidades_adicionales"] == {
+        "NOCTURNIDAD": "40",
+        "HORAS_TOTALES_PERIODO": "160",
+    }
+
+
 def test_dto_convierte_listas_y_diccionarios_al_dominio():
     dto = NovedadMensualIn(
         empleado_id="11111111-1111-4111-8111-111111111111",

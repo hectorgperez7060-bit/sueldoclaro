@@ -75,10 +75,12 @@ class DatosNovedadMensual:
         cantidades = dict(self.cantidades_adicionales)
         if len(cantidades) != len(tuple(self.cantidades_adicionales)):
             raise ValueError("No se puede informar dos veces la cantidad de un adicional")
-        cantidades_auxiliares = {"HORAS_TOTALES_PERIODO": "NOCTURNO_VOLUNTARIO"}
+        cantidades_auxiliares = {
+            "HORAS_TOTALES_PERIODO": {"NOCTURNO_VOLUNTARIO", "NOCTURNIDAD"},
+        }
         for codigo, cantidad in cantidades.items():
-            principal = cantidades_auxiliares.get(codigo, codigo)
-            if principal not in codigos:
+            principales = cantidades_auxiliares.get(codigo, {codigo})
+            if not set(codigos).intersection(principales):
                 raise ValueError("Toda cantidad debe corresponder a un adicional seleccionado")
             minimo_cero = codigo == "FALLA_CAJA"
             if Decimal(str(cantidad)) < 0 or (not minimo_cero and Decimal(str(cantidad)) == 0):
