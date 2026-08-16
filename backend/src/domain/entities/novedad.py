@@ -16,6 +16,7 @@ class DatosNovedadMensual:
     faltas_injustificadas: int = 0
     horas_extra_50: Decimal = Decimal("0")
     horas_extra_100: Decimal = Decimal("0")
+    feriados_trabajados: int = 0
     licencias: int = 0
     vacaciones: int = 0
     premios: Decimal = Decimal("0")
@@ -52,6 +53,14 @@ class DatosNovedadMensual:
         if sum(campos_dias.values()) > max_dias:
             raise ValueError(
                 f"La suma de días informados no puede superar {max_dias} para {self.periodo}"
+            )
+        if isinstance(self.feriados_trabajados, bool) or not isinstance(
+            self.feriados_trabajados, int
+        ):
+            raise ValueError("Feriados trabajados debe ser un número entero")
+        if not 0 <= self.feriados_trabajados <= max_dias:
+            raise ValueError(
+                f"Feriados trabajados debe estar entre 0 y {max_dias} para {self.periodo}"
             )
 
         for nombre, valor in {
@@ -94,6 +103,7 @@ class DatosNovedadMensual:
             "faltas_injustificadas": self.faltas_injustificadas,
             "horas_extra_50": Decimal(str(self.horas_extra_50)),
             "horas_extra_100": Decimal(str(self.horas_extra_100)),
+            "feriados_trabajados": self.feriados_trabajados,
             "licencias": self.licencias,
             "vacaciones": self.vacaciones,
             "premios": Decimal(str(self.premios)),

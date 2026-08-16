@@ -22,7 +22,8 @@ def _to_out(e) -> EmpleadoOut:
     return EmpleadoOut(
         id=str(e.id), nombre=e.nombre, apellido=e.apellido, cuil=e.cuil,
         fecha_ingreso=e.fecha_ingreso, cct_numero=e.cct_numero, categoria=e.categoria,
-        legajo=e.legajo, afiliado_sindicato=e.afiliado_sindicato,
+        legajo=e.legajo, proporcion_jornada=e.proporcion_jornada or 1,
+        afiliado_sindicato=e.afiliado_sindicato,
         fecha_nacimiento=e.fecha_nacimiento, sexo=e.sexo, estado_civil=e.estado_civil,
         domicilio=e.domicilio, cantidad_hijos=e.cantidad_hijos or 0,
         conyuge_a_cargo=e.conyuge_a_cargo or False, obra_social=e.obra_social,

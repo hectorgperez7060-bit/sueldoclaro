@@ -167,8 +167,9 @@ HTML = r"""<!DOCTYPE html>
             <select id="eCategoria"></select></div>
           <div><label>Modalidad de contrato</label>
             <select id="eModalidad"><option>Tiempo indeterminado</option><option>Plazo fijo</option><option>Eventual</option><option>Temporada</option><option>Período de prueba</option></select></div>
-          <div><label>Jornada</label>
-            <select id="eJornada"><option value="1">Completa</option><option value="0.5">Media jornada</option></select></div>
+          <div><label>Horas semanales pactadas</label>
+            <input id="eHorasSemanales" type="number" min="1" max="48" step="0.5" value="48">
+            <small style="color:#6b7280">En Comercio la jornada completa es 48. Para este empleado escribí 30.</small></div>
           <div><label>Obra social (independiente del sindicato)</label><input id="eObraSocial" list="obrasSociales" placeholder="Elegí o escribí la obra social"><datalist id="obrasSociales"><option value="OSADEF - Obra Social de las Asociaciones de Empleados de Farmacia"><option value="OSPSA - Obra Social del Personal de la Sanidad Argentina"><option value="OSECAC - Obra Social de Empleados de Comercio"><option value="OSPF - Obra Social del Personal de Farmacia"></datalist></div>
           <div><label>Lugar de trabajo / sucursal</label><input id="eLugar" placeholder="Casa central"></div>
           <div><label>Remuneración pactada (si supera el básico)</label><input id="eRemun" type="number" min="0" placeholder="opcional"></div>
@@ -219,6 +220,7 @@ HTML = r"""<!DOCTYPE html>
           <div><label>Vacaciones (días)</label><input id="novVacaciones" type="number" min="0" value="0"></div>
           <div><label>Horas extra al 50%</label><input id="novHE50" type="number" min="0" step="0.01" value="0"></div>
           <div><label>Horas extra al 100%</label><input id="novHE100" type="number" min="0" step="0.01" value="0"></div>
+          <div><label>Feriados trabajados (días)</label><input id="novFeriados" type="number" min="0" step="1" value="0"></div>
           <div><label>Premios ($)</label><input id="novPremios" type="number" min="0" step="0.01" value="0"></div>
           <div><label>Tratamiento del premio</label><select id="novTipoPremio"><option value="pendiente">Pendiente de definir (no calcular)</option><option value="remunerativo">Remunerativo (integra aportes)</option><option value="no_remunerativo">No remunerativo</option></select></div>
           <div><label>Descuentos adicionales ($)</label><input id="novDescuentos" type="number" min="0" step="0.01" value="0"></div>
@@ -623,7 +625,7 @@ function datosAdicionalesConvenio(){
 function limpiarNovedad(){
   editandoNovedadId=null;
   $('novEmpleado').value=''; $('novEmpleado').disabled=false;
-  ['novDias','novFaltasJ','novFaltasI','novLicencias','novVacaciones','novHE50','novHE100','novPremios','novDescuentos'].forEach(id=>$(id).value='0');
+  ['novDias','novFaltasJ','novFaltasI','novLicencias','novVacaciones','novHE50','novHE100','novFeriados','novPremios','novDescuentos'].forEach(id=>$(id).value='0');
   $('novObservaciones').value='';
   $('novTipoPremio').value='pendiente';
   limpiarAdicionalesFarmacia();
@@ -656,7 +658,7 @@ async function cargarNovedades(){
         ? '<span class="estado-edicion">🔒 Cerrada por liquidación confirmada</span>'
         : `<div class="acciones-tabla"><button class="chico secundario" onclick="editarNovedad('${n.id}')" title="Editar">✏️ Editar</button><button class="chico secundario" onclick="borrarNovedad('${n.id}')" title="Eliminar">🗑 Eliminar</button></div><span class="estado-edicion">Editable: la liquidación está calculada, no confirmada</span>`;
       const adicionales=(n.adicionales_convencionales||[]).length?`<br><small>Convenio: ${(n.adicionales_convencionales||[]).join(', ')}</small>`:'';
-      tr.innerHTML=`<td data-label="Empleado">${emp.apellido}, ${emp.nombre}</td><td data-label="Días">${n.dias_trabajados}</td><td data-label="Faltas">${faltas}</td><td data-label="Extras">50%: ${n.horas_extra_50} · 100%: ${n.horas_extra_100}${adicionales}</td><td data-label="Premios / descuentos">$ ${fmt(n.premios)} / $ ${fmt(n.descuentos_adicionales)}</td><td class="acciones-celda">${acciones}</td>`;
+      tr.innerHTML=`<td data-label="Empleado">${emp.apellido}, ${emp.nombre}</td><td data-label="Días">${n.dias_trabajados}<br><small>Feriados trabajados: ${n.feriados_trabajados||0}</small></td><td data-label="Faltas">${faltas}</td><td data-label="Extras">50%: ${n.horas_extra_50} · 100%: ${n.horas_extra_100}${adicionales}</td><td data-label="Premios / descuentos">$ ${fmt(n.premios)} / $ ${fmt(n.descuentos_adicionales)}</td><td class="acciones-celda">${acciones}</td>`;
       tb.appendChild(tr);
     });
     $('tablaNovedades').style.display=lista.length?'table':'none';
@@ -711,6 +713,7 @@ function cuerpoNovedad(incluirEmpleado=true){
     faltas_injustificadas:numeroNov('novFaltasI'),
     horas_extra_50:numeroNov('novHE50'),
     horas_extra_100:numeroNov('novHE100'),
+    feriados_trabajados:numeroNov('novFeriados'),
     licencias:numeroNov('novLicencias'),
     vacaciones:numeroNov('novVacaciones'),
     premios:numeroNov('novPremios'),
@@ -744,7 +747,8 @@ function editarNovedad(id){
   $('novDias').value=n.dias_trabajados; $('novFaltasJ').value=n.faltas_justificadas;
   $('novFaltasI').value=n.faltas_injustificadas; $('novLicencias').value=n.licencias;
   $('novVacaciones').value=n.vacaciones; $('novHE50').value=n.horas_extra_50;
-  $('novHE100').value=n.horas_extra_100; $('novPremios').value=n.premios;
+  $('novHE100').value=n.horas_extra_100; $('novFeriados').value=n.feriados_trabajados||0;
+  $('novPremios').value=n.premios;
   $('novTipoPremio').value=n.tipo_premio||'pendiente';
   $('novDescuentos').value=n.descuentos_adicionales; $('novObservaciones').value=n.observaciones||'';
   limpiarAdicionalesFarmacia();
@@ -811,6 +815,7 @@ function editarEmpleado(id){
   $('eObraSocial').value = e.obra_social || '';
   obraSocialSugeridaAnterior = '';
   $('eModalidad').value = e.modalidad_contrato || 'Tiempo indeterminado';
+  $('eHorasSemanales').value = Number(e.proporcion_jornada || 1) * 48;
   $('eFormaPago').value = e.forma_pago || '';
   $('eCbu').value = e.cbu || '';
   $('eLugar').value = e.lugar_trabajo || '';
@@ -829,6 +834,7 @@ function cancelarEdicion(){
   obraSocialSugeridaAnterior = '';
   ['eNombre','eApellido','eCuil','eFecha','eNacimiento','eDomicilio','eLegajo','eObraSocial','eLugar','eCbu','eRemun','eFormaPago','eLocalidad','eFilial','eSindicato'].forEach(i=>$(i).value='');
   $('eHijos').value='0';
+  $('eHorasSemanales').value='48';
   $('eConyuge').value='false';
   $('btnGuardarEmp').textContent = 'Guardar empleado';
   $('btnCancelarEmp').style.display = 'none';
@@ -951,13 +957,17 @@ async function crearEmpleado(){
   if(!fp){ mostrarError('empError','Elegí la forma de pago: la exige ARCA para el recibo y el F.931.'); return; }
   if(fp==='3' && $('eCbu').value.replace(/\D/g,'').length!==22){
     mostrarError('empError','Acreditación en cuenta: el CBU es obligatorio y debe tener 22 dígitos.'); return; }
+  const horasSemanales=Number($('eHorasSemanales').value);
+  if(!(horasSemanales>0 && horasSemanales<=48)){
+    mostrarError('empError','Las horas semanales deben ser mayores que 0 y no superar 48.'); return;
+  }
   try{
     const cuerpo = {
       nombre:$('eNombre').value.trim(), apellido:$('eApellido').value.trim(),
       cuil:$('eCuil').value.replace(/\D/g,''), fecha_ingreso:fechaIso($('eFecha').value,'Fecha de ingreso'),
       cct_numero:$('eConvenio').value, categoria:$('eCategoria').value,
       legajo:$('eLegajo').value.trim(),
-      proporcion_jornada:$('eJornada').value,
+      proporcion_jornada:horasSemanales/48,
       fecha_nacimiento:fechaIso($('eNacimiento').value,'Fecha de nacimiento'),
       sexo:$('eSexo').value || null,
       estado_civil:$('eEstadoCivil').value || null,

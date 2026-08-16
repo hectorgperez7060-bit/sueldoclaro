@@ -16,7 +16,8 @@ from domain.value_objects.cuil import digito_verificador, es_cuil_valido
 
 COLUMNAS = [
     "nombre", "apellido", "cuil", "fecha_ingreso", "cct_numero",
-    "categoria", "legajo", "remuneracion_pactada", "afiliado_sindicato", "email",
+    "categoria", "legajo", "horas_semanales", "remuneracion_pactada",
+    "afiliado_sindicato", "email",
 ]
 
 
@@ -42,7 +43,7 @@ def generar_plantilla(cuils_existentes: set[str] = None) -> bytes:
     ws.append(COLUMNAS)
     ws.append([
         "Juan", "Pérez", cuil_sample, "2021-07-01", "130/75",
-        "Administrativo A", "0001", "", "SI", "juan@ejemplo.com",
+        "Administrativo A", "0001", 48, "", "SI", "juan@ejemplo.com",
     ])
     buf = io.BytesIO()
     wb.save(buf)
@@ -59,13 +60,13 @@ def generar_demo_excel(cuils_existentes: set[str] = None) -> bytes:
     ws.title = "empleados"
     ws.append(COLUMNAS)
     # Fila 2: Válida 1 (CUIL no existe en nómina activa)
-    ws.append(["Carlos", "Gómez", c1, "2021-07-01", "130/75", "Administrativo A", "0001", "", "SI", "carlos@ejemplo.com"])
+    ws.append(["Carlos", "Gómez", c1, "2021-07-01", "130/75", "Administrativo A", "0001", 48, "", "SI", "carlos@ejemplo.com"])
     # Fila 3: Válida 2 (CUIL no existe en nómina activa)
-    ws.append(["María", "López", c2, "2022-03-15", "130/75", "Vendedor B", "0002", "", "NO", "maria@ejemplo.com"])
+    ws.append(["María", "López", c2, "2022-03-15", "130/75", "Vendedor B", "0002", 30, "", "NO", "maria@ejemplo.com"])
     # Fila 4: Error - CUIL repetido dentro del mismo Excel
-    ws.append(["Carlos", "Gómez Duplicado", c1, "2021-07-01", "130/75", "Administrativo A", "0003", "", "SI", ""])
+    ws.append(["Carlos", "Gómez Duplicado", c1, "2021-07-01", "130/75", "Administrativo A", "0003", 48, "", "SI", ""])
     # Fila 5: Error - CUIL inválido
-    ws.append(["Pedro", "Mendoza", "20999999999", "2023-01-10", "130/75", "Maestranza A", "0004", "", "SI", ""])
+    ws.append(["Pedro", "Mendoza", "20999999999", "2023-01-10", "130/75", "Maestranza A", "0004", 48, "", "SI", ""])
 
     buf = io.BytesIO()
     wb.save(buf)
@@ -140,6 +141,14 @@ def parsear(contenido: bytes, cuils_existentes: set[str] = None) -> Tuple[List[d
             except (InvalidOperation, ValueError):
                 errs.append(f"remuneracion_pactada inválida: {rem!r}")
 
+        try:
+            horas_semanales = Decimal(str(val("horas_semanales") or "48"))
+            if not Decimal("0") < horas_semanales <= Decimal("48"):
+                raise ValueError
+        except (InvalidOperation, ValueError):
+            horas_semanales = Decimal("48")
+            errs.append("horas_semanales debe ser mayor que 0 y no superar 48")
+
         nom = str(val("nombre") or "").strip()
         ape = str(val("apellido") or "").strip()
 
@@ -158,9 +167,9 @@ def parsear(contenido: bytes, cuils_existentes: set[str] = None) -> Tuple[List[d
             "categoria": str(val("categoria")).strip(),
             "legajo": str(val("legajo") or "").strip(),
             "remuneracion_pactada": rem_dec,
+            "proporcion_jornada": horas_semanales / Decimal("48"),
             "afiliado_sindicato": afil in ("SI", "S", "TRUE", "1", "X"),
             "email": (str(val("email")).strip() or None) if val("email") else None,
         })
 
     return validos, errores
-

@@ -39,6 +39,7 @@ def resolver_horas_extra(
         empleado_id: {
             "horas_extra_50": Decimal(str(datos.get("horas_extra_50", "0"))),
             "horas_extra_100": Decimal(str(datos.get("horas_extra_100", "0"))),
+            "feriados_trabajados": 0,
             "origen": "body_legacy",
             "premio": Decimal("0"), "tipo_premio": "pendiente",
             "descuento_adicional": Decimal("0"), "detalle_descuento": "",
@@ -51,6 +52,7 @@ def resolver_horas_extra(
         res[str(novedad.empleado_id)] = {
             "horas_extra_50": Decimal(novedad.horas_extra_50 or 0),
             "horas_extra_100": Decimal(novedad.horas_extra_100 or 0),
+            "feriados_trabajados": int(getattr(novedad, "feriados_trabajados", 0) or 0),
             "origen": "novedad_mensual",
             "novedad_id": str(novedad.id),
             "premio": Decimal(novedad.premios or 0),
@@ -159,6 +161,7 @@ class LiquidarPeriodo:
                     Novedades(
                         horas_extra_50=Decimal(str(nv.get("horas_extra_50", "0"))),
                         horas_extra_100=Decimal(str(nv.get("horas_extra_100", "0"))),
+                        feriados_trabajados=int(nv.get("feriados_trabajados", 0)),
                         premio=Decimal(str(nv.get("premio", "0"))),
                         tipo_premio=nv.get("tipo_premio", "pendiente"),
                         descuento_adicional=Decimal(str(nv.get("descuento_adicional", "0"))),
@@ -198,6 +201,7 @@ class LiquidarPeriodo:
                     "novedades": {
                         "horas_extra_50": str(nv.get("horas_extra_50", "0")),
                         "horas_extra_100": str(nv.get("horas_extra_100", "0")),
+                        "feriados_trabajados": int(nv.get("feriados_trabajados", 0)),
                         "origen": nv.get("origen", "sin_novedades"),
                         "novedad_id": nv.get("novedad_id"),
                         "premio": str(nv.get("premio", "0")),

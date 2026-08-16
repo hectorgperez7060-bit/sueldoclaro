@@ -38,6 +38,7 @@ def _to_out(novedad, bloqueada: bool = False) -> NovedadMensualOut:
         faltas_injustificadas=novedad.faltas_injustificadas,
         horas_extra_50=novedad.horas_extra_50,
         horas_extra_100=novedad.horas_extra_100,
+        feriados_trabajados=novedad.feriados_trabajados,
         licencias=novedad.licencias,
         vacaciones=novedad.vacaciones,
         premios=novedad.premios,

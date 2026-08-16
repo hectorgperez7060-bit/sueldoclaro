@@ -30,6 +30,7 @@ from .config import CctConfig
 class Novedades:
     horas_extra_50: Decimal = Decimal("0")
     horas_extra_100: Decimal = Decimal("0")
+    feriados_trabajados: int = 0
     premio: Decimal = Decimal("0")
     tipo_premio: str = "pendiente"
     descuento_adicional: Decimal = Decimal("0")
@@ -282,6 +283,24 @@ class MotorLiquidacion:
                     unidad=f"1/{cct.presentismo_divisor}",
                 )
             )
+
+        # Feriado nacional trabajado (LCT arts. 166 y 169): el sueldo mensual
+        # ya contiene el día normal y se agrega un día calculado con divisor 25.
+        if novedades.feriados_trabajados > 0:
+            base_feriado = Dinero.cero()
+            for concepto in conceptos:
+                if concepto.tipo == TipoConcepto.REMUNERATIVO:
+                    base_feriado = base_feriado + concepto.importe
+            valor_feriado = base_feriado.dividir(Decimal("25")).redondear()
+            importe_feriados = valor_feriado.multiplicar(
+                Decimal(novedades.feriados_trabajados)
+            ).redondear()
+            conceptos.append(Concepto(
+                "FERIADO_TRABAJADO", "Feriado trabajado",
+                TipoConcepto.REMUNERATIVO, importe_feriados,
+                cantidad=Decimal(novedades.feriados_trabajados),
+                base_calculo=valor_feriado, unidad="día (base / 25)",
+            ))
 
         # Horas extra (valor hora sobre básico + antigüedad)
         if novedades.horas_extra_50 > 0:

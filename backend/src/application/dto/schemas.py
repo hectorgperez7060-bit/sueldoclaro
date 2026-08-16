@@ -44,7 +44,7 @@ class EmpleadoIn(BaseModel):
     categoria: str
     legajo: str = ""
     remuneracion_pactada: Optional[Decimal] = None
-    proporcion_jornada: Decimal = Decimal("1")  # 1 = completa, 0.5 = media jornada
+    proporcion_jornada: Decimal = Field(default=Decimal("1"), gt=0, le=1)
     afiliado_sindicato: bool = True
     email: Optional[EmailStr] = None
     # datos adicionales para el recibo
@@ -90,6 +90,7 @@ class EmpleadoOut(BaseModel):
     cct_numero: str
     categoria: str
     legajo: str
+    proporcion_jornada: Decimal = Decimal("1")
     afiliado_sindicato: bool
     fecha_nacimiento: Optional[date] = None
     sexo: Optional[str] = None
@@ -115,6 +116,7 @@ class NovedadMensualIn(BaseModel):
     faltas_injustificadas: int = 0
     horas_extra_50: Decimal = Decimal("0")
     horas_extra_100: Decimal = Decimal("0")
+    feriados_trabajados: int = 0
     licencias: int = 0
     vacaciones: int = 0
     premios: Decimal = Decimal("0")
@@ -156,6 +158,7 @@ class NovedadMensualUpdate(BaseModel):
     faltas_injustificadas: int = 0
     horas_extra_50: Decimal = Decimal("0")
     horas_extra_100: Decimal = Decimal("0")
+    feriados_trabajados: int = 0
     licencias: int = 0
     vacaciones: int = 0
     premios: Decimal = Decimal("0")
@@ -193,6 +196,7 @@ class NovedadMensualOut(BaseModel):
     faltas_injustificadas: int
     horas_extra_50: Decimal
     horas_extra_100: Decimal
+    feriados_trabajados: int
     licencias: int
     vacaciones: int
     premios: Decimal
