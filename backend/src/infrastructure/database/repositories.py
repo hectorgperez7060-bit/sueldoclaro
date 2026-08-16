@@ -29,6 +29,7 @@ from domain.entities.farmacia_414_05 import (
     categoria_farmacia_canonica,
     configurar_adicionales_farmacia,
 )
+from domain.entities.sanidad_122_75 import CCT_SANIDAD, configurar_adicionales_sanidad
 from domain.payroll_engine.config import CctConfig
 from domain.value_objects.dinero import Dinero
 
@@ -365,6 +366,8 @@ class ParametrosRepo:
                     por_categoria["Categoría Inicial B"],
                     por_categoria["Farmacéutico"],
                 )
+        elif cct_numero == CCT_SANIDAD:
+            adicionales = configurar_adicionales_sanidad()
 
         return CctConfig(
             cct_numero=c.numero,

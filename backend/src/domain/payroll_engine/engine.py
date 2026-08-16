@@ -187,6 +187,17 @@ class MotorLiquidacion:
                 "Adicionales no configurados para el convenio: "
                 + ", ".join(sorted(desconocidos))
             )
+        grupos: dict[str, list[str]] = {}
+        for codigo in solicitados:
+            grupo = reglas[codigo].grupo_exclusion
+            if grupo:
+                grupos.setdefault(grupo, []).append(codigo)
+        incompatibles = [codigos for codigos in grupos.values() if len(codigos) > 1]
+        if incompatibles:
+            raise ValueError(
+                "Adicionales incompatibles seleccionados: "
+                + "; ".join(", ".join(sorted(codigos)) for codigos in incompatibles)
+            )
         for codigo in sorted(solicitados):
             regla = reglas[codigo]
             cantidad = Decimal(cantidades.get(codigo, Decimal("1")))

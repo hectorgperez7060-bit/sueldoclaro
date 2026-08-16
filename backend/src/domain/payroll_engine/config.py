@@ -24,6 +24,9 @@ class ReglaAdicionalConfig:
     # proporcion_periodo: base × porcentaje × cantidad / cantidad_base.
     modo_calculo: str = "multiplicador"
     clave_cantidad_base: Optional[str] = None
+    # Dos reglas del mismo grupo no pueden aplicarse simultáneamente al mismo
+    # empleado y período (por ejemplo, dos regímenes alternativos de sector).
+    grupo_exclusion: Optional[str] = None
 
 
 @dataclass(frozen=True)
