@@ -141,7 +141,7 @@ HTML = r"""<!DOCTYPE html>
           <div><label>Nombre</label><input id="eNombre"></div>
           <div><label>Apellido</label><input id="eApellido"></div>
           <div><label>CUIL (11 dígitos)</label><input id="eCuil" placeholder="20123456786" maxlength="13"></div>
-          <div><label>Fecha de nacimiento</label><input id="eNacimiento" type="text" inputmode="numeric" placeholder="DD/MM/AAAA" maxlength="10"><small style="color:#6b7280">Escribila directamente, por ejemplo 15/08/1974.</small></div>
+          <div><label>Fecha de nacimiento</label><input id="eNacimiento" type="text" inputmode="numeric" placeholder="DD/MM/AAAA" maxlength="10" oninput="formatearFecha(this)"><small style="color:#6b7280">Escribí solo números: 15081974 se transforma en 15/08/1974.</small></div>
           <div><label>Sexo</label><select id="eSexo"><option value="">—</option><option value="M">Masculino</option><option value="F">Femenino</option><option value="X">X</option></select></div>
           <div><label>Estado civil</label><select id="eEstadoCivil"><option value="">—</option><option>Soltero/a</option><option>Casado/a</option><option>Divorciado/a</option><option>Viudo/a</option><option>Unión convivencial</option></select></div>
           <div style="grid-column:1/-1"><label>Domicilio</label><input id="eDomicilio" placeholder="Calle, número, localidad"></div>
@@ -155,7 +155,7 @@ HTML = r"""<!DOCTYPE html>
 
         <h3 style="font-size:.9rem;color:var(--verde);margin:14px 0 6px">Datos laborales</h3>
         <div class="fila">
-          <div><label>Fecha de ingreso</label><input id="eFecha" type="text" inputmode="numeric" placeholder="DD/MM/AAAA" maxlength="10"></div>
+          <div><label>Fecha de ingreso</label><input id="eFecha" type="text" inputmode="numeric" placeholder="DD/MM/AAAA" maxlength="10" oninput="formatearFecha(this)"><small style="color:#6b7280">Escribí solo números.</small></div>
           <div><label>Legajo</label><input id="eLegajo" placeholder="0001"></div>
           <div><label>Actividad del establecimiento</label>
             <select id="eActividad" onchange="llenarConvenios()"></select></div>
@@ -375,7 +375,11 @@ async function api(ruta, metodo='GET', body=null, reintento=true){
   const data = await r.json().catch(()=>({detail:'Error inesperado'}));
   if(!r.ok){
     let msg = data.detail;
-    if(Array.isArray(msg)) msg = msg.map(x=>x.msg).join('. ');
+    if(Array.isArray(msg)) msg = msg.map(x=>{
+      if(x.type==='date_from_datetime_parsing'||x.type==='date_type'||/valid date/i.test(x.msg||''))
+        return 'Revisá la fecha: escribí los 8 números de día, mes y año';
+      return x.msg;
+    }).join('. ');
     throw new Error(msg || 'Error ' + r.status);
   }
   return data;
@@ -441,6 +445,13 @@ function fechaParaPantalla(valor){
   if(!valor) return '';
   const m=String(valor).match(/^(\d{4})-(\d{2})-(\d{2})$/);
   return m?`${m[3]}/${m[2]}/${m[1]}`:String(valor);
+}
+function formatearFecha(campo){
+  const numeros=String(campo.value||'').replace(/\D/g,'').slice(0,8);
+  let texto=numeros.slice(0,2);
+  if(numeros.length>2) texto+='/'+numeros.slice(2,4);
+  if(numeros.length>4) texto+='/'+numeros.slice(4,8);
+  campo.value=texto;
 }
 function fechaIso(valor,nombre){
   const texto=String(valor||'').trim();

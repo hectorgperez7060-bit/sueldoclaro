@@ -131,6 +131,10 @@ def test_ui_muestra_y_persiste_adicionales_sanidad_solo_para_cct_122_75():
 
 def test_edicion_empleado_permite_fecha_manual_y_separa_convenio_de_obra_social():
     assert 'id="eNacimiento" type="text" inputmode="numeric"' in HTML
+    assert 'oninput="formatearFecha(this)"' in HTML
+    assert "function formatearFecha(campo)" in HTML
+    assert "15081974 se transforma en 15/08/1974" in HTML
+    assert "Revisá la fecha: escribí los 8 números" in HTML
     assert "function fechaIso(valor,nombre)" in HTML
     assert "'414/05':{actividad:'Farmacia',sindicato:'ADEF'" in HTML
     assert 'id="eActividad" onchange="llenarConvenios()"' in HTML
