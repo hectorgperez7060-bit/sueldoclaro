@@ -25,3 +25,5 @@ def test_recibo_backend_es_pdf_a4_de_una_sola_pagina():
     assert pdf.startswith(b"%PDF-1.4")
     assert b"/MediaBox [0 0 595.28 841.89]" in pdf
     assert b"/Type /Pages /Kids [3 0 R] /Count 1" in pdf
+    # El emblema se compone de cinco polígonos de color y dos círculos centrales.
+    assert pdf.count(b" h f") >= 5

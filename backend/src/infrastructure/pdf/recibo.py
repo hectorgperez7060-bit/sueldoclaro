@@ -6,6 +6,7 @@ backend para que iOS sólo tenga que descargarlo.
 from __future__ import annotations
 
 from decimal import Decimal
+from math import cos, pi, sin
 from typing import Any
 
 
@@ -29,6 +30,24 @@ class _Page:
 
     def line(self, x1: float, y1: float, x2: float, y2: float, gray: float = .82) -> None:
         self.ops.append(f"{gray} G {x1:.1f} {y1:.1f} m {x2:.1f} {y2:.1f} l S")
+
+    def polygon(self, points: list[tuple[float, float]], rgb: tuple[float, float, float]) -> None:
+        start, *rest = points
+        path = f"{start[0]:.1f} {start[1]:.1f} m " + " ".join(
+            f"{x:.1f} {y:.1f} l" for x, y in rest
+        )
+        self.ops.append(f"{rgb[0]} {rgb[1]} {rgb[2]} rg {path} h f")
+
+    def circle(self, cx: float, cy: float, radius: float, rgb: tuple[float, float, float]) -> None:
+        k = .55228475 * radius
+        self.ops.append(
+            f"{rgb[0]} {rgb[1]} {rgb[2]} rg "
+            f"{cx + radius:.1f} {cy:.1f} m "
+            f"{cx + radius:.1f} {cy + k:.1f} {cx + k:.1f} {cy + radius:.1f} {cx:.1f} {cy + radius:.1f} c "
+            f"{cx - k:.1f} {cy + radius:.1f} {cx - radius:.1f} {cy + k:.1f} {cx - radius:.1f} {cy:.1f} c "
+            f"{cx - radius:.1f} {cy - k:.1f} {cx - k:.1f} {cy - radius:.1f} {cx:.1f} {cy - radius:.1f} c "
+            f"{cx + k:.1f} {cy - radius:.1f} {cx + radius:.1f} {cy - k:.1f} {cx + radius:.1f} {cy:.1f} c f"
+        )
 
     def text(self, x: float, y: float, text: Any, size: float = 8, bold: bool = False,
              rgb: tuple[float, float, float] = (0, 0, 0)) -> None:
@@ -72,8 +91,32 @@ def generar_recibo_pdf(data: dict[str, Any]) -> bytes:
     left, right, width = 30, 565, 535
 
     page.fill(left, 770, width, 48, green)
-    page.text(45, 797, "SUELDO CLARO", 14, True, (1, 1, 1))
-    page.text(45, 781, "RECIBO DE HABERES", 10, True, (1, 1, 1))
+    # Emblema circular multicolor original de Sueldo Claro, dibujado como
+    # vector para conservar nitidez en pantalla e impresión.
+    logo_x, logo_y = 58.0, 794.0
+    logo_colors = [
+        (.10, .38, .88),  # azul
+        (.10, .55, .42),  # verde
+        (.90, .42, .24),  # naranja
+        (.86, .25, .31),  # rojo
+        (.72, .25, .48),  # magenta
+    ]
+    for index, color in enumerate(logo_colors):
+        start = (-88 + index * 72) * pi / 180
+        end = start + 68 * pi / 180
+        # Cada aspa comparte una circunferencia exterior; el último punto
+        # vuelve hacia el centro para conservar el efecto de molinete.
+        points = [(logo_x, logo_y)]
+        for step in range(9):
+            a = start + (end - start) * step / 8
+            points.append((logo_x + 22 * cos(a), logo_y + 22 * sin(a)))
+        inner = end - 18 * pi / 180
+        points.append((logo_x + 8 * cos(inner), logo_y + 8 * sin(inner)))
+        page.polygon(points, color)
+    page.circle(logo_x, logo_y, 6.0, (.88, .90, .91))
+    page.circle(logo_x, logo_y, 2.5, (.25, .31, .36))
+    page.text(88, 797, "SUELDO CLARO", 14, True, (1, 1, 1))
+    page.text(88, 781, "RECIBO DE HABERES", 10, True, (1, 1, 1))
     page.text(375, 789, f"Anexo III  |  Periodo {data['periodo']}", 8, False, (1, 1, 1))
 
     page.fill(left, 744, width, 17, pale)
