@@ -1016,7 +1016,8 @@ function antigTexto(fIngreso, periodo){
   const ref = new Date(p[0], p[1]-1, 28);
   let a = ref.getFullYear()-ing.getFullYear();
   if(ref.getMonth()<ing.getMonth() || (ref.getMonth()===ing.getMonth() && ref.getDate()<ing.getDate())) a--;
-  return (a<0?0:a)+' años';
+  a=a<0?0:a;
+  return a+' '+(a===1?'año':'años');
 }
 function pieSVG(vals, colors){
   const total = vals.reduce((a,b)=>a+b,0)||1;
@@ -1065,8 +1066,12 @@ function verRecibo(empId){
    +'.ley{font-size:.8rem}.ley span{display:inline-block;width:12px;height:12px;border-radius:2px;margin-right:6px;vertical-align:middle}'
    +'.firma{margin-top:26px;display:flex;justify-content:space-between;font-size:.78rem;color:#374151}'
    +'.firma div{border-top:1px solid #999;padding-top:4px;width:45%;text-align:center}'
+   +'a[x-apple-data-detectors]{color:inherit!important;text-decoration:none!important;font:inherit!important}'
    +'.btn{background:#0f766e;color:#fff;border:0;padding:10px 18px;border-radius:6px;font-size:.9rem;cursor:pointer;margin:12px auto;display:block}'
-   +'@media print{body{background:#fff}.hoja{border:0;margin:0;max-width:100%}.btn,.aviso{display:none}}</style></head><body>'
+   +'@page{size:A4;margin:8mm}@media print{body{background:#fff}.hoja{border:0;margin:0;padding:0;max-width:100%}.btn,.aviso{display:none}'
+   +'.barra{padding:6px 10px}.marca-recibo svg{width:32px;height:32px}h2{margin:8px 0 4px;padding:3px 6px}'
+   +'.caja{padding:6px;font-size:.72rem}.dato{padding:1px 0}table,th,td{font-size:.72rem}th,td{padding:3px 6px}'
+   +'.neto{font-size:1rem}.resumen{gap:12px}.resumen svg{width:135px;height:135px}.firma{margin-top:16px}}</style></head><body>'
    +'<button class="btn" onclick="window.print()">⬇ Descargar / Imprimir PDF</button>'
    +'<div class="hoja">'
    +'<div class="barra"><div class="marca-recibo"><svg viewBox="0 0 64 64" role="img" aria-label="Logo Sueldo Claro"><path d="M12 7h27l10 10v25H12z" fill="none" stroke="#fff" stroke-width="5" stroke-linejoin="round"/><path d="M39 7v11h10M20 24h19M20 33h12" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/><path d="m31 45 8 8 15-18" fill="none" stroke="#fbbf24" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg><div><b>Sueldo Claro</b><h1>RECIBO DE HABERES</h1></div></div><small>Anexo III · Dto. 407/2026 · Período '+per+'</small></div>'

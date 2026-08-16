@@ -48,6 +48,17 @@ def test_ui_incluye_identidad_visual_propia_en_app_y_recibo():
     assert "Google" not in HTML
 
 
+def test_recibo_imprime_antiguedad_singular_y_evitar_enlaces_azules_ios():
+    assert "a===1?'año':'años'" in HTML
+    assert "a[x-apple-data-detectors]" in HTML
+
+
+def test_recibo_compacta_impresion_para_una_hoja_a4():
+    assert "@page{size:A4;margin:8mm}" in HTML
+    assert ".resumen svg{width:135px;height:135px}" in HTML
+    assert ".hoja{border:0;margin:0;padding:0;max-width:100%}" in HTML
+
+
 def test_ui_adapta_tablas_y_acciones_a_celular():
     assert 'class="tabla-movil"' in HTML
     assert 'data-label="Empleado"' in HTML
