@@ -5,17 +5,22 @@
 BEGIN;
 
 INSERT INTO public.cct (
-  id, numero, nombre, sindicato, antiguedad_pct_por_anio,
+  id, numero, nombre, sindicato, cuota_sindical_pct,
+  antiguedad_pct_por_anio, presentismo_divisor, divisor_horas,
   aplica_presentismo, aplica_cuota_sindical, activo
 )
 VALUES (
   gen_random_uuid(), '122/75', 'Clínicas, sanatorios, geriátricos y establecimientos con internación',
-  'FATSA / sindicato de primer grado', 0.02, false, false, true
+  'FATSA / sindicato de primer grado', 0, 0.02, 12, 200,
+  false, false, true
 )
 ON CONFLICT (numero) DO UPDATE SET
   nombre = EXCLUDED.nombre,
   sindicato = EXCLUDED.sindicato,
+  cuota_sindical_pct = EXCLUDED.cuota_sindical_pct,
   antiguedad_pct_por_anio = EXCLUDED.antiguedad_pct_por_anio,
+  presentismo_divisor = EXCLUDED.presentismo_divisor,
+  divisor_horas = EXCLUDED.divisor_horas,
   aplica_presentismo = EXCLUDED.aplica_presentismo,
   aplica_cuota_sindical = EXCLUDED.aplica_cuota_sindical,
   activo = true;

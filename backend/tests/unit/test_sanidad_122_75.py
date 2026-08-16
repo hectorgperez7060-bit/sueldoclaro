@@ -114,3 +114,11 @@ def test_migracion_no_extrapola_escala_despues_de_agosto():
     assert "DATE '2026-09-01', DATE '2026-09-30', agosto" not in sql
     assert "APORTE_SOLIDARIO_FATSA_122/75" in sql
     assert "CONTRIB_EXTRAORDINARIA_FATSA_122/75" in sql
+
+
+def test_migracion_informa_todos_los_campos_obligatorios_del_cct():
+    sql = Path("backend/migrations/005_sanidad_122_75_junio_agosto_2026.sql").read_text()
+    bloque_cct = sql.split("ON CONFLICT (numero)", 1)[0]
+    assert "cuota_sindical_pct" in bloque_cct
+    assert "presentismo_divisor" in bloque_cct
+    assert "divisor_horas" in bloque_cct
