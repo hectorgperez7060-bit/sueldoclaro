@@ -126,7 +126,13 @@ class ParametroSet:
         por período. El motor los aplica leyendo sus ``incidencias`` —sin saber
         de qué convenio se trata."""
         return [p for p in self._todos
-                if p.cct_numero == cct_numero and p.unidad == "ARS"]
+                if p.cct_numero == cct_numero and p.unidad == "ARS"
+                and p.ambito != "contrib_emp"]
+
+    def contribuciones_convenio(self, cct_numero: str) -> List[ParametroLegal]:
+        """Obligaciones patronales propias del convenio, fijas o porcentuales."""
+        return [p for p in self._todos
+                if p.cct_numero == cct_numero and p.ambito == "contrib_emp"]
 
     def deducciones_convenio(self, cct_numero: str) -> List[ParametroLegal]:
         """Deducciones porcentuales propias de un convenio (aportes/cuotas), ya

@@ -118,6 +118,14 @@ class LiquidarPeriodo:
                                     "APORTE_ADEF_NR_414/05",
                                 ],
                             }
+                        elif emp.cct_numero == "122/75":
+                            codigo_cuota = "CUOTA_SINDICAL_FATSA_122/75"
+                            incidencias_cuota = {
+                                "base_deduccion": "sindical",
+                                "destino_pago": "FATSA",
+                                "codigo_boleta": "FATSA_122_APORTES",
+                                "absorbe_codigos": ["APORTE_SOLIDARIO_FATSA_122/75"],
+                            }
                         else:
                             codigo_cuota = f"CUOTA_SINDICAL_ART101_{emp.cct_numero}"
                             incidencias_cuota = {}
@@ -126,7 +134,10 @@ class LiquidarPeriodo:
                             cuota.valid_from, cuota.valid_to, True, cuota.fuente,
                             emp.cct_numero, incidencias_cuota))
                     else:
-                        articulo = "art. 47 ADEF" if emp.cct_numero == "414/05" else "art. 101"
+                        articulo = {
+                            "414/05": "art. 47 ADEF",
+                            "122/75": "cuota asociacional del sindicato FATSA correspondiente",
+                        }.get(emp.cct_numero, "art. 101")
                         aviso_cuota_afiliado = (
                             f"Cuota sindical de afiliado ({articulo}) pendiente de verificar "
                             "para esta localidad/filial"

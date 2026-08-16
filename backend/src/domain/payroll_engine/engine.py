@@ -66,6 +66,7 @@ def _desc_nr(codigo: str) -> str:
 def _desc_ded(codigo: str) -> str:
     """Descripción legible de una deducción porcentual de convenio (solo display)."""
     prefijos = {
+        "APORTE_SOLIDARIO_FATSA": "Aporte solidario FATSA 1%",
         "APORTE_SINDICAL_ART100": "Aporte sindical 2% (art. 100 CCT)",
         "APORTE_FAECYS": "Aporte FAECYS 0,5% (art. 100)",
         "CUOTA_SINDICAL_ART101": "Cuota sindical (art. 101, afiliados)",
@@ -78,6 +79,17 @@ def _desc_ded(codigo: str) -> str:
     for pref, desc in prefijos.items():
         if codigo.startswith(pref):
             return desc
+    return codigo
+
+
+def _desc_contrib_convenio(codigo: str) -> str:
+    prefijos = {
+        "CONTRIB_EXTRAORDINARIA_FATSA": "Contribución extraordinaria FATSA/OSPSA",
+        "CONTRIB_CAPACITACION_FATSA": "Contribución FATSA para formación y capacitación",
+    }
+    for prefijo, descripcion in prefijos.items():
+        if codigo.startswith(prefijo):
+            return descripcion
     return codigo
 
 
@@ -359,6 +371,39 @@ class MotorLiquidacion:
             conceptos.append(self._contribucion("CONTRIB_INSSJP", "Contrib. INSSJP", base))
         if self._p.existe("CONTRIB_ASIG_FAM"):
             conceptos.append(self._contribucion("CONTRIB_ASIG_FAM", "Asignaciones familiares", base))
+
+        # Obligaciones patronales propias del convenio. No afectan el neto y
+        # conservan sus datos de boleta para la carpeta mensual.
+        for p in self._p.contribuciones_convenio(cct.cct_numero):
+            incidencias = p.incidencias or {}
+            meses = {int(mes) for mes in incidencias.get("meses_aplicacion", [])}
+            excluidos = {int(mes) for mes in incidencias.get("meses_excluidos", [])}
+            if meses and periodo.mes not in meses:
+                continue
+            if periodo.mes in excluidos:
+                continue
+            if p.unidad == "ARS":
+                importe = Dinero(p.valor)
+                if incidencias.get("prorratea_jornada"):
+                    importe = importe.porcentaje(empleado.proporcion_jornada)
+            elif p.unidad == "%":
+                selector = incidencias.get("base_contribucion", "remunerativa")
+                bases = {"remunerativa": base, "sindical": base_sindical}
+                if selector not in bases:
+                    raise ValueError(f"Base de contribución inválida para {p.codigo}: {selector}")
+                importe = bases[selector].porcentaje(p.valor)
+            else:
+                raise ValueError(f"Unidad de contribución inválida para {p.codigo}: {p.unidad}")
+            conceptos.append(Concepto(
+                p.codigo, _desc_contrib_convenio(p.codigo), TipoConcepto.CONTRIBUCION,
+                importe.redondear(),
+                destino_pago=incidencias.get("destino_pago"),
+                codigo_boleta=incidencias.get("codigo_boleta"),
+                canal_pago=incidencias.get("canal_pago"),
+                url_pago=incidencias.get("url_pago"),
+                regla_vencimiento=incidencias.get("regla_vencimiento"),
+                fuente_pago=incidencias.get("fuente_pago"),
+            ))
 
         if novedades.descuento_adicional > 0:
             descripcion = "Descuento adicional"
