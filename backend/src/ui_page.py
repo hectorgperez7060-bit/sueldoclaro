@@ -1114,11 +1114,34 @@ async function descargarReciboPdf(empId, reintento=true){
   const det=ultimaLiq.detalles.find(x=>x.empleado_id===empId);
   const emp=empleadosCache[empId]||{};
   if(!det) return;
+  const domicilioEmpresa=prompt('Domicilio legal del empleador (obligatorio):',localStorage.getItem('sc_empresa_domicilio')||'');
+  if(!domicilioEmpresa) return;
+  const fechaPago=prompt('Fecha real de pago del sueldo (AAAA-MM-DD):',new Date().toISOString().slice(0,10));
+  if(!fechaPago) return;
+  const lugarPago=prompt('Lugar real de pago:',emp.lugar_trabajo||localStorage.getItem('sc_lugar_pago')||'');
+  if(!lugarPago) return;
+  const formasPago={'1':'Efectivo','2':'Cheque','3':'Acreditación en cuenta','4':'Otra'};
+  const formaPago=prompt('Forma real de pago:',formasPago[emp.forma_pago]||localStorage.getItem('sc_forma_pago')||'');
+  if(!formaPago) return;
+  const fechaCargas=prompt('Fecha de pago de cargas sociales (AAAA-MM-DD):',localStorage.getItem('sc_fecha_cargas')||'');
+  if(!fechaCargas) return;
+  const lugarCargas=prompt('Lugar/canal de pago de cargas sociales:',localStorage.getItem('sc_lugar_cargas')||'ARCA');
+  if(!lugarCargas) return;
+  localStorage.setItem('sc_empresa_domicilio',domicilioEmpresa);
+  localStorage.setItem('sc_lugar_pago',lugarPago);
+  localStorage.setItem('sc_forma_pago',formaPago);
+  localStorage.setItem('sc_fecha_cargas',fechaCargas);
+  localStorage.setItem('sc_lugar_cargas',lugarCargas);
   const body={
     periodo:ultimaLiq.periodo,
-    empresa:empresaCache,
-    empleado:emp,
-    conceptos:det.conceptos.map(c=>({descripcion:c.descripcion,tipo:c.tipo,importe:c.importe})),
+    empresa:{...empresaCache,domicilio:domicilioEmpresa},
+    empleado:{...emp,antiguedad:antigTexto(emp.fecha_ingreso,ultimaLiq.periodo)},
+    pago:{fecha:fechaPago,lugar:lugarPago,forma:formaPago},
+    cargas_sociales:{fecha:fechaCargas,lugar:lugarCargas},
+    conceptos:det.conceptos.map(c=>({
+      codigo:c.codigo||'',descripcion:c.descripcion,tipo:c.tipo,importe:c.importe,
+      base_calculo:c.base_calculo,unidad:c.unidad,cantidad:c.cantidad
+    })),
     bruto:det.bruto,total_deducciones:det.total_deducciones,neto:det.neto
   };
   const r=await fetch('/recibos/pdf',{

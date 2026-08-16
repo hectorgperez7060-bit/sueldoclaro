@@ -1,191 +1,214 @@
-"""Generador mínimo y determinista de recibos A4 de una sola página.
-
-No usa el diálogo de impresión del navegador: construye un PDF válido en el
-backend para que iOS sólo tenga que descargarlo.
-"""
+"""Recibo A4 conforme al Anexo III del Decreto 407/2026."""
 from __future__ import annotations
 
 from decimal import Decimal
-from math import cos, pi, sin
+from io import BytesIO
 from typing import Any
 
+from reportlab.lib.colors import Color, HexColor, white
+from reportlab.lib.pagesizes import A4
+from reportlab.pdfbase.pdfmetrics import stringWidth
+from reportlab.pdfgen.canvas import Canvas
 
-def _pdf_text(value: Any) -> str:
-    text = str(value or "—").replace("\\", "\\\\").replace("(", "\\(").replace(")", "\\)")
-    return text.encode("cp1252", "replace").decode("latin1")
+GREEN, PALE = HexColor("#087F73"), HexColor("#E8F4F2")
+DARK, GRAY, LINE = HexColor("#172033"), HexColor("#5F6876"), HexColor("#C9D1D9")
+
+
+def _decimal(value: Any) -> Decimal:
+    return Decimal(str(value or 0)).quantize(Decimal("0.01"))
 
 
 def _money(value: Any) -> str:
-    number = Decimal(str(value or 0)).quantize(Decimal("0.01"))
-    raw = f"{number:,.2f}"
-    return raw.replace(",", "X").replace(".", ",").replace("X", ".")
+    raw = f"{_decimal(value):,.2f}"
+    return "$ " + raw.replace(",", "X").replace(".", ",").replace("X", ".")
 
 
-class _Page:
-    def __init__(self) -> None:
-        self.ops: list[str] = []
-
-    def fill(self, x: float, y: float, w: float, h: float, rgb: tuple[float, float, float]) -> None:
-        self.ops.append(f"{rgb[0]} {rgb[1]} {rgb[2]} rg {x:.1f} {y:.1f} {w:.1f} {h:.1f} re f")
-
-    def line(self, x1: float, y1: float, x2: float, y2: float, gray: float = .82) -> None:
-        self.ops.append(f"{gray} G {x1:.1f} {y1:.1f} m {x2:.1f} {y2:.1f} l S")
-
-    def polygon(self, points: list[tuple[float, float]], rgb: tuple[float, float, float]) -> None:
-        start, *rest = points
-        path = f"{start[0]:.1f} {start[1]:.1f} m " + " ".join(
-            f"{x:.1f} {y:.1f} l" for x, y in rest
-        )
-        self.ops.append(f"{rgb[0]} {rgb[1]} {rgb[2]} rg {path} h f")
-
-    def circle(self, cx: float, cy: float, radius: float, rgb: tuple[float, float, float]) -> None:
-        k = .55228475 * radius
-        self.ops.append(
-            f"{rgb[0]} {rgb[1]} {rgb[2]} rg "
-            f"{cx + radius:.1f} {cy:.1f} m "
-            f"{cx + radius:.1f} {cy + k:.1f} {cx + k:.1f} {cy + radius:.1f} {cx:.1f} {cy + radius:.1f} c "
-            f"{cx - k:.1f} {cy + radius:.1f} {cx - radius:.1f} {cy + k:.1f} {cx - radius:.1f} {cy:.1f} c "
-            f"{cx - radius:.1f} {cy - k:.1f} {cx - k:.1f} {cy - radius:.1f} {cx:.1f} {cy - radius:.1f} c "
-            f"{cx + k:.1f} {cy - radius:.1f} {cx + radius:.1f} {cy - k:.1f} {cx + radius:.1f} {cy:.1f} c f"
-        )
-
-    def text(self, x: float, y: float, text: Any, size: float = 8, bold: bool = False,
-             rgb: tuple[float, float, float] = (0, 0, 0)) -> None:
-        font = "F2" if bold else "F1"
-        self.ops.append(
-            f"BT /{font} {size:.1f} Tf {rgb[0]} {rgb[1]} {rgb[2]} rg "
-            f"1 0 0 1 {x:.1f} {y:.1f} Tm ({_pdf_text(text)}) Tj ET"
-        )
+_UNITS = ("", "uno", "dos", "tres", "cuatro", "cinco", "seis", "siete", "ocho", "nueve")
+_SPECIAL = {10: "diez", 11: "once", 12: "doce", 13: "trece", 14: "catorce", 15: "quince",
+            16: "dieciseis", 17: "diecisiete", 18: "dieciocho", 19: "diecinueve",
+            20: "veinte", 21: "veintiuno", 22: "veintidos", 23: "veintitres",
+            24: "veinticuatro", 25: "veinticinco", 26: "veintiseis", 27: "veintisiete",
+            28: "veintiocho", 29: "veintinueve"}
+_TENS = ("", "", "", "treinta", "cuarenta", "cincuenta", "sesenta", "setenta", "ochenta", "noventa")
+_HUNDREDS = ("", "ciento", "doscientos", "trescientos", "cuatrocientos", "quinientos",
+             "seiscientos", "setecientos", "ochocientos", "novecientos")
 
 
-def _build_pdf(stream: bytes) -> bytes:
-    objects = [
-        b"<< /Type /Catalog /Pages 2 0 R >>",
-        b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
-        b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 4 0 R /F2 5 0 R >> >> /Contents 6 0 R >>",
-        b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>",
-        b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>",
-        b"<< /Length %d >>\nstream\n" % len(stream) + stream + b"\nendstream",
-    ]
-    out = bytearray(b"%PDF-1.4\n%\xe2\xe3\xcf\xd3\n")
-    offsets = [0]
-    for index, obj in enumerate(objects, 1):
-        offsets.append(len(out))
-        out.extend(f"{index} 0 obj\n".encode())
-        out.extend(obj)
-        out.extend(b"\nendobj\n")
-    xref = len(out)
-    out.extend(f"xref\n0 {len(objects)+1}\n".encode())
-    out.extend(b"0000000000 65535 f \n")
-    for offset in offsets[1:]:
-        out.extend(f"{offset:010d} 00000 n \n".encode())
-    out.extend(f"trailer << /Size {len(objects)+1} /Root 1 0 R >>\nstartxref\n{xref}\n%%EOF\n".encode())
-    return bytes(out)
+def _under_thousand(n: int) -> str:
+    if not n:
+        return ""
+    if n == 100:
+        return "cien"
+    parts: list[str] = []
+    if n >= 100:
+        parts.append(_HUNDREDS[n // 100]); n %= 100
+    if n in _SPECIAL:
+        parts.append(_SPECIAL[n])
+    elif n >= 30:
+        parts.append(_TENS[n // 10] + ((" y " + _UNITS[n % 10]) if n % 10 else ""))
+    elif n:
+        parts.append(_UNITS[n])
+    return " ".join(parts)
+
+
+def _integer_words(n: int) -> str:
+    if n == 0:
+        return "cero"
+    if n >= 1_000_000_000:
+        q, r = divmod(n, 1_000_000_000)
+        return (("mil millones" if q == 1 else _integer_words(q) + " mil millones") + " " + _integer_words(r)).strip()
+    if n >= 1_000_000:
+        q, r = divmod(n, 1_000_000)
+        return (("un millon" if q == 1 else _integer_words(q) + " millones") + " " + _integer_words(r)).strip()
+    if n >= 1000:
+        q, r = divmod(n, 1000)
+        return (("mil" if q == 1 else _under_thousand(q) + " mil") + " " + _under_thousand(r)).strip()
+    return _under_thousand(n)
+
+
+def _money_words(value: Any) -> str:
+    amount = _decimal(value); pesos = int(amount); cents = int((amount - pesos) * 100)
+    return f"Pesos {_integer_words(pesos)} con {cents:02d}/100"
+
+
+def _require(data: dict[str, Any], path: str) -> Any:
+    current: Any = data
+    for key in path.split("."):
+        current = current.get(key) if isinstance(current, dict) else None
+    if current is None or str(current).strip() == "":
+        raise ValueError(f"Falta el dato obligatorio del recibo: {path}")
+    return current
+
+
+def validar_datos_legales(data: dict[str, Any]) -> None:
+    for path in ("periodo", "empresa.razon_social", "empresa.cuit", "empresa.domicilio",
+                 "empleado.apellido", "empleado.nombre", "empleado.cuil", "empleado.fecha_ingreso",
+                 "empleado.categoria", "pago.fecha", "pago.lugar", "pago.forma",
+                 "cargas_sociales.fecha", "cargas_sociales.lugar"):
+        _require(data, path)
+    if not data.get("conceptos"):
+        raise ValueError("El recibo no contiene conceptos liquidados")
+    for index, concept in enumerate(data["conceptos"], 1):
+        for field in ("descripcion", "tipo", "importe", "base_calculo", "unidad", "cantidad"):
+            if concept.get(field) is None or str(concept.get(field)).strip() == "":
+                raise ValueError(f"Concepto {index}: falta {field}")
+
+
+def _fit(value: Any, width: float, size: float, bold: bool = False) -> str:
+    text, font = str(value or "-"), "Helvetica-Bold" if bold else "Helvetica"
+    if stringWidth(text, font, size) <= width:
+        return text
+    while text and stringWidth(text + "...", font, size) > width:
+        text = text[:-1]
+    return text + "..."
+
+
+def _text(c: Canvas, x: float, y: float, value: Any, size: float = 7, bold: bool = False,
+          color: Color = DARK, right: bool = False) -> None:
+    c.setFillColor(color); c.setFont("Helvetica-Bold" if bold else "Helvetica", size)
+    (c.drawRightString if right else c.drawString)(x, y, str(value))
+
+
+def _section(c: Canvas, y: float, title: str) -> float:
+    c.setFillColor(PALE); c.roundRect(24, y - 13, 547, 16, 2, fill=1, stroke=0)
+    _text(c, 30, y - 8, title, 7.2, True, GREEN)
+    return y - 19
+
+
+def _logo(c: Canvas, x: float, y: float) -> None:
+    for index, color in enumerate(("#2563EB", "#10B981", "#F59E0B", "#EF4444", "#A855F7")):
+        c.setFillColor(HexColor(color)); c.wedge(x - 17, y - 17, x + 17, y + 17, 18 + index * 72, 66, fill=1, stroke=0)
+    c.setFillColor(HexColor("#E5E7EB")); c.circle(x, y, 5, fill=1, stroke=0)
+    c.setFillColor(DARK); c.circle(x, y, 2, fill=1, stroke=0)
+
+
+def _row(c: Canvas, y: float, row: dict[str, Any], size: float, height: float) -> float:
+    _text(c, 30, y, _fit(row["descripcion"], 255, size), size)
+    _text(c, 367, y, _money(row["base_calculo"]), size, right=True)
+    _text(c, 374, y, _fit(row["unidad"], 90, size), size)
+    _text(c, 507, y, row["cantidad"], size, right=True)
+    _text(c, 566, y, _money(row["importe"]), size, right=True)
+    c.setStrokeColor(LINE); c.setLineWidth(.35); c.line(28, y - 3, 568, y - 3)
+    return y - height
+
+
+def _cost_group(row: dict[str, Any]) -> str:
+    code, desc = str(row.get("codigo", "")).lower(), str(row.get("descripcion", "")).lower()
+    if "sind" in code or "fatsa" in desc or "faecys" in desc: return "Sindical"
+    if "obra_social" in code or "obra social" in desc: return "Obra social"
+    if "inssjp" in code or "inssjp" in desc: return "INSSJP"
+    if "art" in code or "a.r.t" in desc: return "ART"
+    if "camara" in code or "cámara" in desc: return "Cámaras / entidades"
+    if any(word in desc for word in ("jubil", "asignaciones", "fondo de empleo")): return "Seguridad social"
+    return "Otros rubros"
 
 
 def generar_recibo_pdf(data: dict[str, Any]) -> bytes:
-    page = _Page()
-    green = (0.05, .47, .43)
-    pale = (.90, .95, .94)
-    dark = (.08, .13, .20)
-    left, right, width = 30, 565, 535
+    validar_datos_legales(data)
+    output = BytesIO(); c = Canvas(output, pagesize=A4, pageCompression=1)
+    c.setTitle(f"Recibo de haberes {data['periodo']}"); c.setAuthor(str(data["empresa"]["razon_social"]))
+    concepts = list(data["conceptos"])
+    contributions = [r for r in concepts if r["tipo"] == "contribucion"]
+    worker = [r for r in concepts if r["tipo"] != "contribucion"]
+    count = len(contributions) + len(worker)
+    row_h = 10.2 if count <= 24 else max(7.6, 255 / max(count, 1))
+    font = 6.3 if count <= 24 else max(5.2, row_h - 3.2)
 
-    page.fill(left, 770, width, 48, green)
-    # Emblema circular multicolor original de Sueldo Claro, dibujado como
-    # vector para conservar nitidez en pantalla e impresión.
-    logo_x, logo_y = 58.0, 794.0
-    logo_colors = [
-        (.10, .38, .88),  # azul
-        (.10, .55, .42),  # verde
-        (.90, .42, .24),  # naranja
-        (.86, .25, .31),  # rojo
-        (.72, .25, .48),  # magenta
-    ]
-    for index, color in enumerate(logo_colors):
-        start = (-88 + index * 72) * pi / 180
-        end = start + 68 * pi / 180
-        # Cada aspa comparte una circunferencia exterior; el último punto
-        # vuelve hacia el centro para conservar el efecto de molinete.
-        points = [(logo_x, logo_y)]
-        for step in range(9):
-            a = start + (end - start) * step / 8
-            points.append((logo_x + 22 * cos(a), logo_y + 22 * sin(a)))
-        inner = end - 18 * pi / 180
-        points.append((logo_x + 8 * cos(inner), logo_y + 8 * sin(inner)))
-        page.polygon(points, color)
-    page.circle(logo_x, logo_y, 6.0, (.88, .90, .91))
-    page.circle(logo_x, logo_y, 2.5, (.25, .31, .36))
-    page.text(88, 797, "SUELDO CLARO", 14, True, (1, 1, 1))
-    page.text(88, 781, "RECIBO DE HABERES", 10, True, (1, 1, 1))
-    page.text(375, 789, f"Anexo III  |  Periodo {data['periodo']}", 8, False, (1, 1, 1))
+    c.setFillColor(GREEN); c.roundRect(20, 775, 555, 48, 5, fill=1, stroke=0)
+    _logo(c, 48, 799); _text(c, 75, 801, "SUELDO CLARO", 13, True, white)
+    _text(c, 75, 784, "RECIBO DE HABERES", 9, True, white)
+    _text(c, 560, 797, f"PERIODO {data['periodo']}", 8, True, white, True)
+    _text(c, 560, 784, "ANEXO III - DECRETO 407/2026", 6.4, False, white, True)
 
-    page.fill(left, 744, width, 17, pale)
-    page.text(36, 749, "DATOS DEL EMPLEADOR Y DEL TRABAJADOR", 8, True, green)
-    employer = data["empresa"]
-    employee = data["empleado"]
-    page.text(38, 728, "EMPLEADOR", 8, True, dark)
-    page.text(38, 714, f"Razon social: {employer.get('razon_social') or '—'}", 8)
-    page.text(38, 700, f"CUIT: {employer.get('cuit') or '—'}", 8)
-    page.text(310, 728, "TRABAJADOR", 8, True, dark)
-    page.text(310, 714, f"Apellido y nombre: {employee.get('apellido','')}, {employee.get('nombre','')}", 8)
-    page.text(310, 700, f"CUIL: {employee.get('cuil') or '—'}  |  Legajo: {employee.get('legajo') or '—'}", 8)
-    page.text(310, 686, f"Categoria: {employee.get('categoria') or '—'}  |  CCT {employee.get('cct_numero') or '—'}", 8)
-    page.text(38, 686, f"Ingreso: {employee.get('fecha_ingreso') or '—'}  |  Modalidad: {employee.get('modalidad_contrato') or '—'}", 8)
+    y = _section(c, 765, "A. DATOS DEL EMPLEADOR, TRABAJADOR Y PAGO")
+    e, w = data["empresa"], data["empleado"]
+    left = (("Empleador", e["razon_social"]), ("CUIT", e["cuit"]), ("Domicilio", e["domicilio"]),
+            ("Pago sueldo", f"{data['pago']['fecha']} - {data['pago']['lugar']} - {data['pago']['forma']}"),
+            ("Cargas sociales", f"{data['cargas_sociales']['fecha']} - {data['cargas_sociales']['lugar']}"))
+    right = (("Trabajador", f"{w['apellido']}, {w['nombre']}"), ("CUIL / Legajo", f"{w['cuil']} / {w.get('legajo') or '-'}"),
+             ("Ingreso / Antig.", f"{w['fecha_ingreso']} / {w.get('antiguedad') or '-'}"),
+             ("Categoría / CCT", f"{w['categoria']} / {w.get('cct_numero') or '-'}"),
+             ("Modalidad", w.get("modalidad_contrato") or "-"))
+    for i, ((ll, vl), (lr, vr)) in enumerate(zip(left, right)):
+        yy = y - i * 12
+        _text(c, 30, yy, ll + ":", 6.2, True, GRAY); _text(c, 100, yy, _fit(vl, 178, 6.2), 6.2)
+        _text(c, 300, yy, lr + ":", 6.2, True, GRAY); _text(c, 380, yy, _fit(vr, 185, 6.2), 6.2)
+    y -= 65
 
-    concepts = data["conceptos"]
-    contributions = [c for c in concepts if c["tipo"] == "contribucion"]
-    earnings = [c for c in concepts if c["tipo"] in ("remunerativo", "no_remunerativo")]
-    deductions = [c for c in concepts if c["tipo"] == "deduccion"]
-    total_rows = max(1, len(contributions) + len(earnings) + len(deductions) + 4)
-    row_h = max(10.0, min(15.0, 355.0 / total_rows))
+    for title, rows in (("B. CONTRIBUCIONES Y CONCEPTOS A CARGO DEL EMPLEADOR", contributions),
+                        ("C. REMUNERACIÓN BRUTA, HABERES Y DEDUCCIONES", worker)):
+        y = _section(c, y, title)
+        for x, label in zip((30, 292, 374, 475, 522), ("Concepto", "Base", "Unidad", "Cant.", "Monto")):
+            _text(c, x, y, label, 6.2, True, GRAY)
+        y -= 9
+        for row in rows: y = _row(c, y, row, font, row_h)
+        if rows is contributions:
+            total = sum((_decimal(r["importe"]) for r in rows), Decimal("0"))
+            _text(c, 390, y, "TOTAL EMPLEADOR", 6.5, True); _text(c, 566, y, _money(total), 6.5, True, right=True)
+        else:
+            _text(c, 30, y, f"REMUNERACIÓN BRUTA: {_money(data['bruto'])}", 6.7, True)
+            _text(c, 300, y, f"DEDUCCIONES: {_money(data['total_deducciones'])}", 6.7, True)
+        y -= 13
 
-    y = 658
-    page.fill(left, y, width, 18, pale)
-    page.text(36, y + 5, "CONTRIBUCIONES DEL EMPLEADOR", 8, True, green)
-    y -= row_h
-    for concept in contributions:
-        page.text(38, y + 3, str(concept["descripcion"])[:68], 7.5)
-        page.text(490, y + 3, f"$ {_money(concept['importe'])}", 7.5, False)
-        page.line(38, y, right, y)
-        y -= row_h
-    total_contrib = sum(Decimal(str(c["importe"])) for c in contributions)
-    page.text(38, y + 3, "Total contribuciones", 8, True)
-    page.text(490, y + 3, f"$ {_money(total_contrib)}", 8, True)
-    y -= row_h + 7
+    y = _section(c, y, "D. REMUNERACIÓN NETA")
+    _text(c, 30, y - 1, "NETO A COBRAR", 9, True, GREEN); _text(c, 566, y - 1, _money(data["neto"]), 11, True, GREEN, True)
+    _text(c, 30, y - 13, _fit(_money_words(data["neto"]), 535, 6.5), 6.5, True); y -= 29
 
-    page.fill(left, y, width, 18, pale)
-    page.text(36, y + 5, "HABERES Y DEDUCCIONES", 8, True, green)
-    y -= row_h
-    page.text(38, y + 3, "Concepto", 7.5, True)
-    page.text(395, y + 3, "Haberes", 7.5, True)
-    page.text(490, y + 3, "Deducciones", 7.5, True)
-    y -= row_h
-    for concept in earnings + deductions:
-        page.text(38, y + 3, str(concept["descripcion"])[:58], 7.5)
-        x = 395 if concept["tipo"] != "deduccion" else 490
-        page.text(x, y + 3, f"$ {_money(concept['importe'])}", 7.5)
-        page.line(38, y, right, y)
-        y -= row_h
-
-    y -= 2
-    page.text(38, y, f"BRUTO: $ {_money(data['bruto'])}", 9, True, dark)
-    page.text(220, y, f"DEDUCCIONES: $ {_money(data['total_deducciones'])}", 9, True, dark)
-    page.text(405, y, f"NETO: $ {_money(data['neto'])}", 10, True, green)
+    y = _section(c, y, "RESUMEN DE LA COMPOSICIÓN TOTAL DEL COSTO LABORAL")
+    groups = {name: Decimal("0") for name in ("Sindical", "Seguridad social", "Obra social", "INSSJP", "ART", "Cámaras / entidades", "Otros rubros")}
+    for row in contributions: groups[_cost_group(row)] += _decimal(row["importe"])
+    for i, (name, amount) in enumerate(groups.items()):
+        x, yy = 30 + (i % 4) * 135, y - (i // 4) * 11
+        _text(c, x, yy, _fit(name, 77, 5.8), 5.8, True, GRAY); _text(c, x + 130, yy, _money(amount), 5.8, right=True)
     y -= 25
-    page.fill(left, y, width, 18, pale)
-    page.text(36, y + 5, "RESUMEN DEL COSTO LABORAL", 8, True, green)
-    y -= 18
-    cost = Decimal(str(data["bruto"])) + total_contrib
-    page.text(38, y, f"Neto trabajador: $ {_money(data['neto'])}", 8)
-    page.text(205, y, f"Retenciones: $ {_money(data['total_deducciones'])}", 8)
-    page.text(355, y, f"Cargas patronales: $ {_money(total_contrib)}", 8)
-    y -= 15
-    page.text(38, y, f"COSTO LABORAL TOTAL: $ {_money(cost)}", 9, True, green)
-    y = max(35, y - 32)
-    page.line(55, y, 250, y, .55)
-    page.line(345, y, 540, y, .55)
-    page.text(105, y - 12, "Firma del empleador", 7)
-    page.text(385, y - 12, "Recibi conforme - Firma del trabajador", 7)
-    page.text(30, 15, "DOCUMENTO DE PRUEBA - Parametros sujetos a validacion profesional.", 6, False, (.45, .45, .45))
-
-    return _build_pdf("\n".join(page.ops).encode("latin1"))
+    total_contrib = sum((_decimal(r["importe"]) for r in contributions), Decimal("0"))
+    _text(c, 30, y, f"Neto: {_money(data['neto'])}", 6.3)
+    _text(c, 190, y, f"Retenciones: {_money(data['total_deducciones'])}", 6.3)
+    _text(c, 375, y, f"COSTO TOTAL: {_money(_decimal(data['bruto']) + total_contrib)}", 7, True, GREEN)
+    sy = y - 25
+    if sy < 35: raise ValueError("El recibo excede una hoja A4; deben agruparse líneas equivalentes")
+    c.setStrokeColor(GRAY); c.line(35, sy, 245, sy); c.line(350, sy, 560, sy)
+    _text(c, 82, sy - 10, "Firma del empleador", 6.2)
+    _text(c, 388, sy - 10, "Recibí el duplicado - Firma del trabajador", 6.2)
+    _text(c, 24, 14, "Original para el trabajador - Conservar el duplicado firmado por el empleador", 5.5, color=GRAY)
+    c.showPage(); c.save(); return output.getvalue()

@@ -31,6 +31,11 @@ class Concepto:
     tipo: TipoConcepto
     importe: Dinero                 # ya redondeado (resultado final de línea)
     cantidad: Decimal = Decimal("1")
+    # Trazabilidad exigida por el Anexo III del Decreto 407/2026.
+    # ``base_calculo`` es el importe sobre el que se aplicó la unidad (porcentaje,
+    # día, hora, mes o suma fija). Nunca se reconstruye desde el total impreso.
+    base_calculo: Optional[Dinero] = None
+    unidad: str = "suma fija"
     regimen: Regimen = Regimen.NO_APLICA
     articulo_amparo: Optional[str] = None  # p.ej. "L27802:131" si se aplicó regla previa
     # Metadatos de pago externo. No alteran el neto: permiten agrupar las

@@ -172,6 +172,11 @@ class LiquidarPeriodo:
                     {
                         "codigo": c.codigo, "descripcion": c.descripcion, "tipo": c.tipo.value,
                         "importe": str(c.importe.redondear().monto), "regimen": c.regimen.value,
+                        "cantidad": str(c.cantidad),
+                        "base_calculo": str(
+                            (c.base_calculo or c.importe).redondear().monto
+                        ),
+                        "unidad": c.unidad,
                         "articulo_amparo": c.articulo_amparo,
                         "destino_pago": c.destino_pago,
                         "codigo_boleta": c.codigo_boleta,

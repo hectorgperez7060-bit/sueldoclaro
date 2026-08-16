@@ -15,15 +15,32 @@ router = APIRouter(prefix="/recibos", tags=["recibos"])
 
 
 class ConceptoPdf(BaseModel):
+    codigo: str = ""
     descripcion: str
     tipo: Literal["remunerativo", "no_remunerativo", "deduccion", "contribucion"]
     importe: Decimal
+    base_calculo: Decimal
+    unidad: str
+    cantidad: Decimal
+
+
+class DatosPagoPdf(BaseModel):
+    fecha: str
+    lugar: str
+    forma: str = "No informada"
+
+
+class DatosCargasPdf(BaseModel):
+    fecha: str
+    lugar: str
 
 
 class ReciboPdfIn(BaseModel):
     periodo: str
     empresa: dict
     empleado: dict
+    pago: DatosPagoPdf
+    cargas_sociales: DatosCargasPdf
     conceptos: list[ConceptoPdf]
     bruto: Decimal
     total_deducciones: Decimal

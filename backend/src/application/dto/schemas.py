@@ -222,6 +222,9 @@ class ConceptoOut(BaseModel):
     descripcion: str
     tipo: str
     importe: Decimal
+    cantidad: Decimal = Decimal("1")
+    base_calculo: Optional[Decimal] = None
+    unidad: str = "suma fija"
     regimen: str
     articulo_amparo: Optional[str] = None
     destino_pago: Optional[str] = None

@@ -146,7 +146,10 @@ class MotorLiquidacion:
         if empleado.proporcion_jornada != Decimal("1"):
             basico = basico.porcentaje(empleado.proporcion_jornada).redondear()
             desc_basico = f"Sueldo básico (jornada {empleado.proporcion_jornada})"
-        conceptos.append(Concepto("BASICO", desc_basico, TipoConcepto.REMUNERATIVO, basico))
+        conceptos.append(Concepto(
+            "BASICO", desc_basico, TipoConcepto.REMUNERATIVO, basico,
+            base_calculo=basico, unidad="mes",
+        ))
 
         # ----- Conceptos NO remunerativos del convenio (data-driven por incidencias) -----
         # El motor NO conoce el convenio: por cada concepto lee 'incidencias'
@@ -159,7 +162,8 @@ class MotorLiquidacion:
             imp = imp.redondear()
             nr.append((imp, p.incidencias or {}))
             conceptos.append(Concepto(p.codigo, _desc_nr(p.codigo),
-                                      TipoConcepto.NO_REMUNERATIVO, imp))
+                                      TipoConcepto.NO_REMUNERATIVO, imp,
+                                      base_calculo=imp, unidad="suma fija"))
 
         def _nr(flag: str) -> Dinero:
             total = Dinero.cero()
@@ -173,7 +177,8 @@ class MotorLiquidacion:
         antiguedad = base_antig.porcentaje(cct.antiguedad_fraccion(anios)).redondear()
         conceptos.append(
             Concepto("ANTIGUEDAD", f"Antigüedad ({anios} años)", TipoConcepto.REMUNERATIVO,
-                     antiguedad, cantidad=Decimal(anios))
+                     antiguedad, cantidad=Decimal(anios), base_calculo=base_antig,
+                     unidad=f"{cct.antiguedad_fraccion(1) * 100}% por año")
         )
 
         # Adicionales convencionales genéricos. El motor sólo interpreta bases
@@ -260,7 +265,10 @@ class MotorLiquidacion:
             )
             conceptos.append(Concepto(
                 codigo, regla.descripcion, TipoConcepto.REMUNERATIVO,
-                importe, cantidad=cantidad,
+                importe, cantidad=cantidad, base_calculo=base_adicional,
+                unidad=(f"{regla.porcentaje * 100}%"
+                        if regla.modo_calculo == "multiplicador"
+                        else regla.modo_calculo),
             ))
 
         # Presentismo: base = básico + NR que integran presentismo + antigüedad
@@ -268,7 +276,11 @@ class MotorLiquidacion:
             base_pres = (basico + _nr("integra_presentismo") + antiguedad).redondear()
             presentismo = base_pres.dividir(cct.presentismo_divisor).redondear()
             conceptos.append(
-                Concepto("PRESENTISMO", "Presentismo", TipoConcepto.REMUNERATIVO, presentismo)
+                Concepto(
+                    "PRESENTISMO", "Presentismo", TipoConcepto.REMUNERATIVO,
+                    presentismo, base_calculo=base_pres,
+                    unidad=f"1/{cct.presentismo_divisor}",
+                )
             )
 
         # Horas extra (valor hora sobre básico + antigüedad)
@@ -277,14 +289,16 @@ class MotorLiquidacion:
             imp = vh.multiplicar(Decimal("1.5")).multiplicar(novedades.horas_extra_50).redondear()
             conceptos.append(
                 Concepto("HORAS_EXTRA_50", "Horas extra al 50%", TipoConcepto.REMUNERATIVO,
-                         imp, cantidad=novedades.horas_extra_50)
+                         imp, cantidad=novedades.horas_extra_50, base_calculo=vh,
+                         unidad="hora x 1,5")
             )
         if novedades.horas_extra_100 > 0:
             vh = self._valor_hora(basico, antiguedad, cct)
             imp = vh.multiplicar(Decimal("2")).multiplicar(novedades.horas_extra_100).redondear()
             conceptos.append(
                 Concepto("HORAS_EXTRA_100", "Horas extra al 100%", TipoConcepto.REMUNERATIVO,
-                         imp, cantidad=novedades.horas_extra_100)
+                         imp, cantidad=novedades.horas_extra_100, base_calculo=vh,
+                         unidad="hora x 2")
             )
 
         if novedades.premio > 0 and novedades.tipo_premio == "remunerativo":
@@ -326,7 +340,9 @@ class MotorLiquidacion:
                 else self._p.fraccion("CUOTA_SINDICAL")
             imp = base_sindical.porcentaje(pct).redondear()
             conceptos.append(Concepto("CUOTA_SINDICAL", "Cuota sindical",
-                                      TipoConcepto.DEDUCCION, imp))
+                                      TipoConcepto.DEDUCCION, imp,
+                                      base_calculo=base_sindical,
+                                      unidad=f"{pct * 100}%"))
 
         # ----- Deducciones porcentuales del convenio (aportes/cuotas, data-driven) -----
         # Cada una lleva su condición de aplicación en 'ambito':
@@ -365,6 +381,8 @@ class MotorLiquidacion:
                     imp = Dinero(max(imp.monto - absorbido.monto, Decimal("0"))).redondear()
                 conceptos.append(Concepto(d.codigo, _desc_ded(d.codigo),
                                           TipoConcepto.DEDUCCION, imp,
+                                          base_calculo=bases_deduccion[selector_base],
+                                          unidad=f"{d.valor * 100}%",
                                           destino_pago=(d.incidencias or {}).get("destino_pago"),
                                           codigo_boleta=(d.incidencias or {}).get("codigo_boleta"),
                                           canal_pago=(d.incidencias or {}).get("canal_pago"),
@@ -408,6 +426,8 @@ class MotorLiquidacion:
             conceptos.append(Concepto(
                 p.codigo, _desc_contrib_convenio(p.codigo), TipoConcepto.CONTRIBUCION,
                 importe.redondear(),
+                base_calculo=(bases[selector] if p.unidad == "%" else importe),
+                unidad=(f"{p.valor * 100}%" if p.unidad == "%" else "suma fija"),
                 destino_pago=incidencias.get("destino_pago"),
                 codigo_boleta=incidencias.get("codigo_boleta"),
                 canal_pago=incidencias.get("canal_pago"),
@@ -428,12 +448,20 @@ class MotorLiquidacion:
         return ResultadoLiquidacion(empleado.cuil.valor, periodo, "mensual", conceptos)
 
     def _deduccion(self, codigo: str, descripcion: str, base: Dinero) -> Concepto:
-        imp = base.porcentaje(self._p.fraccion(codigo)).redondear()
-        return Concepto(codigo, descripcion, TipoConcepto.DEDUCCION, imp)
+        pct = self._p.fraccion(codigo)
+        imp = base.porcentaje(pct).redondear()
+        return Concepto(
+            codigo, descripcion, TipoConcepto.DEDUCCION, imp,
+            base_calculo=base, unidad=f"{pct * 100}%",
+        )
 
     def _contribucion(self, codigo: str, descripcion: str, base: Dinero) -> Concepto:
-        imp = base.porcentaje(self._p.fraccion(codigo)).redondear()
-        return Concepto(codigo, descripcion, TipoConcepto.CONTRIBUCION, imp)
+        pct = self._p.fraccion(codigo)
+        imp = base.porcentaje(pct).redondear()
+        return Concepto(
+            codigo, descripcion, TipoConcepto.CONTRIBUCION, imp,
+            base_calculo=base, unidad=f"{pct * 100}%",
+        )
 
     def _aporte_modernizacion(
         self, empleado: Empleado, periodo: Periodo, base: Dinero
@@ -453,6 +481,8 @@ class MotorLiquidacion:
                 "Aporte modernización (SUSPENDIDO por amparo)",
                 TipoConcepto.DEDUCCION,
                 Dinero.cero().redondear(),
+                base_calculo=base,
+                unidad="0% (amparo)",
                 regimen=Regimen.PREVIA,
                 articulo_amparo=amparo.articulo_suspendido,
             )
@@ -463,6 +493,8 @@ class MotorLiquidacion:
             "Aporte modernización (Ley 27.802 art. 131)",
             TipoConcepto.DEDUCCION,
             imp,
+            base_calculo=base,
+            unidad=f"{self._p.fraccion(_CONCEPTO_MODERNIZACION) * 100}%",
             regimen=Regimen.LEY_27802,
         )
 
