@@ -10,6 +10,7 @@ from sqlalchemy import select
 from api.dependencies.auth import Principal, require_tenant
 from infrastructure.database import models as m
 from infrastructure.database.session import plain_session
+from domain.entities.farmacia_414_05 import CATEGORIAS_FARMACIA, CCT_FARMACIA
 from infrastructure.excel.normativa_importer import (
     generar_plantilla_normativa,
     vista_previa_normativa,
@@ -80,14 +81,13 @@ async def listar(
                 m.EscalaSalarial.categoria,
                 m.EscalaSalarial.is_verified,
                 m.EscalaSalarial.fuente,
-            ).where(
-                m.EscalaSalarial.valid_from <= fecha,
-                (m.EscalaSalarial.valid_to.is_(None))
-                | (m.EscalaSalarial.valid_to >= fecha),
+                m.EscalaSalarial.valid_from,
+                m.EscalaSalarial.valid_to,
             ).distinct()
         )).all()
     cats: dict[str, dict[str, dict]] = {}
-    for numero, categoria, verificada, fuente in filas:
+    vigentes: set[tuple[str, str]] = set()
+    for numero, categoria, verificada, fuente, valid_from, valid_to in filas:
         estado = cats.setdefault(numero, {}).setdefault(
             categoria,
             {"nombre": categoria, "verificada": False, "fuentes": set()},
@@ -95,6 +95,8 @@ async def listar(
         estado["verificada"] = estado["verificada"] or bool(verificada)
         if (fuente or "").strip():
             estado["fuentes"].add(fuente.strip())
+        if valid_from <= fecha and (valid_to is None or valid_to >= fecha):
+            vigentes.add((numero, categoria))
 
     salida = []
     for c in ccts:
@@ -104,6 +106,7 @@ async def listar(
                 "nombre": item["nombre"],
                 "verificada": item["verificada"],
                 "fuentes": sorted(item["fuentes"]),
+                "escala_vigente": (c.numero, item["nombre"]) in vigentes,
             })
         salida.append({
             "numero": c.numero,
@@ -112,8 +115,26 @@ async def listar(
             "periodo": periodo or fecha.strftime("%Y-%m"),
             "categorias": [item["nombre"] for item in detalles],
             "categorias_detalle": detalles,
-            "tiene_escala_vigente": bool(detalles),
+            "tiene_escala_vigente": any(item["escala_vigente"] for item in detalles),
         })
+    # El padrón laboral no depende de que Supabase ya tenga una escala monetaria
+    # del mes. Esto permite encuadrar el legajo y mantiene bloqueada, por separado,
+    # una liquidación sin escala vigente.
+    if not any(item["numero"] == CCT_FARMACIA for item in salida):
+        salida.append({
+            "numero": CCT_FARMACIA,
+            "nombre": "Farmacia",
+            "sindicato": "ADEF",
+            "periodo": periodo or fecha.strftime("%Y-%m"),
+            "categorias": list(CATEGORIAS_FARMACIA),
+            "categorias_detalle": [
+                {"nombre": nombre, "verificada": True, "fuentes": ["CCT 414/05 art. 7"],
+                 "escala_vigente": False}
+                for nombre in CATEGORIAS_FARMACIA
+            ],
+            "tiene_escala_vigente": False,
+        })
+    salida.sort(key=lambda item: item["numero"])
     return salida
 
 

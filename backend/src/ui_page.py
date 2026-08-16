@@ -481,7 +481,6 @@ function llenarConvenios(preseleccion=null){
     const identidad=IDENTIDAD_CONVENIO[c.numero];
     const sindicato=identidad?identidad.sindicato:(c.sindicato||'Sin sindicato informado');
     o.value=c.numero; o.textContent=`CCT ${c.numero} — ${sindicato}`;
-    o.disabled=!c.tiene_escala_vigente;
     if(!c.tiene_escala_vigente) o.textContent+=' — sin escala vigente';
     sel.appendChild(o);
   });

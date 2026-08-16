@@ -91,9 +91,10 @@ def test_ui_renueva_sesion_y_reintenta_sin_pedir_clave():
     assert "else if(localStorage.getItem('sc_refresh'))" in HTML
 
 
-def test_ui_pide_convenios_del_periodo_y_bloquea_los_sin_escala():
+def test_ui_pide_convenios_del_periodo_y_avisa_los_sin_escala_sin_bloquear_legajo():
     assert "'/convenios'+(periodo?'?periodo='" in HTML
-    assert "o.disabled=!c.tiene_escala_vigente" in HTML
+    assert "o.disabled=!c.tiene_escala_vigente" not in HTML
+    assert "sin escala vigente" in HTML
     assert "sin escala vigente" in HTML
 
 
@@ -139,3 +140,4 @@ def test_edicion_empleado_permite_fecha_manual_y_separa_convenio_de_obra_social(
     assert "o.textContent=`CCT ${c.numero} — ${sindicato}`" in HTML
     assert "OSADEF - Obra Social de las Asociaciones de Empleados de Farmacia" in HTML
     assert "Obra social (independiente del sindicato)" in HTML
+    assert "o.disabled=!c.tiene_escala_vigente" not in HTML

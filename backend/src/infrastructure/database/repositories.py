@@ -241,8 +241,11 @@ class ParametrosRepo:
         self.s = session
 
     async def catalogo_encuadramientos(self, fecha: date | None = None) -> dict[str, set[str]]:
-        """CCT activos y categorías vigentes, sin mezclar escalas históricas."""
-        fecha = fecha or date.today()
+        """CCT activos y su padrón histórico de categorías.
+
+        La vigencia monetaria se valida al liquidar. Editar el legajo no debe
+        dejar de ser posible porque todavía falte cargar la escala de un mes.
+        """
         r = await self.s.execute(select(m.Cct.numero).where(m.Cct.activo.is_(True)))
         catalogo = {numero: set() for numero in r.scalars().all()}
         if not catalogo:
@@ -251,14 +254,13 @@ class ParametrosRepo:
             select(m.EscalaSalarial.cct_numero, m.EscalaSalarial.categoria)
             .where(
                 m.EscalaSalarial.cct_numero.in_(catalogo),
-                m.EscalaSalarial.valid_from <= fecha,
-                (m.EscalaSalarial.valid_to.is_(None))
-                | (m.EscalaSalarial.valid_to >= fecha),
             )
             .distinct()
         )
         for cct_numero, categoria in r.all():
             catalogo[cct_numero].add(categoria)
+        from domain.entities.farmacia_414_05 import CATEGORIAS_FARMACIA, CCT_FARMACIA
+        catalogo.setdefault(CCT_FARMACIA, set()).update(CATEGORIAS_FARMACIA)
         return catalogo
 
     async def parametro_set(self, fecha: date) -> ParametroSet:
