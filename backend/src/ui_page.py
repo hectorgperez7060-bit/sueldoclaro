@@ -1001,7 +1001,7 @@ async function liquidar(){
           <span>Bruto: <b>$ ${fmt(det.bruto)}</b> &nbsp;·&nbsp; Descuentos: <b>$ ${fmt(det.total_deducciones)}</b></span>
           <span class="neto">Neto a cobrar: $ ${fmt(det.neto)}</span>
         </div>
-        <div style="margin-top:10px"><button class="chico secundario" onclick="verRecibo('${det.empleado_id}')">📄 Ver recibo oficial (Anexo III) — descargar PDF</button></div>
+        <div style="margin-top:10px"><button class="chico secundario" onclick="descargarReciboPdf('${det.empleado_id}')">📄 Descargar recibo PDF — una hoja A4</button></div>
         </div>`;
     });
     $('resultados').innerHTML = html + resumenF931(d) + resumenSindical(d);
@@ -1107,6 +1107,35 @@ function verRecibo(empId){
   const w = window.open('', '_blank');
   if(!w){ alert('Permití las ventanas emergentes para ver el recibo.'); return; }
   w.document.write(html); w.document.close();
+}
+
+async function descargarReciboPdf(empId, reintento=true){
+  if(!ultimaLiq) return;
+  const det=ultimaLiq.detalles.find(x=>x.empleado_id===empId);
+  const emp=empleadosCache[empId]||{};
+  if(!det) return;
+  const body={
+    periodo:ultimaLiq.periodo,
+    empresa:empresaCache,
+    empleado:emp,
+    conceptos:det.conceptos.map(c=>({descripcion:c.descripcion,tipo:c.tipo,importe:c.importe})),
+    bruto:det.bruto,total_deducciones:det.total_deducciones,neto:det.neto
+  };
+  const r=await fetch('/recibos/pdf',{
+    method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token()},
+    body:JSON.stringify(body)
+  });
+  if(r.status===401 && reintento && await renovarSesion()) return descargarReciboPdf(empId,false);
+  if(!r.ok){
+    const e=await r.json().catch(()=>({detail:'No se pudo generar el PDF'}));
+    alert(e.detail||'No se pudo generar el PDF'); return;
+  }
+  const blob=await r.blob();
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url; a.download=`recibo-${ultimaLiq.periodo}-${(emp.apellido||'empleado').replace(/\\s+/g,'-')}.pdf`;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),60000);
 }
 
 if(token()) entrar();
