@@ -122,3 +122,10 @@ def test_migracion_informa_todos_los_campos_obligatorios_del_cct():
     assert "cuota_sindical_pct" in bloque_cct
     assert "presentismo_divisor" in bloque_cct
     assert "divisor_horas" in bloque_cct
+
+
+def test_migracion_no_depende_de_tablas_temporales_del_editor_sql():
+    sql = Path("backend/migrations/005_sanidad_122_75_junio_agosto_2026.sql").read_text()
+    assert "CREATE TEMP TABLE" not in sql
+    assert "tmp_escala_sanidad" not in sql
+    assert "tmp_param_sanidad" not in sql

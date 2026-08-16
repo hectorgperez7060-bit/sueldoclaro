@@ -25,14 +25,13 @@ ON CONFLICT (numero) DO UPDATE SET
   aplica_cuota_sindical = EXCLUDED.aplica_cuota_sindical,
   activo = true;
 
-CREATE TEMP TABLE tmp_escala_sanidad (
-  categoria text NOT NULL,
-  junio numeric(18,2) NOT NULL,
-  julio numeric(18,2) NOT NULL,
-  agosto numeric(18,2) NOT NULL
-) ON COMMIT DROP;
-
-INSERT INTO tmp_escala_sanidad VALUES
+DO $$
+DECLARE
+  r record;
+BEGIN
+FOR r IN
+SELECT s.categoria, p.periodo, p.hasta, p.basico
+FROM (VALUES
 ('Profesionales Bioquímicos, Nutricionistas, Farmacéuticos y Kinesiólogos',1422958.53,1451417.70,1492490.50),
 ('Obstétricas e instrumentadoras',1294067.57,1319948.92,1357301.37),
 ('Cabos/as de cirugía',1294067.57,1319948.92,1357301.37),
@@ -66,43 +65,38 @@ INSERT INTO tmp_escala_sanidad VALUES
 ('Administrativo de Segunda',1105958.12,1128077.28,1160000.06),
 ('Administrativo de Tercera',1072875.98,1094333.50,1125301.39),
 ('Cadete',956604.46,975736.55,1003348.33),
-('Geriátricos - Auxiliar de Enfermería',1090832.28,1112648.93,1144135.11);
-
-CREATE TEMP TABLE tmp_periodos_sanidad AS
-SELECT categoria, periodo, hasta, basico
-FROM tmp_escala_sanidad
+('Geriátricos - Auxiliar de Enfermería',1090832.28,1112648.93,1144135.11)
+) AS s(categoria, junio, julio, agosto)
 CROSS JOIN LATERAL (VALUES
-  (DATE '2026-06-01', DATE '2026-06-30', junio),
-  (DATE '2026-07-01', DATE '2026-07-31', julio),
-  (DATE '2026-08-01', DATE '2026-08-31', agosto)
-) p(periodo, hasta, basico);
-
-UPDATE public.escala_salarial e
-SET basico = p.basico, valid_to = p.hasta,
+  (DATE '2026-06-01', DATE '2026-06-30', s.junio),
+  (DATE '2026-07-01', DATE '2026-07-31', s.julio),
+  (DATE '2026-08-01', DATE '2026-08-31', s.agosto)
+) p(periodo, hasta, basico)
+LOOP
+  UPDATE public.escala_salarial e
+  SET basico = r.basico, valid_to = r.hasta,
     fuente = 'Acuerdo FATSA CCT 122/75 del 19/06/2026 — EX-2026-25687052',
     is_verified = true
-FROM tmp_periodos_sanidad p
-WHERE e.cct_numero = '122/75' AND e.categoria = p.categoria
-  AND e.valid_from = p.periodo;
+  WHERE e.cct_numero = '122/75' AND e.categoria = r.categoria
+    AND e.valid_from = r.periodo;
 
-INSERT INTO public.escala_salarial (
-  id, cct_numero, categoria, basico, valid_from, valid_to, fuente, is_verified, version
-)
-SELECT gen_random_uuid(), '122/75', p.categoria, p.basico, p.periodo, p.hasta,
-       'Acuerdo FATSA CCT 122/75 del 19/06/2026 — EX-2026-25687052', true, 1
-FROM tmp_periodos_sanidad p
-WHERE NOT EXISTS (
-  SELECT 1 FROM public.escala_salarial e
-  WHERE e.cct_numero = '122/75' AND e.categoria = p.categoria
-    AND e.valid_from = p.periodo
-);
+  IF NOT FOUND THEN
+    INSERT INTO public.escala_salarial (
+      id, cct_numero, categoria, basico, valid_from, valid_to,
+      fuente, is_verified, version
+    ) VALUES (
+      gen_random_uuid(), '122/75', r.categoria, r.basico, r.periodo, r.hasta,
+      'Acuerdo FATSA CCT 122/75 del 19/06/2026 — EX-2026-25687052', true, 1
+    );
+  END IF;
+END LOOP;
+END $$;
 
-CREATE TEMP TABLE tmp_param_sanidad (
-  codigo text, valor numeric(18,8), unidad text, ambito text,
-  desde date, hasta date, incidencias jsonb
-) ON COMMIT DROP;
-
-INSERT INTO tmp_param_sanidad VALUES
+DO $$
+DECLARE
+  t record;
+BEGIN
+FOR t IN SELECT * FROM (VALUES
 ('SANIDAD_SUMA_NR_JUN_JUL',90000,'ARS','no_rem',DATE '2026-06-01',DATE '2026-07-31',
  '{"integra_antiguedad":false,"integra_presentismo":false,"aporte_jubilacion":false,"aporte_obra_social":false,"aporte_sindicato":true}'::jsonb),
 ('SANIDAD_SUMA_NR_AGO',80000,'ARS','no_rem',DATE '2026-08-01',DATE '2026-08-31',
@@ -114,25 +108,25 @@ INSERT INTO tmp_param_sanidad VALUES
 ('CONTRIB_EXTRAORDINARIA_FATSA_122/75',15000,'ARS','contrib_emp',DATE '2026-02-01',DATE '2027-01-31',
  '{"meses_excluidos":[6,12],"destino_pago":"FATSA/OSPSA","codigo_boleta":"FATSA_122_CONTRIB_EXTRA","canal_pago":"Sistema de Aportes FATSA","url_pago":"https://www.sanidad.org.ar/aportesconvenios/","regla_vencimiento":"Día 15 de cada mes o hábil siguiente; no corresponde en junio ni diciembre de 2026","fuente_pago":"Acuerdo CCT 122/75 cláusula 10"}'::jsonb),
 ('CONTRIB_CAPACITACION_FATSA_122/75',0.01,'%','contrib_emp',DATE '2026-02-01',DATE '2027-01-31',
- '{"base_contribucion":"remunerativa","destino_pago":"FATSA","codigo_boleta":"FATSA_122_CAPACITACION","canal_pago":"Sistema de Aportes FATSA","url_pago":"https://www.sanidad.org.ar/aportesconvenios/","regla_vencimiento":"Mismo vencimiento mensual que los aportes de la Seguridad Social","fuente_pago":"CCT 122/75 — Fondo de Formación y Capacitación"}'::jsonb);
-
-UPDATE public.parametro_legal p
-SET valor = t.valor, unidad = t.unidad, ambito = t.ambito,
+ '{"base_contribucion":"remunerativa","destino_pago":"FATSA","codigo_boleta":"FATSA_122_CAPACITACION","canal_pago":"Sistema de Aportes FATSA","url_pago":"https://www.sanidad.org.ar/aportesconvenios/","regla_vencimiento":"Mismo vencimiento mensual que los aportes de la Seguridad Social","fuente_pago":"CCT 122/75 — Fondo de Formación y Capacitación"}'::jsonb)
+) AS datos(codigo, valor, unidad, ambito, desde, hasta, incidencias)
+LOOP
+  UPDATE public.parametro_legal p
+  SET valor = t.valor, unidad = t.unidad, ambito = t.ambito,
     valid_to = t.hasta, fuente = 'CCT 122/75 — FATSA, fuente oficial',
     is_verified = true, cct_numero = '122/75', incidencias = t.incidencias
-FROM tmp_param_sanidad t
-WHERE p.codigo = t.codigo AND p.valid_from = t.desde;
+  WHERE p.codigo = t.codigo AND p.valid_from = t.desde;
 
-INSERT INTO public.parametro_legal (
-  id, codigo, valor, unidad, ambito, valid_from, valid_to,
-  fuente, is_verified, version, cct_numero, incidencias
-)
-SELECT gen_random_uuid(), t.codigo, t.valor, t.unidad, t.ambito, t.desde, t.hasta,
-       'CCT 122/75 — FATSA, fuente oficial', true, 1, '122/75', t.incidencias
-FROM tmp_param_sanidad t
-WHERE NOT EXISTS (
-  SELECT 1 FROM public.parametro_legal p
-  WHERE p.codigo = t.codigo AND p.valid_from = t.desde
-);
+  IF NOT FOUND THEN
+    INSERT INTO public.parametro_legal (
+      id, codigo, valor, unidad, ambito, valid_from, valid_to,
+      fuente, is_verified, version, cct_numero, incidencias
+    ) VALUES (
+      gen_random_uuid(), t.codigo, t.valor, t.unidad, t.ambito, t.desde, t.hasta,
+      'CCT 122/75 — FATSA, fuente oficial', true, 1, '122/75', t.incidencias
+    );
+  END IF;
+END LOOP;
+END $$;
 
 COMMIT;
