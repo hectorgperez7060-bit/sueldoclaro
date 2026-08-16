@@ -207,7 +207,7 @@ HTML = r"""<!DOCTYPE html>
       <div id="formNovedad" style="display:none;border:1px dashed var(--borde);border-radius:10px;padding:14px;margin-top:12px">
         <h3 id="tituloNovedad" style="font-size:.9rem;color:var(--verde);margin:4px 0 6px">Nueva novedad</h3>
         <div class="fila">
-          <div style="grid-column:1/-1"><label>Empleado</label><select id="novEmpleado" onchange="actualizarAdicionalesFarmacia()"></select></div>
+          <div style="grid-column:1/-1"><label>Empleado</label><select id="novEmpleado" onchange="actualizarAdicionalesConvenio()"></select></div>
           <div><label>Días trabajados</label><input id="novDias" type="number" min="0" value="0"></div>
           <div><label>Faltas justificadas</label><input id="novFaltasJ" type="number" min="0" value="0"></div>
           <div><label>Faltas injustificadas</label><input id="novFaltasI" type="number" min="0" value="0"></div>
@@ -246,6 +246,32 @@ HTML = r"""<!DOCTYPE html>
                 <div><label>Horas totales trabajadas del mes</label><input id="novHorasTotales" type="number" min="0" step="0.01" value="0"></div>
               </div>
               <p style="font-size:.78rem;color:#6b7280;margin:6px 0 0">No marcar para turno obligatorio, sereno ni vigilancia: el art. 17 los excluye del recargo del 100%.</p>
+            </div>
+          </div>
+          <div id="novSanidad" style="display:none;grid-column:1/-1;border:1px solid var(--borde);border-radius:8px;padding:12px">
+            <b>Adicionales Sanidad — CCT 122/75</b>
+            <p style="font-size:.82rem;color:#6b7280;margin:5px 0 10px">Marcá solamente condiciones efectivamente trabajadas. Los regímenes de sector son alternativos entre sí.</p>
+            <label>Régimen especial de sector</label>
+            <select id="novSectorSanidad">
+              <option value="">Ninguno</option>
+              <option value="TERAPIA_8H">Enfermería en terapia, clímax, coronaria, nursery o riñón artificial (8 h)</option>
+              <option value="MUCAMA_SECTOR_ESPECIAL">Mucama en sector especial</option>
+              <option value="MENTAL_ENFERMERIA">Salud mental con tareas de enfermería</option>
+              <option value="MENTAL_TERAPIA">Salud mental: terapia, vigilancia o aislamiento</option>
+              <option value="MENTAL_OTRAS_TAREAS">Otras tareas en área de salud mental</option>
+            </select>
+            <div class="fila" style="margin-top:8px">
+              <label><input id="novElectricistaSanidad" type="checkbox"> Electricista con título habilitante</label>
+              <label><input id="novOperadorSanidad" type="checkbox"> Operador de máquinas contables</label>
+              <label><input id="novLaboratorioSanidad" type="checkbox"> Laboratorio en área cerrada</label>
+              <label><input id="novRayosSanidad" type="checkbox"> Jornada de 48 h en rayos o laboratorio</label>
+            </div>
+            <div style="margin-top:10px;border-top:1px solid var(--borde);padding-top:10px">
+              <label><input id="novNocturnidadSanidad" type="checkbox" onchange="actualizarNocturnidadSanidad()"> Trabajo entre las 22:00 y las 06:00</label>
+              <div id="novNocturnidadSanidadDatos" class="fila" style="display:none;margin-top:8px">
+                <div><label>Horas nocturnas del mes</label><input id="novHorasNocturnasSanidad" type="number" min="0" step="0.01" value="0"></div>
+                <div><label>Horas totales trabajadas del mes</label><input id="novHorasTotalesSanidad" type="number" min="0" step="0.01" value="0"></div>
+              </div>
             </div>
           </div>
           <div style="grid-column:1/-1"><label>Observaciones</label><textarea id="novObservaciones" rows="3" placeholder="Detalle opcional"></textarea></div>
@@ -441,6 +467,18 @@ function actualizarAdicionalesFarmacia(){
   const emp=empleadosCache[$('novEmpleado').value];
   $('novFarmacia').style.display=emp && emp.cct_numero==='414/05'?'block':'none';
 }
+const checksSanidad=['novElectricistaSanidad','novOperadorSanidad','novLaboratorioSanidad','novRayosSanidad'];
+function actualizarAdicionalesSanidad(){
+  const emp=empleadosCache[$('novEmpleado').value];
+  $('novSanidad').style.display=emp && emp.cct_numero==='122/75'?'block':'none';
+}
+function actualizarAdicionalesConvenio(){
+  actualizarAdicionalesFarmacia();
+  actualizarAdicionalesSanidad();
+}
+function actualizarNocturnidadSanidad(){
+  $('novNocturnidadSanidadDatos').style.display=$('novNocturnidadSanidad').checked?'grid':'none';
+}
 function actualizarNocturnoFarmacia(){
   $('novNocturnoDatos').style.display=$('novNocturnoVoluntario').checked?'grid':'none';
 }
@@ -456,6 +494,15 @@ function limpiarAdicionalesFarmacia(){
   actualizarFallaCaja();
   actualizarNocturnoFarmacia();
   actualizarAdicionalesFarmacia();
+}
+function limpiarAdicionalesSanidad(){
+  $('novSectorSanidad').value='';
+  checksSanidad.forEach(id=>$(id).checked=false);
+  $('novNocturnidadSanidad').checked=false;
+  $('novHorasNocturnasSanidad').value='0';
+  $('novHorasTotalesSanidad').value='0';
+  actualizarNocturnidadSanidad();
+  actualizarAdicionalesSanidad();
 }
 function datosAdicionalesFarmacia(){
   const emp=empleadosCache[$('novEmpleado').value];
@@ -477,6 +524,27 @@ function datosAdicionalesFarmacia(){
   }
   return {adicionales_convencionales:codigos,cantidades_adicionales:cantidades};
 }
+function datosAdicionalesSanidad(){
+  const emp=empleadosCache[$('novEmpleado').value];
+  if(!emp || emp.cct_numero!=='122/75') return {adicionales_convencionales:[],cantidades_adicionales:{}};
+  const codigos=[]; const cantidades={};
+  const sector=$('novSectorSanidad').value;
+  if(sector) codigos.push(sector);
+  const opciones={novElectricistaSanidad:'ELECTRICISTA_TITULO',novOperadorSanidad:'OPERADOR_MAQUINAS_CONTABLES',novLaboratorioSanidad:'LAB_AREA_CERRADA',novRayosSanidad:'RAYOS_LAB_48H'};
+  Object.entries(opciones).forEach(([id,codigo])=>{if($(id).checked) codigos.push(codigo);});
+  if($('novNocturnidadSanidad').checked){
+    codigos.push('NOCTURNIDAD');
+    cantidades.NOCTURNIDAD=numeroNov('novHorasNocturnasSanidad');
+    cantidades.HORAS_TOTALES_PERIODO=numeroNov('novHorasTotalesSanidad');
+  }
+  return {adicionales_convencionales:codigos,cantidades_adicionales:cantidades};
+}
+function datosAdicionalesConvenio(){
+  const emp=empleadosCache[$('novEmpleado').value];
+  if(emp && emp.cct_numero==='414/05') return datosAdicionalesFarmacia();
+  if(emp && emp.cct_numero==='122/75') return datosAdicionalesSanidad();
+  return {adicionales_convencionales:[],cantidades_adicionales:{}};
+}
 function limpiarNovedad(){
   editandoNovedadId=null;
   $('novEmpleado').value=''; $('novEmpleado').disabled=false;
@@ -484,6 +552,7 @@ function limpiarNovedad(){
   $('novObservaciones').value='';
   $('novTipoPremio').value='pendiente';
   limpiarAdicionalesFarmacia();
+  limpiarAdicionalesSanidad();
   $('tituloNovedad').textContent='Nueva novedad';
   $('btnGuardarNovedad').textContent='Guardar novedad';
   ocultar('novFormError');
@@ -574,7 +643,7 @@ function cuerpoNovedad(incluirEmpleado=true){
     descuentos_adicionales:numeroNov('novDescuentos'),
     observaciones:$('novObservaciones').value.trim()
   };
-  Object.assign(cuerpo,datosAdicionalesFarmacia());
+  Object.assign(cuerpo,datosAdicionalesConvenio());
   if(incluirEmpleado) cuerpo.empleado_id=$('novEmpleado').value;
   return cuerpo;
 }
@@ -604,6 +673,7 @@ function editarNovedad(id){
   $('novTipoPremio').value=n.tipo_premio||'pendiente';
   $('novDescuentos').value=n.descuentos_adicionales; $('novObservaciones').value=n.observaciones||'';
   limpiarAdicionalesFarmacia();
+  limpiarAdicionalesSanidad();
   const adicionales=new Set(n.adicionales_convencionales||[]);
   if(adicionales.has('DIRECCION_TECNICA')) $('novRolFarmacia').value='director';
   else if(adicionales.has('AUXILIAR_CON_BLOQUEO')) $('novRolFarmacia').value='auxiliar_con';
@@ -615,9 +685,18 @@ function editarNovedad(id){
   $('novHorasNocturnas').value=(n.cantidades_adicionales||{}).NOCTURNO_VOLUNTARIO||0;
   $('novHorasTotales').value=(n.cantidades_adicionales||{}).HORAS_TOTALES_PERIODO||0;
   $('novFaltanteCaja').value=(n.cantidades_adicionales||{}).FALLA_CAJA||0;
+  const sectoresSanidad=['TERAPIA_8H','MUCAMA_SECTOR_ESPECIAL','MENTAL_ENFERMERIA','MENTAL_TERAPIA','MENTAL_OTRAS_TAREAS'];
+  $('novSectorSanidad').value=sectoresSanidad.find(codigo=>adicionales.has(codigo))||'';
+  const opcionesSanidad={novElectricistaSanidad:'ELECTRICISTA_TITULO',novOperadorSanidad:'OPERADOR_MAQUINAS_CONTABLES',novLaboratorioSanidad:'LAB_AREA_CERRADA',novRayosSanidad:'RAYOS_LAB_48H'};
+  Object.entries(opcionesSanidad).forEach(([id,codigo])=>$(id).checked=adicionales.has(codigo));
+  $('novNocturnidadSanidad').checked=adicionales.has('NOCTURNIDAD');
+  $('novHorasNocturnasSanidad').value=(n.cantidades_adicionales||{}).NOCTURNIDAD||0;
+  $('novHorasTotalesSanidad').value=(n.cantidades_adicionales||{}).HORAS_TOTALES_PERIODO||0;
   actualizarFallaCaja();
   actualizarNocturnoFarmacia();
   actualizarAdicionalesFarmacia();
+  actualizarNocturnidadSanidad();
+  actualizarAdicionalesSanidad();
   $('tituloNovedad').textContent='Editar novedad'; $('btnGuardarNovedad').textContent='Guardar cambios';
   $('formNovedad').style.display='block'; ocultar('novFormError');
 }

@@ -93,3 +93,18 @@ def test_ui_muestra_adicionales_farmacia_solo_para_cct_414_05():
     assert "turno obligatorio, sereno ni vigilancia" in HTML
     assert 'id="novFaltanteCaja"' in HTML
     assert "Faltantes absorbidos por el fondo" in HTML
+
+
+def test_ui_muestra_y_persiste_adicionales_sanidad_solo_para_cct_122_75():
+    assert 'id="novSanidad"' in HTML
+    assert "emp.cct_numero==='122/75'" in HTML
+    assert 'id="novSectorSanidad"' in HTML
+    assert "TERAPIA_8H" in HTML
+    assert "MUCAMA_SECTOR_ESPECIAL" in HTML
+    assert "MENTAL_ENFERMERIA" in HTML
+    assert "ELECTRICISTA_TITULO" in HTML
+    assert "LAB_AREA_CERRADA" in HTML
+    assert "RAYOS_LAB_48H" in HTML
+    assert "NOCTURNIDAD" in HTML
+    assert 'id="novHorasNocturnasSanidad"' in HTML
+    assert "datosAdicionalesConvenio()" in HTML
