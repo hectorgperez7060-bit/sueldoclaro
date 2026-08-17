@@ -68,15 +68,20 @@ def test_comercio_incidencias_por_concepto():
     r = MotorLiquidacion(_params(extra), AmparoSet()).liquidar_mensual(
         _emp("130/75"), Periodo(2026,7), _esc("130/75","1137023"), _cct("130/75"), a_fecha=date(2026,7,28))
     basico = D("1137023")
-    antig = Dinero(basico + 120000).porcentaje(D("0.05")).redondear().monto
-    assert _f(r, "ANTIGUEDAD").importe.monto == antig                    # base incluye NR
-    pres = Dinero(basico + 120000 + antig).dividir(D("12")).redondear().monto
+    antig = Dinero(basico).porcentaje(D("0.05")).redondear().monto
+    antig_nr = Dinero(120000).porcentaje(D("0.05")).redondear().monto
+    assert _f(r, "ANTIGUEDAD").importe.monto == antig
+    assert _f(r, "ANTIGUEDAD_NR").importe.monto == antig_nr
+    pres = Dinero(basico + antig).dividir(D("12")).redondear().monto
+    pres_nr = Dinero(D("120000") + antig_nr).dividir(D("12")).redondear().monto
     assert _f(r, "PRESENTISMO").importe.monto == pres
+    assert _f(r, "PRESENTISMO_NR").importe.monto == pres_nr
     base_rem = basico + antig + pres
     assert _f(r, "APORTE_JUBILACION").importe.monto == _pct(base_rem, "0.11")           # NR NO tributa jubilación
-    assert _f(r, "APORTE_OBRA_SOCIAL").importe.monto == _pct(base_rem + 120000, "0.03") # NR sí OS
-    assert _f(r, "CUOTA_SINDICAL").importe.monto == _pct(base_rem + 120000, "0.02")     # NR sí sindical
-    assert r.total_no_remunerativo.monto == D("145000.00")              # 100k+20k+25k bono
+    base_nr = D("120000") + antig_nr + pres_nr
+    assert _f(r, "APORTE_OBRA_SOCIAL").importe.monto == _pct(base_rem + base_nr, "0.03")
+    assert _f(r, "CUOTA_SINDICAL").importe.monto == _pct(base_rem + base_nr, "0.02")
+    assert r.total_no_remunerativo.monto == D("161500.00")
     # el bono no integró antigüedad/presentismo (si lo hubiera hecho, antig sería mayor)
     assert _f(r, "COMERCIO_BONO_130/75") is not None
 

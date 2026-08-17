@@ -121,6 +121,8 @@ CATALOGO: Dict[str, ConceptoARCA] = {
     "VACACIONES":     ConceptoARCA("150000", _R, "Vacaciones (Licencia ordinaria)", incidencias=_INC_REM, bases_potenciales=[1, 2, 3, 4, 5, 8, 9, 10], requiere_cantidad_dias=True, verificado=True, fuente=_FUENTE_G18, clase_tope=ClaseTopeARCA.VACACIONES),
 
     # -------- NO REMUNERATIVOS --------
+    "ANTIGUEDAD_NR": ConceptoARCA("550000", _NR, "Antigüedad sobre suma no remunerativa", incidencias=IncidenciasSubsistemasARCA(integra_sipa=False, integra_inssjyp=False, integra_aaff_fne=False, integra_obra_social=True, integra_lrt=True), bases_potenciales=[4, 5, 8, 9], verificado=True, fuente=_FUENTE_G18, clase_tope=ClaseTopeARCA.SIN_TOPE),
+    "PRESENTISMO_NR": ConceptoARCA("550000", _NR, "Presentismo sobre suma no remunerativa", incidencias=IncidenciasSubsistemasARCA(integra_sipa=False, integra_inssjyp=False, integra_aaff_fne=False, integra_obra_social=True, integra_lrt=True), bases_potenciales=[4, 5, 8, 9], verificado=True, fuente=_FUENTE_G18, clase_tope=ClaseTopeARCA.SIN_TOPE),
     "SANIDAD_SUMA_NR_JUN_JUL": ConceptoARCA("540000", _NR, "Suma no remunerativa FATSA", incidencias=IncidenciasSubsistemasARCA(integra_sipa=False, integra_inssjyp=False, integra_aaff_fne=False, integra_obra_social=True, integra_lrt=True), bases_potenciales=[4, 5, 8, 9], verificado=True, fuente=_FUENTE_G18, clase_tope=ClaseTopeARCA.SIN_TOPE),
     "SANIDAD_SUMA_NR_AGO":     ConceptoARCA("540000", _NR, "Suma no remunerativa FATSA", incidencias=IncidenciasSubsistemasARCA(integra_sipa=False, integra_inssjyp=False, integra_aaff_fne=False, integra_obra_social=True, integra_lrt=True), bases_potenciales=[4, 5, 8, 9], verificado=True, fuente=_FUENTE_G18, clase_tope=ClaseTopeARCA.SIN_TOPE),
     "SANIDAD_DIA_SANIDAD_122/75": ConceptoARCA("540000", _NR, "Día de la Sanidad (pago único)", incidencias=IncidenciasSubsistemasARCA(integra_sipa=False, integra_inssjyp=False, integra_aaff_fne=False, integra_obra_social=True, integra_lrt=True), bases_potenciales=[4, 5, 8, 9], verificado=True, fuente=_FUENTE_G18, clase_tope=ClaseTopeARCA.SIN_TOPE),
@@ -148,4 +150,3 @@ def es_generable(codigos_liquidados: List[str]) -> bool:
     return all(
         (c in CATALOGO and CATALOGO[c].verificado) for c in codigos_liquidados
     )
-

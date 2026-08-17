@@ -174,14 +174,25 @@ class MotorLiquidacion:
                     total = total + imp
             return total
 
-        # Antigüedad: base = básico + NR que integran antigüedad
-        base_antig = (basico + _nr("integra_antiguedad")).redondear()
-        antiguedad = base_antig.porcentaje(cct.antiguedad_fraccion(anios)).redondear()
+        # Antigüedad: se discrimina la porción remunerativa de la no
+        # remunerativa. Mezclarlas altera las bases previsionales y hace que el
+        # recibo parezca correcto por total, aunque esté mal clasificado.
+        fraccion_antiguedad = cct.antiguedad_fraccion(anios)
+        antiguedad = basico.porcentaje(fraccion_antiguedad).redondear()
         conceptos.append(
             Concepto("ANTIGUEDAD", f"Antigüedad ({anios} años)", TipoConcepto.REMUNERATIVO,
-                     antiguedad, cantidad=Decimal(anios), base_calculo=base_antig,
+                     antiguedad, cantidad=Decimal(anios), base_calculo=basico,
                      unidad=f"{cct.antiguedad_fraccion(1) * 100}% por año")
         )
+        base_antiguedad_nr = _nr("integra_antiguedad").redondear()
+        antiguedad_nr = base_antiguedad_nr.porcentaje(fraccion_antiguedad).redondear()
+        if antiguedad_nr.monto > 0:
+            conceptos.append(Concepto(
+                "ANTIGUEDAD_NR", f"Antigüedad no remunerativa ({anios} años)",
+                TipoConcepto.NO_REMUNERATIVO, antiguedad_nr,
+                cantidad=Decimal(anios), base_calculo=base_antiguedad_nr,
+                unidad=f"{cct.antiguedad_fraccion(1) * 100}% por año",
+            ))
 
         # Adicionales convencionales genéricos. El motor sólo interpreta bases
         # declarativas; no contiene nombres de gremios ni artículos propios.
@@ -273,9 +284,9 @@ class MotorLiquidacion:
                         else regla.modo_calculo),
             ))
 
-        # Presentismo: base = básico + NR que integran presentismo + antigüedad
+        # Presentismo: también se discrimina por naturaleza del concepto.
         if cct.aplica_presentismo:
-            base_pres = (basico + _nr("integra_presentismo") + antiguedad).redondear()
+            base_pres = (basico + antiguedad).redondear()
             presentismo = base_pres.dividir(cct.presentismo_divisor).redondear()
             conceptos.append(
                 Concepto(
@@ -284,6 +295,31 @@ class MotorLiquidacion:
                     unidad=f"1/{cct.presentismo_divisor}",
                 )
             )
+            base_presentismo_nr = (
+                _nr("integra_presentismo") + antiguedad_nr
+            ).redondear()
+            presentismo_nr = base_presentismo_nr.dividir(
+                cct.presentismo_divisor
+            ).redondear()
+            if presentismo_nr.monto > 0:
+                conceptos.append(Concepto(
+                    "PRESENTISMO_NR", "Presentismo no remunerativo",
+                    TipoConcepto.NO_REMUNERATIVO, presentismo_nr,
+                    base_calculo=base_presentismo_nr,
+                    unidad=f"1/{cct.presentismo_divisor}",
+                ))
+
+        # Los derivados no remunerativos conservan las incidencias de aportes
+        # de las sumas que les dieron origen, pero no vuelven a generar
+        # antigüedad/presentismo sobre sí mismos.
+        incidencias_derivadas = {
+            flag: any(inc.get(flag) for _, inc in nr)
+            for flag in ("aporte_jubilacion", "aporte_obra_social", "aporte_sindicato")
+        }
+        if antiguedad_nr.monto > 0:
+            nr.append((antiguedad_nr, incidencias_derivadas))
+        if cct.aplica_presentismo and presentismo_nr.monto > 0:
+            nr.append((presentismo_nr, incidencias_derivadas))
 
         # Feriado nacional trabajado (LCT arts. 166 y 169): el sueldo mensual
         # ya contiene el día normal y se agrega un día calculado con divisor 25.
@@ -351,6 +387,12 @@ class MotorLiquidacion:
         # Bases de aportes (data-driven): remunerativos + NR que disparan cada aporte
         base_jubilacion = (base + _nr("aporte_jubilacion")).redondear()
         base_obra_social = (base + _nr("aporte_obra_social")).redondear()
+        # LCT art. 92 ter: en jornada parcial, aportes y contribuciones de obra
+        # social se determinan sobre la remuneración de jornada completa.
+        if empleado.proporcion_jornada < Decimal("1"):
+            base_obra_social = base_obra_social.dividir(
+                empleado.proporcion_jornada
+            ).redondear()
         base_sindical = (base + _nr("aporte_sindicato")).redondear()
 
         # Tope SIPA sobre la seguridad social
@@ -423,12 +465,12 @@ class MotorLiquidacion:
         conceptos.append(self._aporte_modernizacion(empleado, periodo, base))
 
         # ----- Contribuciones patronales (desglose Anexo III) -----
-        conceptos.append(self._contribucion("CONTRIB_JUBILACION", "Contrib. jubilación (18%)", base))
-        conceptos.append(self._contribucion("CONTRIB_OBRA_SOCIAL", "Contrib. obra social (6%)", base))
-        if self._p.existe("CONTRIB_INSSJP"):
-            conceptos.append(self._contribucion("CONTRIB_INSSJP", "Contrib. INSSJP", base))
-        if self._p.existe("CONTRIB_ASIG_FAM"):
-            conceptos.append(self._contribucion("CONTRIB_ASIG_FAM", "Asignaciones familiares", base))
+        conceptos.append(self._contribucion(
+            "CONTRIB_JUBILACION", "Contribuciones patronales seguridad social (18%)", base
+        ))
+        conceptos.append(self._contribucion(
+            "CONTRIB_OBRA_SOCIAL", "Contribución patronal obra social (6%)", base_obra_social
+        ))
 
         # Obligaciones patronales propias del convenio. No afectan el neto y
         # conservan sus datos de boleta para la carpeta mensual.
