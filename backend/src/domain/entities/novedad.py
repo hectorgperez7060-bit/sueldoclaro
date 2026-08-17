@@ -17,6 +17,7 @@ class DatosNovedadMensual:
     horas_extra_50: Decimal = Decimal("0")
     horas_extra_100: Decimal = Decimal("0")
     feriados_trabajados: int = 0
+    feriados_no_trabajados: int = 0
     licencias: int = 0
     vacaciones: int = 0
     premios: Decimal = Decimal("0")
@@ -62,6 +63,16 @@ class DatosNovedadMensual:
             raise ValueError(
                 f"Feriados trabajados debe estar entre 0 y {max_dias} para {self.periodo}"
             )
+        if isinstance(self.feriados_no_trabajados, bool) or not isinstance(
+            self.feriados_no_trabajados, int
+        ):
+            raise ValueError("Feriados no trabajados debe ser un número entero")
+        if not 0 <= self.feriados_no_trabajados <= max_dias:
+            raise ValueError(
+                f"Feriados no trabajados debe estar entre 0 y {max_dias} para {self.periodo}"
+            )
+        if self.feriados_trabajados + self.feriados_no_trabajados > max_dias:
+            raise ValueError("La cantidad total de feriados informados supera los días del mes")
 
         for nombre, valor in {
             "horas extra al 50%": self.horas_extra_50,
@@ -104,6 +115,7 @@ class DatosNovedadMensual:
             "horas_extra_50": Decimal(str(self.horas_extra_50)),
             "horas_extra_100": Decimal(str(self.horas_extra_100)),
             "feriados_trabajados": self.feriados_trabajados,
+            "feriados_no_trabajados": self.feriados_no_trabajados,
             "licencias": self.licencias,
             "vacaciones": self.vacaciones,
             "premios": Decimal(str(self.premios)),

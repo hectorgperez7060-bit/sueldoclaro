@@ -117,6 +117,7 @@ class NovedadMensualIn(BaseModel):
     horas_extra_50: Decimal = Decimal("0")
     horas_extra_100: Decimal = Decimal("0")
     feriados_trabajados: int = 0
+    feriados_no_trabajados: int = 0
     licencias: int = 0
     vacaciones: int = 0
     premios: Decimal = Decimal("0")
@@ -159,6 +160,7 @@ class NovedadMensualUpdate(BaseModel):
     horas_extra_50: Decimal = Decimal("0")
     horas_extra_100: Decimal = Decimal("0")
     feriados_trabajados: int = 0
+    feriados_no_trabajados: int = 0
     licencias: int = 0
     vacaciones: int = 0
     premios: Decimal = Decimal("0")
@@ -197,6 +199,7 @@ class NovedadMensualOut(BaseModel):
     horas_extra_50: Decimal
     horas_extra_100: Decimal
     feriados_trabajados: int
+    feriados_no_trabajados: int
     licencias: int
     vacaciones: int
     premios: Decimal

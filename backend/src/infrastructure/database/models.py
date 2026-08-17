@@ -220,7 +220,7 @@ class NovedadMensual(TenantMixin, Base):
         CheckConstraint(
             "dias_trabajados >= 0 AND faltas_justificadas >= 0 "
             "AND faltas_injustificadas >= 0 AND licencias >= 0 AND vacaciones >= 0 "
-            "AND feriados_trabajados >= 0",
+            "AND feriados_trabajados >= 0 AND feriados_no_trabajados >= 0",
             name="dias_no_negativos",
         ),
         CheckConstraint(
@@ -258,6 +258,7 @@ class NovedadMensual(TenantMixin, Base):
     horas_extra_50: Mapped[Decimal] = mapped_column(Numeric(8, 2), default=Decimal("0"))
     horas_extra_100: Mapped[Decimal] = mapped_column(Numeric(8, 2), default=Decimal("0"))
     feriados_trabajados: Mapped[int] = mapped_column(Integer, default=0)
+    feriados_no_trabajados: Mapped[int] = mapped_column(Integer, default=0)
     licencias: Mapped[int] = mapped_column(Integer, default=0)
     vacaciones: Mapped[int] = mapped_column(Integer, default=0)
     premios: Mapped[Decimal] = mapped_column(MONEY, default=Decimal("0"))

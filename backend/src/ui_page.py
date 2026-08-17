@@ -221,6 +221,7 @@ HTML = r"""<!DOCTYPE html>
           <div><label>Horas extra al 50%</label><input id="novHE50" type="number" min="0" step="0.01" value="0"></div>
           <div><label>Horas extra al 100%</label><input id="novHE100" type="number" min="0" step="0.01" value="0"></div>
           <div><label>Feriados trabajados (días)</label><input id="novFeriados" type="number" min="0" step="1" value="0"></div>
+          <div><label>Feriados no trabajados (días)</label><input id="novFeriadosNoTrab" type="number" min="0" step="1" value="0"><small style="color:#6b7280">Calcula automáticamente el plus feriado.</small></div>
           <div><label>Premios ($)</label><input id="novPremios" type="number" min="0" step="0.01" value="0"></div>
           <div><label>Tratamiento del premio</label><select id="novTipoPremio"><option value="pendiente">Pendiente de definir (no calcular)</option><option value="remunerativo">Remunerativo (integra aportes)</option><option value="no_remunerativo">No remunerativo</option></select></div>
           <div><label>Descuentos adicionales ($)</label><input id="novDescuentos" type="number" min="0" step="0.01" value="0"></div>
@@ -625,7 +626,7 @@ function datosAdicionalesConvenio(){
 function limpiarNovedad(){
   editandoNovedadId=null;
   $('novEmpleado').value=''; $('novEmpleado').disabled=false;
-  ['novDias','novFaltasJ','novFaltasI','novLicencias','novVacaciones','novHE50','novHE100','novFeriados','novPremios','novDescuentos'].forEach(id=>$(id).value='0');
+  ['novDias','novFaltasJ','novFaltasI','novLicencias','novVacaciones','novHE50','novHE100','novFeriados','novFeriadosNoTrab','novPremios','novDescuentos'].forEach(id=>$(id).value='0');
   $('novObservaciones').value='';
   $('novTipoPremio').value='pendiente';
   limpiarAdicionalesFarmacia();
@@ -658,7 +659,7 @@ async function cargarNovedades(){
         ? '<span class="estado-edicion">🔒 Cerrada por liquidación confirmada</span>'
         : `<div class="acciones-tabla"><button class="chico secundario" onclick="editarNovedad('${n.id}')" title="Editar">✏️ Editar</button><button class="chico secundario" onclick="borrarNovedad('${n.id}')" title="Eliminar">🗑 Eliminar</button></div><span class="estado-edicion">Editable: la liquidación está calculada, no confirmada</span>`;
       const adicionales=(n.adicionales_convencionales||[]).length?`<br><small>Convenio: ${(n.adicionales_convencionales||[]).join(', ')}</small>`:'';
-      tr.innerHTML=`<td data-label="Empleado">${emp.apellido}, ${emp.nombre}</td><td data-label="Días">${n.dias_trabajados}<br><small>Feriados trabajados: ${n.feriados_trabajados||0}</small></td><td data-label="Faltas">${faltas}</td><td data-label="Extras">50%: ${n.horas_extra_50} · 100%: ${n.horas_extra_100}${adicionales}</td><td data-label="Premios / descuentos">$ ${fmt(n.premios)} / $ ${fmt(n.descuentos_adicionales)}</td><td class="acciones-celda">${acciones}</td>`;
+      tr.innerHTML=`<td data-label="Empleado">${emp.apellido}, ${emp.nombre}</td><td data-label="Días">${n.dias_trabajados}<br><small>Feriados: ${n.feriados_trabajados||0} trabajados · ${n.feriados_no_trabajados||0} no trabajados</small></td><td data-label="Faltas">${faltas}</td><td data-label="Extras">50%: ${n.horas_extra_50} · 100%: ${n.horas_extra_100}${adicionales}</td><td data-label="Premios / descuentos">$ ${fmt(n.premios)} / $ ${fmt(n.descuentos_adicionales)}</td><td class="acciones-celda">${acciones}</td>`;
       tb.appendChild(tr);
     });
     $('tablaNovedades').style.display=lista.length?'table':'none';
@@ -714,6 +715,7 @@ function cuerpoNovedad(incluirEmpleado=true){
     horas_extra_50:numeroNov('novHE50'),
     horas_extra_100:numeroNov('novHE100'),
     feriados_trabajados:numeroNov('novFeriados'),
+    feriados_no_trabajados:numeroNov('novFeriadosNoTrab'),
     licencias:numeroNov('novLicencias'),
     vacaciones:numeroNov('novVacaciones'),
     premios:numeroNov('novPremios'),
@@ -748,6 +750,7 @@ function editarNovedad(id){
   $('novFaltasI').value=n.faltas_injustificadas; $('novLicencias').value=n.licencias;
   $('novVacaciones').value=n.vacaciones; $('novHE50').value=n.horas_extra_50;
   $('novHE100').value=n.horas_extra_100; $('novFeriados').value=n.feriados_trabajados||0;
+  $('novFeriadosNoTrab').value=n.feriados_no_trabajados||0;
   $('novPremios').value=n.premios;
   $('novTipoPremio').value=n.tipo_premio||'pendiente';
   $('novDescuentos').value=n.descuentos_adicionales; $('novObservaciones').value=n.observaciones||'';

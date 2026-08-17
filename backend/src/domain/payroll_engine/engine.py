@@ -31,6 +31,7 @@ class Novedades:
     horas_extra_50: Decimal = Decimal("0")
     horas_extra_100: Decimal = Decimal("0")
     feriados_trabajados: int = 0
+    feriados_no_trabajados: int = 0
     premio: Decimal = Decimal("0")
     tipo_premio: str = "pendiente"
     descuento_adicional: Decimal = Decimal("0")
@@ -286,21 +287,30 @@ class MotorLiquidacion:
 
         # Feriado nacional trabajado (LCT arts. 166 y 169): el sueldo mensual
         # ya contiene el día normal y se agrega un día calculado con divisor 25.
-        if novedades.feriados_trabajados > 0:
+        if novedades.feriados_trabajados > 0 or novedades.feriados_no_trabajados > 0:
             base_feriado = Dinero.cero()
             for concepto in conceptos:
                 if concepto.tipo == TipoConcepto.REMUNERATIVO:
                     base_feriado = base_feriado + concepto.importe
             valor_feriado = base_feriado.dividir(Decimal("25")).redondear()
-            importe_feriados = valor_feriado.multiplicar(
-                Decimal(novedades.feriados_trabajados)
-            ).redondear()
-            conceptos.append(Concepto(
-                "FERIADO_TRABAJADO", "Feriado trabajado",
-                TipoConcepto.REMUNERATIVO, importe_feriados,
-                cantidad=Decimal(novedades.feriados_trabajados),
-                base_calculo=valor_feriado, unidad="día (base / 25)",
-            ))
+            if novedades.feriados_no_trabajados > 0:
+                valor_dia_normal = base_feriado.dividir(Decimal("30")).redondear()
+                plus_dia = (valor_feriado - valor_dia_normal).redondear()
+                conceptos.append(Concepto(
+                    "PLUS_FERIADO_NO_TRABAJADO", "Plus feriado no trabajado",
+                    TipoConcepto.REMUNERATIVO,
+                    plus_dia.multiplicar(Decimal(novedades.feriados_no_trabajados)).redondear(),
+                    cantidad=Decimal(novedades.feriados_no_trabajados),
+                    base_calculo=base_feriado, unidad="diferencia base / 25 y / 30",
+                ))
+            if novedades.feriados_trabajados > 0:
+                conceptos.append(Concepto(
+                    "FERIADO_TRABAJADO", "Feriado trabajado",
+                    TipoConcepto.REMUNERATIVO,
+                    valor_feriado.multiplicar(Decimal(novedades.feriados_trabajados)).redondear(),
+                    cantidad=Decimal(novedades.feriados_trabajados),
+                    base_calculo=valor_feriado, unidad="día (base / 25)",
+                ))
 
         # Horas extra (valor hora sobre básico + antigüedad)
         if novedades.horas_extra_50 > 0:

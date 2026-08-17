@@ -14,7 +14,8 @@ def test_novedad_mensual_tiene_columnas_y_claves_esperadas():
     esperadas = {
         "id", "tenant_id", "empleado_id", "periodo", "dias_trabajados",
         "faltas_justificadas", "faltas_injustificadas", "horas_extra_50",
-        "horas_extra_100", "feriados_trabajados", "licencias", "vacaciones", "premios",
+        "horas_extra_100", "feriados_trabajados", "feriados_no_trabajados",
+        "licencias", "vacaciones", "premios",
         "tipo_premio", "descuentos_adicionales", "observaciones",
         "adicionales_convencionales", "cantidades_adicionales",
         "created_at", "updated_at",
