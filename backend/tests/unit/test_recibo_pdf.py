@@ -5,7 +5,7 @@ import io
 import pytest
 from pypdf import PdfReader
 
-from infrastructure.pdf.recibo import generar_recibo_pdf
+from infrastructure.pdf.recibo import _unit, generar_recibo_pdf
 
 
 def test_recibo_backend_es_pdf_a4_de_una_sola_pagina():
@@ -41,9 +41,15 @@ def test_recibo_backend_es_pdf_a4_de_una_sola_pagina():
     text = reader.pages[0].extract_text()
     assert "ANEXO III - DECRETO 407/2026" in text
     assert "Base" in text and "Unidad" in text and "Cant." in text
+    assert "REMUNERATIVOS" in text and "DESCUENTOS" in text
     assert "Pesos cuatro mil con 00/100" in text
     assert "Seguridad social" in text and "Otros rubros" in text
     assert "DOCUMENTO DE PRUEBA" not in text
+
+
+def test_porcentajes_conservan_el_valor_completo():
+    assert _unit("10%") == "10%"
+    assert _unit("6.00%") == "6%"
 
 
 def test_recibo_rechaza_datos_legales_incompletos():
