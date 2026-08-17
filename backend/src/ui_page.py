@@ -1078,12 +1078,24 @@ async function liquidar(){
     const d = await api('/liquidaciones','POST',{periodo:$('periodo').value, tipo:'mensual', novedades:[]});
     ultimaLiq = d;
     if(!d.detalles.length){ $('resultados').innerHTML='<p style="margin-top:12px">No hay empleados para liquidar.</p>'; return; }
+    renderLiquidacion();
+    await cargarCarpetas();
+  }catch(e){ $('resultados').innerHTML=''; mostrarError('liqError', e.message); }
+}
+
+function nombreTipoConcepto(tipo){
+  return tipo==='deduccion'?'Descuento':tipo==='contribucion'?'Aporte del empleador':tipo==='no_remunerativo'?'No remunerativo':'Remunerativo';
+}
+
+function renderLiquidacion(){
+    if(!ultimaLiq) return;
+    const d=ultimaLiq;
     let html='';
     d.detalles.forEach(det=>{
       const emp = empleadosCache[det.empleado_id] || {apellido:'Empleado',nombre:'',cct_numero:''};
       let filas='';
       det.conceptos.forEach(c=>{
-        const tipo = c.tipo==='deduccion'?'Descuento': c.tipo==='contribucion'?'Aporte del empleador':'Haber';
+        const tipo = nombreTipoConcepto(c.tipo);
         const amparo = c.articulo_amparo? `<span class="etiqueta amparo">amparo ${c.articulo_amparo}</span>`:'';
         filas += `<tr><td>${c.descripcion} ${amparo}</td><td>${tipo}</td><td class="num">$ ${fmt(c.importe)}</td></tr>`;
       });
@@ -1094,12 +1106,81 @@ async function liquidar(){
           <span>Bruto: <b>$ ${fmt(det.bruto)}</b> &nbsp;·&nbsp; Descuentos: <b>$ ${fmt(det.total_deducciones)}</b></span>
           <span class="neto">Neto a cobrar: $ ${fmt(det.neto)}</span>
         </div>
-        <div style="margin-top:10px"><button class="chico secundario" onclick="descargarReciboPdf('${det.empleado_id}')">📄 Descargar recibo PDF — una hoja A4</button></div>
+        <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
+          <button class="chico" onclick="abrirAjusteManual('${det.empleado_id}')">✏️ Revisar y ajustar antes de imprimir</button>
+          <button class="chico secundario" onclick="descargarReciboPdf('${det.empleado_id}')">📄 Descargar recibo PDF — una hoja A4</button>
+        </div>
+        <div id="ajuste-${det.empleado_id}"></div>
         </div>`;
     });
     $('resultados').innerHTML = html + resumenF931(d) + resumenSindical(d);
-    await cargarCarpetas();
-  }catch(e){ $('resultados').innerHTML=''; mostrarError('liqError', e.message); }
+}
+
+function abrirAjusteManual(empId){
+  const det=ultimaLiq&&ultimaLiq.detalles.find(x=>x.empleado_id===empId);
+  const zona=$('ajuste-'+empId);
+  if(!det||!zona) return;
+  zona.innerHTML=`<div style="margin-top:12px;padding:12px;border:2px solid var(--verde);border-radius:8px;background:#f8fffd">
+    <b>Edición manual del borrador</b>
+    <p style="font-size:.84rem;color:#4b5563;margin:5px 0 10px">Podés corregir, eliminar o agregar conceptos. El PDF usará estos valores.</p>
+    <div style="overflow:auto"><table><thead><tr><th>Descripción</th><th>Tipo</th><th>Importe</th><th>Cantidad</th><th>Base</th><th></th></tr></thead><tbody id="filas-ajuste-${empId}"></tbody></table></div>
+    <button class="chico secundario" style="margin-top:8px" onclick="agregarFilaAjuste('${empId}')">＋ Agregar concepto</button>
+    <label style="display:block;margin-top:10px"><b>Motivo del ajuste (obligatorio)</b><textarea id="motivo-ajuste-${empId}" rows="2" placeholder="Ej.: empleada fuera de convenio; se elimina aporte sindical" style="width:100%;margin-top:4px"></textarea></label>
+    <div id="total-ajuste-${empId}" class="neto" style="margin-top:8px"></div>
+    <div style="display:flex;gap:8px;margin-top:10px"><button class="chico" onclick="guardarAjusteManual('${empId}')">Guardar ajuste</button><button class="chico secundario" onclick="$('ajuste-${empId}').innerHTML=''">Cancelar</button></div>
+  </div>`;
+  det.conceptos.forEach(c=>agregarFilaAjuste(empId,c));
+  recalcularVistaAjuste(empId);
+}
+
+function agregarFilaAjuste(empId,c={}){
+  const tbody=$('filas-ajuste-'+empId); if(!tbody) return;
+  const tr=document.createElement('tr'); tr.className='fila-ajuste';
+  const codigo=c.codigo||('MANUAL_'+Date.now());
+  tr.dataset.codigo=codigo;
+  tr.dataset.regimen=c.regimen||'no_aplica';
+  tr.innerHTML=`<td><input class="aj-desc" value="${String(c.descripcion||'Concepto manual').replace(/&/g,'&amp;').replace(/"/g,'&quot;')}" style="min-width:210px"></td>
+    <td><select class="aj-tipo"><option value="remunerativo">Remunerativo</option><option value="no_remunerativo">No remunerativo</option><option value="deduccion">Descuento</option><option value="contribucion">Aporte empleador</option></select></td>
+    <td><input class="aj-importe" type="number" min="0" step="0.01" value="${Number(c.importe||0).toFixed(2)}" style="width:120px"></td>
+    <td><input class="aj-cantidad" type="number" min="0" step="0.01" value="${Number(c.cantidad===undefined?1:c.cantidad)}" style="width:80px"></td>
+    <td><input class="aj-base" type="number" min="0" step="0.01" value="${c.base_calculo===null||c.base_calculo===undefined?'':Number(c.base_calculo).toFixed(2)}" style="width:120px"></td>
+    <td><button class="chico secundario" title="Eliminar concepto" onclick="this.closest('tr').remove();recalcularVistaAjuste('${empId}')">🗑</button></td>`;
+  tr.querySelector('.aj-tipo').value=c.tipo||'remunerativo';
+  tr.querySelectorAll('input,select').forEach(x=>x.addEventListener('input',()=>recalcularVistaAjuste(empId)));
+  tbody.appendChild(tr);
+}
+
+function conceptosDesdeEditor(empId){
+  return [...document.querySelectorAll('#filas-ajuste-'+empId+' .fila-ajuste')].map((tr,i)=>({
+    codigo:tr.dataset.codigo||('MANUAL_'+(i+1)), descripcion:tr.querySelector('.aj-desc').value.trim(),
+    tipo:tr.querySelector('.aj-tipo').value, importe:Number(tr.querySelector('.aj-importe').value||0),
+    cantidad:Number(tr.querySelector('.aj-cantidad').value||0),
+    base_calculo:tr.querySelector('.aj-base').value===''?null:Number(tr.querySelector('.aj-base').value),
+    unidad:'suma fija', regimen:tr.dataset.regimen||'no_aplica'
+  }));
+}
+
+function recalcularVistaAjuste(empId){
+  const conceptos=conceptosDesdeEditor(empId);
+  const bruto=conceptos.filter(c=>c.tipo==='remunerativo'||c.tipo==='no_remunerativo').reduce((a,c)=>a+c.importe,0);
+  const desc=conceptos.filter(c=>c.tipo==='deduccion').reduce((a,c)=>a+c.importe,0);
+  const zona=$('total-ajuste-'+empId);
+  if(zona) zona.textContent=`Vista previa — Bruto: $ ${fmt(bruto)} · Descuentos: $ ${fmt(desc)} · Neto: $ ${fmt(bruto-desc)}`;
+}
+
+async function guardarAjusteManual(empId){
+  const conceptos=conceptosDesdeEditor(empId);
+  const motivo=$('motivo-ajuste-'+empId).value.trim();
+  if(conceptos.length<1){ alert('El recibo debe conservar al menos un concepto.'); return; }
+  if(conceptos.some(c=>!c.descripcion)){ alert('Todos los conceptos necesitan descripción.'); return; }
+  if(motivo.length<5){ alert('Escribí el motivo del ajuste (mínimo 5 caracteres).'); return; }
+  try{
+    const det=await api(`/liquidaciones/${ultimaLiq.id}/empleados/${empId}/ajuste-manual`,'PATCH',{motivo,conceptos});
+    const pos=ultimaLiq.detalles.findIndex(x=>x.empleado_id===empId);
+    ultimaLiq.detalles[pos]={...ultimaLiq.detalles[pos],...det};
+    renderLiquidacion();
+    alert('Ajuste guardado. El neto y el PDF ya usan los importes corregidos.');
+  }catch(e){ alert(e.message||'No se pudo guardar el ajuste'); }
 }
 
 function antigTexto(fIngreso, periodo){

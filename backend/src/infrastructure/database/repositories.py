@@ -414,6 +414,28 @@ class LiquidacionRepo:
     async def obtener(self, liquidacion_id: uuid.UUID) -> Optional[m.Liquidacion]:
         return await self.s.get(m.Liquidacion, liquidacion_id)
 
+    async def obtener_detalle(
+        self, liquidacion_id: uuid.UUID, empleado_id: uuid.UUID
+    ) -> Optional[m.LiquidacionDetalle]:
+        r = await self.s.execute(
+            select(m.LiquidacionDetalle).where(
+                m.LiquidacionDetalle.liquidacion_id == liquidacion_id,
+                m.LiquidacionDetalle.empleado_id == empleado_id,
+            )
+        )
+        return r.scalar_one_or_none()
+
+    async def ajustar_detalle(
+        self, detalle: m.LiquidacionDetalle, conceptos: list,
+        bruto: Decimal, deducciones: Decimal, neto: Decimal,
+    ) -> m.LiquidacionDetalle:
+        detalle.conceptos = conceptos
+        detalle.bruto = bruto
+        detalle.total_deducciones = deducciones
+        detalle.neto = neto
+        await self.s.flush()
+        return detalle
+
 # --------------------------------------------------------------------------- #
 # Carpeta mensual versionada (RLS)
 # --------------------------------------------------------------------------- #

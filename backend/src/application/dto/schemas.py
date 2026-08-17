@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from datetime import date
 from decimal import Decimal
-from typing import List, Optional
+from typing import List, Literal, Optional
 
 from pydantic import BaseModel, EmailStr, Field, model_validator
 
@@ -260,6 +260,29 @@ class LiquidacionOut(BaseModel):
     estado: str
     detalles: List[DetalleOut]
     carpeta_mensual: Optional[dict] = None
+
+
+class ConceptoAjusteManualIn(BaseModel):
+    codigo: str = Field(min_length=1, max_length=120)
+    descripcion: str = Field(min_length=1, max_length=240)
+    tipo: Literal["remunerativo", "no_remunerativo", "deduccion", "contribucion"]
+    importe: Decimal = Field(ge=0)
+    cantidad: Decimal = Field(default=Decimal("1"), ge=0)
+    base_calculo: Optional[Decimal] = Field(default=None, ge=0)
+    unidad: str = Field(default="suma fija", max_length=80)
+    regimen: str = "no_aplica"
+    articulo_amparo: Optional[str] = None
+    destino_pago: Optional[str] = None
+    codigo_boleta: Optional[str] = None
+    canal_pago: Optional[str] = None
+    url_pago: Optional[str] = None
+    regla_vencimiento: Optional[str] = None
+    fuente_pago: Optional[str] = None
+
+
+class AjusteManualLiquidacionIn(BaseModel):
+    motivo: str = Field(min_length=5, max_length=500)
+    conceptos: List[ConceptoAjusteManualIn] = Field(min_length=1)
 
 
 # --- Import xlsx ---
