@@ -1,6 +1,7 @@
 """Recibo A4 conforme al Anexo III del Decreto 407/2026."""
 from __future__ import annotations
 
+import math
 from decimal import Decimal
 from io import BytesIO
 from typing import Any
@@ -130,12 +131,14 @@ def _logo(c: Canvas, x: float, y: float) -> None:
 
 def _unit(value: Any) -> str:
     text = str(value or "")
-    if text.endswith("%"):
+    if "%" in text:
         try:
-            number = format(Decimal(text[:-1]), "f")
+            raw_number, suffix = text.split("%", 1)
+            number = format(Decimal(raw_number), "f")
             if "." in number:
                 number = number.rstrip("0").rstrip(".")
-            return f"{number or '0'}%"
+            number = number.replace(".", ",")
+            return f"{number or '0'}%{suffix}"
         except Exception:
             return text
     return text
@@ -179,6 +182,83 @@ def _cost_group(row: dict[str, Any]) -> str:
     if "camara" in code or "cámara" in desc: return "Cámaras / entidades"
     if any(word in desc for word in ("jubil", "asignaciones", "fondo de empleo")): return "Seguridad social"
     return "Otros rubros"
+
+
+_COMPOSITION_COLORS = (
+    HexColor("#087F73"), HexColor("#2563EB"), HexColor("#F59E0B"),
+    HexColor("#7C3AED"), HexColor("#DC2626"), HexColor("#0891B2"),
+    HexColor("#65A30D"), HexColor("#6B7280"),
+)
+
+
+def _pie_chart(
+    c: Canvas, cx: float, cy: float, radius: float,
+    items: list[tuple[str, Decimal]],
+) -> None:
+    total = sum((amount for _, amount in items), Decimal("0")) or Decimal("1")
+    angle = 90.0
+    for index, (label, amount) in enumerate(items):
+        fraction = float(amount / total)
+        extent = fraction * 360
+        if extent <= 0:
+            continue
+        c.setFillColor(_COMPOSITION_COLORS[index % len(_COMPOSITION_COLORS)])
+        c.setStrokeColor(white); c.setLineWidth(.5)
+        c.wedge(cx - radius, cy - radius, cx + radius, cy + radius, angle, extent, fill=1, stroke=1)
+        if fraction >= .045:
+            middle = math.radians(angle + extent / 2)
+            x = cx + math.cos(middle) * radius * .62
+            y = cy + math.sin(middle) * radius * .62 - 2
+            _text(c, x + 8, y, f"{fraction * 100:.1f}%".replace(".", ","), 5.2, True, white, True)
+        angle += extent
+
+
+def _composition_block(
+    c: Canvas, top: float, neto: Decimal,
+    worker: list[dict[str, Any]], contributions: list[dict[str, Any]],
+) -> float:
+    employee = {name: Decimal("0") for name in ("Sindical", "Seguridad social", "Obra social", "INSSJP", "ART", "Cámaras / entidades", "Otros rubros")}
+    employer = dict(employee)
+    for row in worker:
+        if row["tipo"] == "deduccion": employee[_cost_group(row)] += _decimal(row["importe"])
+    for row in contributions:
+        employer[_cost_group(row)] += _decimal(row["importe"])
+
+    x, width, row_h = 28, 326, 9.5
+    c.setStrokeColor(LINE); c.setLineWidth(.35)
+    c.setFillColor(PALE); c.rect(x, top - 12, width, 14, fill=1, stroke=1)
+    _text(c, x + 5, top - 8, "DETALLE DE LA COMPOSICIÓN SALARIAL", 6.2, True)
+    _text(c, x + 210, top - 8, "TRABAJADOR", 5.3, True)
+    _text(c, x + 278, top - 8, "EMPLEADOR", 5.3, True)
+    yy = top - 21
+    for index, name in enumerate(employee):
+        if index % 2:
+            c.setFillColor(HexColor("#F3F4F6")); c.rect(x, yy - 3, width, row_h, fill=1, stroke=0)
+        _text(c, x + 5, yy, name, 5.5, index == 6)
+        _text(c, x + 263, yy, _money(employee[name]), 5.5, right=True)
+        _text(c, x + 321, yy, _money(employer[name]), 5.5, right=True)
+        c.setStrokeColor(LINE); c.line(x, yy - 3, x + width, yy - 3)
+        yy -= row_h
+    c.rect(x, yy + row_h - 3, width, 14 + row_h * 7, fill=0, stroke=1)
+    c.line(x + 202, yy + row_h - 3, x + 202, top + 2)
+    c.line(x + 267, yy + row_h - 3, x + 267, top + 2)
+
+    grouped = [("Sueldo neto", neto)] + [
+        (name, employee[name] + employer[name]) for name in employee
+        if employee[name] + employer[name] > 0
+    ]
+    total_cost = sum((amount for _, amount in grouped), Decimal("0")) or Decimal("1")
+    _pie_chart(c, 414, top - 39, 34, grouped)
+    legend_x, legend_y = 456, top - 8
+    for index, (name, amount) in enumerate(grouped):
+        c.setFillColor(_COMPOSITION_COLORS[index % len(_COMPOSITION_COLORS)])
+        c.rect(legend_x, legend_y - 4, 6, 6, fill=1, stroke=0)
+        pct = amount / total_cost * 100
+        _text(c, legend_x + 10, legend_y - 3, _fit(name, 72, 5.1), 5.1)
+        _text(c, 565, legend_y - 3, f"{pct:.1f}%".replace(".", ","), 5.1, True, right=True)
+        legend_y -= 9
+    _text(c, 565, top - 80, f"Costo total: {_money(total_cost)}", 6.3, True, GREEN, True)
+    return top - 86
 
 
 def generar_recibo_pdf(data: dict[str, Any]) -> bytes:
@@ -245,20 +325,10 @@ def generar_recibo_pdf(data: dict[str, Any]) -> bytes:
     _text(c, 38, y - 21, _fit(_money_words(data["neto"]), 500, 6.5), 6.5, True, DARK); y -= 40
 
     y = _section(c, y, "RESUMEN DE LA COMPOSICIÓN TOTAL DEL COSTO LABORAL")
-    groups = {name: Decimal("0") for name in ("Sindical", "Seguridad social", "Obra social", "INSSJP", "ART", "Cámaras / entidades", "Otros rubros")}
-    for row in contributions: groups[_cost_group(row)] += _decimal(row["importe"])
-    for i, (name, amount) in enumerate(groups.items()):
-        col, row = i % 4, i // 4
-        x, yy = 28 + col * 135, y - row * 25
-        c.setFillColor(HexColor("#F3F4F6")); c.setStrokeColor(LINE); c.rect(x, yy - 15, 128, 22, fill=1, stroke=1)
-        _text(c, x + 7, yy - 1, _fit(name, 74, 6.2), 6.2, True, GRAY)
-        _text(c, x + 121, yy - 1, _money(amount), 6.2, True, right=True)
-    y -= 54
-    total_contrib = sum((_decimal(r["importe"]) for r in contributions), Decimal("0"))
-    _text(c, 34, y, f"Neto: {_money(data['neto'])}", 7)
-    _text(c, 205, y, f"Retenciones: {_money(data['total_deducciones'])}", 7)
-    _text(c, 558, y, f"COSTO TOTAL: {_money(_decimal(data['bruto']) + total_contrib)}", 8.5, True, GREEN, True)
-    if y < 112: raise ValueError("El recibo excede una hoja A4; deben agruparse líneas equivalentes")
+    y = _composition_block(c, y, _decimal(data["neto"]), worker, contributions)
+    if y < 105: raise ValueError("El recibo excede una hoja A4; deben agruparse líneas equivalentes")
+    c.setFillColor(white); c.setStrokeColor(LINE); c.rect(28, 88, 540, 20, fill=1, stroke=1)
+    _text(c, 34, 100, "OBSERVACIONES", 5.8, True, GRAY)
     sy = 82
     c.setStrokeColor(GRAY); c.line(45, sy, 250, sy); c.line(345, sy, 550, sy)
     _text(c, 103, sy - 14, "Firma del empleador", 7)

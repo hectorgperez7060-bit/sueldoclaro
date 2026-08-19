@@ -50,6 +50,8 @@ def test_recibo_backend_es_pdf_a4_de_una_sola_pagina():
 def test_porcentajes_conservan_el_valor_completo():
     assert _unit("10%") == "10%"
     assert _unit("6.00%") == "6%"
+    assert _unit("1.00000000% por año") == "1% por año"
+    assert _unit("8.33%") == "8,33%"
 
 
 def test_recibo_rechaza_datos_legales_incompletos():
