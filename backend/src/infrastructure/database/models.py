@@ -128,6 +128,7 @@ class Tenant(Base):
     id: Mapped[uuid.UUID] = UUIDPK()
     razon_social: Mapped[str] = mapped_column(String(200))
     cuit: Mapped[str] = mapped_column(String(13), index=True)
+    grupo_cliente: Mapped[str] = mapped_column(String(200), default="")
     plan: Mapped[str] = mapped_column(String(30), default="free")
     estado: Mapped[str] = mapped_column(String(20), default="activo")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc)
@@ -167,6 +168,18 @@ class ContadorProfesional(Base):
 # --------------------------------------------------------------------------- #
 # POR TENANT (con tenant_id + RLS)
 # --------------------------------------------------------------------------- #
+class Establecimiento(TenantMixin, Base):
+    __tablename__ = "establecimiento"
+    id: Mapped[uuid.UUID] = UUIDPK()
+    nombre: Mapped[str] = mapped_column(String(120))
+    domicilio: Mapped[str] = mapped_column(String(200))
+    localidad: Mapped[str] = mapped_column(String(120), default="")
+    provincia: Mapped[str] = mapped_column(String(120), default="")
+    actividad: Mapped[str] = mapped_column(String(120), default="")
+    activo: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc)
+
+
 class Empleado(TenantMixin, Base):
     __tablename__ = "empleado"
     id: Mapped[uuid.UUID] = UUIDPK()
@@ -197,10 +210,33 @@ class Empleado(TenantMixin, Base):
     # 3 acreditación en cuenta (exige CBU), 4 otra.
     forma_pago: Mapped[Optional[str]] = mapped_column(String(1), nullable=True)
     lugar_trabajo: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
+    establecimiento_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        PGUUID(as_uuid=True), ForeignKey("establecimiento.id"), nullable=True, index=True
+    )
     # Datos estructurados para resolver la cuota sindical de afiliado (Art. 101).
     # NO se derivan del domicilio de texto libre.
     localidad: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
     filial_sindical: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc)
+
+
+class EmpleadoEstablecimientoHistorial(TenantMixin, Base):
+    __tablename__ = "empleado_establecimiento_historial"
+    __table_args__ = (
+        CheckConstraint(
+            "vigente_hasta IS NULL OR vigente_hasta >= vigente_desde",
+            name="vigencia_establecimiento_valida",
+        ),
+    )
+    id: Mapped[uuid.UUID] = UUIDPK()
+    empleado_id: Mapped[uuid.UUID] = mapped_column(
+        PGUUID(as_uuid=True), ForeignKey("empleado.id"), nullable=False, index=True
+    )
+    establecimiento_id: Mapped[uuid.UUID] = mapped_column(
+        PGUUID(as_uuid=True), ForeignKey("establecimiento.id"), nullable=False, index=True
+    )
+    vigente_desde: Mapped[date] = mapped_column(Date, nullable=False)
+    vigente_hasta: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc)
 
 
@@ -381,7 +417,9 @@ class AuditLog(Base):
 # Las tablas de auth (tenant, usuario, usuario_tenant) se scopean en la capa de
 # aplicación con chequeo explícito de membresía (ver DECISIONS D-14).
 TABLAS_CON_RLS = (
+    "establecimiento",
     "empleado",
+    "empleado_establecimiento_historial",
     "novedad_mensual",
     "liquidacion",
     "liquidacion_detalle",

@@ -7,7 +7,7 @@ El filtrado por tenant lo enforcea RLS a nivel de PostgreSQL: la sesión ya trae
 from __future__ import annotations
 
 import uuid
-from datetime import date
+from datetime import date, timedelta
 from decimal import Decimal
 from typing import List, Optional
 
@@ -73,8 +73,14 @@ class TenantRepo:
     def __init__(self, session: AsyncSession):
         self.s = session
 
-    async def crear(self, tenant_id: uuid.UUID, razon_social: str, cuit: str) -> m.Tenant:
-        t = m.Tenant(id=tenant_id, razon_social=razon_social, cuit=cuit)
+    async def crear(
+        self, tenant_id: uuid.UUID, razon_social: str, cuit: str,
+        grupo_cliente: str = "",
+    ) -> m.Tenant:
+        t = m.Tenant(
+            id=tenant_id, razon_social=razon_social, cuit=cuit,
+            grupo_cliente=grupo_cliente,
+        )
         self.s.add(t)
         await self.s.flush()
         return t
@@ -99,6 +105,35 @@ class TenantRepo:
 # --------------------------------------------------------------------------- #
 # Empleado (RLS)
 # --------------------------------------------------------------------------- #
+class EstablecimientoRepo:
+    def __init__(self, session: AsyncSession):
+        self.s = session
+
+    async def crear(self, tenant_id: uuid.UUID, datos: dict) -> m.Establecimiento:
+        establecimiento = m.Establecimiento(tenant_id=tenant_id, **datos)
+        self.s.add(establecimiento)
+        await self.s.flush()
+        return establecimiento
+
+    async def listar(self, incluir_inactivos: bool = False) -> list[m.Establecimiento]:
+        query = select(m.Establecimiento)
+        if not incluir_inactivos:
+            query = query.where(m.Establecimiento.activo.is_(True))
+        r = await self.s.execute(query.order_by(m.Establecimiento.nombre))
+        return list(r.scalars().all())
+
+    async def obtener(
+        self, tenant_id: uuid.UUID, establecimiento_id: uuid.UUID,
+    ) -> Optional[m.Establecimiento]:
+        r = await self.s.execute(
+            select(m.Establecimiento).where(
+                m.Establecimiento.id == establecimiento_id,
+                m.Establecimiento.tenant_id == tenant_id,
+            )
+        )
+        return r.scalar_one_or_none()
+
+
 class EmpleadoRepo:
     def __init__(self, session: AsyncSession):
         self.s = session
@@ -116,6 +151,38 @@ class EmpleadoRepo:
     async def listar(self) -> List[m.Empleado]:
         r = await self.s.execute(select(m.Empleado).order_by(m.Empleado.apellido))
         return list(r.scalars().all())
+
+    async def asignar_establecimiento(
+        self, tenant_id: uuid.UUID, empleado: m.Empleado,
+        establecimiento: Optional[m.Establecimiento], vigente_desde: date,
+    ) -> None:
+        if empleado.establecimiento_id == (establecimiento.id if establecimiento else None):
+            return
+        r = await self.s.execute(
+            select(m.EmpleadoEstablecimientoHistorial).where(
+                m.EmpleadoEstablecimientoHistorial.tenant_id == tenant_id,
+                m.EmpleadoEstablecimientoHistorial.empleado_id == empleado.id,
+                m.EmpleadoEstablecimientoHistorial.vigente_hasta.is_(None),
+            )
+        )
+        actual = r.scalar_one_or_none()
+        if actual:
+            if vigente_desde <= actual.vigente_desde:
+                raise ValueError("La fecha del cambio debe ser posterior a la asignación vigente")
+            actual.vigente_hasta = vigente_desde - timedelta(days=1)
+        empleado.establecimiento_id = establecimiento.id if establecimiento else None
+        empleado.lugar_trabajo = (
+            f"{establecimiento.nombre} - {establecimiento.domicilio}"
+            + (f", {establecimiento.localidad}" if establecimiento.localidad else "")
+            if establecimiento else None
+        )
+        if establecimiento:
+            self.s.add(m.EmpleadoEstablecimientoHistorial(
+                tenant_id=tenant_id, empleado_id=empleado.id,
+                establecimiento_id=establecimiento.id,
+                vigente_desde=vigente_desde,
+            ))
+        await self.s.flush()
 
 
 # --------------------------------------------------------------------------- #

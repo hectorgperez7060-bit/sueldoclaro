@@ -37,18 +37,33 @@ class TokenResponse(BaseModel):
 class EmpresaIn(BaseModel):
     razon_social: str = Field(min_length=2, max_length=200)
     cuit: str = Field(min_length=11, max_length=13)
+    grupo_cliente: str = Field(default="", max_length=200)
 
 
 class EmpresaOut(BaseModel):
     id: str
     razon_social: str
     cuit: str
+    grupo_cliente: str = ""
     rol: str
     activa: bool = False
 
 
 class SeleccionarEmpresa(BaseModel):
     tenant_id: str
+
+
+class EstablecimientoIn(BaseModel):
+    nombre: str = Field(min_length=2, max_length=120)
+    domicilio: str = Field(min_length=3, max_length=200)
+    localidad: str = Field(default="", max_length=120)
+    provincia: str = Field(default="", max_length=120)
+    actividad: str = Field(default="", max_length=120)
+    activo: bool = True
+
+
+class EstablecimientoOut(EstablecimientoIn):
+    id: str
 
 
 # --- Empleados ---
@@ -78,6 +93,8 @@ class EmpleadoIn(BaseModel):
     # 1 efectivo, 2 cheque, 3 acreditación en cuenta (exige CBU), 4 otra.
     forma_pago: str
     lugar_trabajo: Optional[str] = None
+    establecimiento_id: Optional[str] = None
+    lugar_trabajo_desde: Optional[date] = None
     # Datos estructurados para resolver la cuota sindical de afiliado (Art. 101).
     localidad: Optional[str] = None
     filial_sindical: Optional[str] = None
@@ -120,6 +137,7 @@ class EmpleadoOut(BaseModel):
     cbu: Optional[str] = None
     forma_pago: Optional[str] = None
     lugar_trabajo: Optional[str] = None
+    establecimiento_id: Optional[str] = None
     localidad: Optional[str] = None
     filial_sindical: Optional[str] = None
 

@@ -145,6 +145,7 @@ HTML = r"""<!DOCTYPE html>
           <button class="chico secundario" style="width:100%;margin-top:8px" onclick="mostrarNuevaEmpresa()">+ Nueva empresa</button>
         </div>
         <nav class="navegacion">
+          <button onclick="irA('seccionEstablecimientos',this)"><span class="icono">🏢</span>Establecimientos</button>
           <button class="activo" onclick="irA('seccionEmpleados',this)"><span class="icono">👥</span>Empleados</button>
           <button onclick="irA('seccionNovedades',this)"><span class="icono">🗓</span>Novedades</button>
           <button onclick="irA('seccionLiquidar',this)"><span class="icono">🧮</span>Liquidar</button>
@@ -158,9 +159,14 @@ HTML = r"""<!DOCTYPE html>
         <div id="nuevaEmpresa" class="tarjeta" style="display:none">
           <div class="cabecera-seccion"><h2>Nueva empresa o cliente</h2><button class="chico secundario" onclick="mostrarNuevaEmpresa(false)">Cerrar</button></div>
           <p style="font-size:.88rem;color:#6b7280">Se creará un espacio independiente. Sus empleados y liquidaciones nunca se mezclarán con otra empresa.</p>
-          <div class="fila"><div><label>Razón social</label><input id="nuevaEmpresaRazon" placeholder="Empresa cliente S.A."></div><div><label>CUIT</label><input id="nuevaEmpresaCuit" inputmode="numeric" maxlength="13" placeholder="30123456789"></div></div>
+          <div class="fila"><div><label>Cliente o grupo (opcional)</label><input id="nuevaEmpresaGrupo" placeholder="Ej.: Familia Pérez"></div><div><label>Razón social</label><input id="nuevaEmpresaRazon" placeholder="Empresa cliente S.A."></div><div><label>CUIT</label><input id="nuevaEmpresaCuit" inputmode="numeric" maxlength="13" placeholder="30123456789"></div></div>
           <button onclick="crearEmpresa()">Crear y comenzar a trabajar</button><div id="empresaError" class="error"></div>
         </div>
+    <div class="tarjeta" id="seccionEstablecimientos">
+      <div class="cabecera-seccion"><div><h2>Establecimientos y domicilios de trabajo</h2><p style="font-size:.85rem;color:#6b7280;margin:4px 0 0">Cada sociedad conserva sus propios lugares. Al cambiar a un empleado queda registrado desde qué fecha trabaja allí.</p></div><button class="chico secundario" onclick="toggleEstablecimiento()">+ Agregar domicilio</button></div>
+      <div id="formEstablecimiento" style="display:none;border:1px dashed var(--borde);border-radius:10px;padding:14px;margin-top:12px"><div class="fila"><div><label>Nombre del lugar</label><input id="estNombre" placeholder="Casa central / Sucursal 1"></div><div><label>Domicilio</label><input id="estDomicilio" placeholder="Calle y número"></div><div><label>Localidad</label><input id="estLocalidad"></div><div><label>Provincia</label><input id="estProvincia"></div><div><label>Actividad del lugar</label><input id="estActividad" placeholder="Comercio, farmacia, depósito..."></div></div><button class="chico" onclick="crearEstablecimiento()">Guardar establecimiento</button><div id="estError" class="error"></div><div id="estOk" class="ok"></div></div>
+      <table id="tablaEstablecimientos" class="tabla-movil" style="display:none"><thead><tr><th>Nombre</th><th>Domicilio</th><th>Localidad</th><th>Provincia</th><th>Actividad</th></tr></thead><tbody></tbody></table><p id="sinEstablecimientos" style="margin-top:10px;color:#6b7280;font-size:.9rem">Todavía no cargaste domicilios de trabajo.</p>
+    </div>
     <div class="tarjeta" id="seccionEmpleados">
       <div class="cabecera-seccion">
         <h2>Empleados</h2>
@@ -229,7 +235,8 @@ HTML = r"""<!DOCTYPE html>
             <input id="eHorasSemanales" type="number" min="1" max="48" step="0.5" value="48">
             <small style="color:#6b7280">En Comercio la jornada completa es 48. Para este empleado escribí 30.</small></div>
           <div><label>Obra social (independiente del sindicato)</label><input id="eObraSocial" list="obrasSociales" placeholder="Elegí o escribí la obra social"><datalist id="obrasSociales"><option value="OSADEF - Obra Social de las Asociaciones de Empleados de Farmacia"><option value="OSPSA - Obra Social del Personal de la Sanidad Argentina"><option value="OSECAC - Obra Social de Empleados de Comercio"><option value="OSPF - Obra Social del Personal de Farmacia"></datalist></div>
-          <div><label>Lugar de trabajo / sucursal</label><input id="eLugar" placeholder="Casa central"></div>
+          <div><label>Establecimiento / lugar de trabajo</label><select id="eEstablecimiento"><option value="">Sin establecimiento asignado</option></select></div>
+          <div><label>Trabaja allí desde</label><input id="eLugarDesde" type="text" inputmode="numeric" placeholder="DD/MM/AAAA" maxlength="10" oninput="formatearFecha(this)"><small style="color:#6b7280">Solo completalo al asignar o cambiar el lugar.</small></div>
           <div><label>Remuneración pactada (si supera el básico)</label><input id="eRemun" type="number" min="0" placeholder="opcional"></div>
         </div>
 
@@ -253,7 +260,7 @@ HTML = r"""<!DOCTYPE html>
         <div class="error" id="empError"></div>
         <div class="ok" id="empOk"></div>
       </div>
-      <table id="tablaEmpleados" class="tabla-movil"><thead><tr><th>Apellido y nombre</th><th>CUIL</th><th>Convenio</th><th>Categoría</th><th>Ingreso</th><th></th></tr></thead><tbody></tbody></table>
+      <table id="tablaEmpleados" class="tabla-movil"><thead><tr><th>Apellido y nombre</th><th>CUIL</th><th>Convenio</th><th>Categoría</th><th>Lugar de trabajo</th><th>Ingreso</th><th></th></tr></thead><tbody></tbody></table>
       <p id="sinEmpleados" style="margin-top:10px;color:#6b7280;font-size:.9rem">Todavía no cargaste empleados.</p>
     </div>
 
@@ -383,6 +390,7 @@ HTML = r"""<!DOCTYPE html>
 <script>
 const $ = id => document.getElementById(id);
 let empleadosCache = {};
+let establecimientosCache = {};
 let editandoEmpleadoId = null;
 let convenios = [];
 let obraSocialSugeridaAnterior = '';
@@ -496,7 +504,7 @@ async function cargarEmpresas(){
   const sel=$('empresaActiva'); sel.innerHTML='';
   empresas.forEach(e=>{
     const o=document.createElement('option');
-    o.value=e.id; o.textContent=e.razon_social;
+    o.value=e.id; o.textContent=(e.grupo_cliente?e.grupo_cliente+' — ':'')+e.razon_social;
     if(e.activa||e.id===activa) o.selected=true;
     sel.appendChild(o);
   });
@@ -526,9 +534,9 @@ async function crearEmpresa(){
   if(razon.length<2){mostrarError('empresaError','Escribí la razón social.');return;}
   if(cuit.length!==11){mostrarError('empresaError','El CUIT debe tener 11 dígitos.');return;}
   try{
-    const d=await api('/auth/empresas','POST',{razon_social:razon,cuit:cuit});
+    const d=await api('/auth/empresas','POST',{razon_social:razon,cuit:cuit,grupo_cliente:$('nuevaEmpresaGrupo').value.trim()});
     guardarCredenciales(d);
-    $('nuevaEmpresaRazon').value=''; $('nuevaEmpresaCuit').value='';
+    $('nuevaEmpresaGrupo').value=''; $('nuevaEmpresaRazon').value=''; $('nuevaEmpresaCuit').value='';
     mostrarNuevaEmpresa(false);
     await recargarEmpresaActiva();
   }catch(e){mostrarError('empresaError',e.message);}
@@ -538,6 +546,7 @@ async function recargarEmpresaActiva(){
   await cargarEmpresas();
   empresaCache=await api('/empresa');
   await cargarConvenios();
+  await cargarEstablecimientos();
   await cargarEmpleados();
   await cargarNovedades();
   await mostrarEstadoNormativo();
@@ -555,6 +564,27 @@ async function entrar(){
   catch(e){ salir(); mostrarError('authError',e.message); }
 }
 function toggleAlta(){ const a=$('alta'); a.style.display = a.style.display==='none'?'block':'none'; }
+function toggleEstablecimiento(){ const a=$('formEstablecimiento'); a.style.display=a.style.display==='none'?'block':'none'; }
+async function cargarEstablecimientos(){
+  const lista=await api('/establecimientos'); establecimientosCache={};
+  const tb=$('tablaEstablecimientos').querySelector('tbody'); tb.innerHTML='';
+  const sel=$('eEstablecimiento'); const elegido=sel.value;
+  sel.innerHTML='<option value="">Sin establecimiento asignado</option>';
+  lista.forEach(e=>{
+    establecimientosCache[e.id]=e;
+    const tr=document.createElement('tr'); tr.innerHTML=`<td data-label="Nombre">${e.nombre}</td><td data-label="Domicilio">${e.domicilio}</td><td data-label="Localidad">${e.localidad||''}</td><td data-label="Provincia">${e.provincia||''}</td><td data-label="Actividad">${e.actividad||''}</td>`; tb.appendChild(tr);
+    const o=document.createElement('option'); o.value=e.id; o.textContent=`${e.nombre} — ${e.domicilio}${e.localidad?', '+e.localidad:''}`; sel.appendChild(o);
+  });
+  if([...sel.options].some(o=>o.value===elegido)) sel.value=elegido;
+  $('tablaEstablecimientos').style.display=lista.length?'table':'none'; $('sinEstablecimientos').style.display=lista.length?'none':'block';
+}
+async function crearEstablecimiento(){
+  ocultar('estError'); ocultar('estOk');
+  try{
+    await api('/establecimientos','POST',{nombre:$('estNombre').value.trim(),domicilio:$('estDomicilio').value.trim(),localidad:$('estLocalidad').value.trim(),provincia:$('estProvincia').value.trim(),actividad:$('estActividad').value.trim(),activo:true});
+    ['estNombre','estDomicilio','estLocalidad','estProvincia','estActividad'].forEach(id=>$(id).value=''); $('estOk').textContent='Establecimiento guardado ✔'; $('estOk').style.display='block'; await cargarEstablecimientos();
+  }catch(e){mostrarError('estError',e.message);}
+}
 
 const IDENTIDAD_CONVENIO={
   '414/05':{actividad:'Farmacia',sindicato:'ADEF',obraSocial:'OSADEF - Obra Social de las Asociaciones de Empleados de Farmacia'},
@@ -655,7 +685,7 @@ async function cargarEmpleados(){
     lista.forEach(e=>{
       empleadosCache[e.id] = e;
       const tr=document.createElement('tr');
-      tr.innerHTML = `<td data-label="Empleado">${e.apellido}, ${e.nombre}</td><td data-label="CUIL">${e.cuil}</td><td data-label="Convenio">${e.cct_numero}</td><td data-label="Categoría">${e.categoria}</td><td data-label="Ingreso">${e.fecha_ingreso}</td><td class="acciones-celda"><div class="acciones-tabla"><button class="chico secundario" onclick="editarEmpleado('${e.id}')" title="Editar">✏️ Editar</button><button class="chico secundario" onclick="borrarEmpleado('${e.id}','${(e.apellido||'')+', '+(e.nombre||'')}')" title="Eliminar">🗑 Eliminar</button></div></td>`;
+      tr.innerHTML = `<td data-label="Empleado">${e.apellido}, ${e.nombre}</td><td data-label="CUIL">${e.cuil}</td><td data-label="Convenio">${e.cct_numero}</td><td data-label="Categoría">${e.categoria}</td><td data-label="Lugar">${e.lugar_trabajo||'Sin asignar'}</td><td data-label="Ingreso">${e.fecha_ingreso}</td><td class="acciones-celda"><div class="acciones-tabla"><button class="chico secundario" onclick="editarEmpleado('${e.id}')" title="Editar">✏️ Editar</button><button class="chico secundario" onclick="borrarEmpleado('${e.id}','${(e.apellido||'')+', '+(e.nombre||'')}')" title="Eliminar">🗑 Eliminar</button></div></td>`;
       tb.appendChild(tr);
     });
     $('sinEmpleados').style.display = lista.length? 'none':'block';
@@ -951,7 +981,8 @@ function editarEmpleado(id){
   $('eHorasSemanales').value = Number(e.proporcion_jornada || 1) * 48;
   $('eFormaPago').value = e.forma_pago || '';
   $('eCbu').value = e.cbu || '';
-  $('eLugar').value = e.lugar_trabajo || '';
+  $('eEstablecimiento').value = e.establecimiento_id || '';
+  $('eLugarDesde').value = '';
   $('eLocalidad').value = e.localidad || '';
   $('eFilial').value = e.filial_sindical || '';
   $('eRemun').value = e.remuneracion_pactada || '';
@@ -965,7 +996,8 @@ function editarEmpleado(id){
 function cancelarEdicion(){
   editandoEmpleadoId = null;
   obraSocialSugeridaAnterior = '';
-  ['eNombre','eApellido','eCuil','eFecha','eNacimiento','eDomicilio','eLegajo','eObraSocial','eLugar','eCbu','eRemun','eFormaPago','eLocalidad','eFilial','eSindicato'].forEach(i=>$(i).value='');
+  ['eNombre','eApellido','eCuil','eFecha','eNacimiento','eDomicilio','eLegajo','eObraSocial','eLugarDesde','eCbu','eRemun','eFormaPago','eLocalidad','eFilial','eSindicato'].forEach(i=>$(i).value='');
+  $('eEstablecimiento').value='';
   $('eHijos').value='0';
   $('eHorasSemanales').value='48';
   $('eConyuge').value='false';
@@ -1094,6 +1126,11 @@ async function crearEmpleado(){
   if(!(horasSemanales>0 && horasSemanales<=48)){
     mostrarError('empError','Las horas semanales deben ser mayores que 0 y no superar 48.'); return;
   }
+  const lugarElegido=$('eEstablecimiento').value || null;
+  const lugarAnterior=editandoEmpleadoId ? (empleadosCache[editandoEmpleadoId].establecimiento_id||null) : null;
+  if(editandoEmpleadoId && lugarElegido!==lugarAnterior && !$('eLugarDesde').value.trim()){
+    mostrarError('empError','Indicá desde qué fecha cambia el lugar de trabajo.'); return;
+  }
   try{
     const cuerpo = {
       nombre:$('eNombre').value.trim(), apellido:$('eApellido').value.trim(),
@@ -1111,7 +1148,9 @@ async function crearEmpleado(){
       modalidad_contrato:$('eModalidad').value,
       cbu:$('eCbu').value.trim() || null,
       forma_pago:$('eFormaPago').value,
-      lugar_trabajo:$('eLugar').value.trim() || null,
+      lugar_trabajo:null,
+      establecimiento_id:$('eEstablecimiento').value || null,
+      lugar_trabajo_desde:fechaIso($('eLugarDesde').value,'Fecha del cambio de lugar'),
       localidad:$('eLocalidad').value.trim() || null,
       filial_sindical:$('eFilial').value.trim() || null,
       remuneracion_pactada:$('eRemun').value ? $('eRemun').value : null

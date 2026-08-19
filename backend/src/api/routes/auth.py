@@ -87,7 +87,7 @@ async def listar_empresas(principal: Principal = Depends(get_principal)):
         return [
             EmpresaOut(
                 id=str(empresa.id), razon_social=empresa.razon_social,
-                cuit=empresa.cuit, rol=rol,
+                cuit=empresa.cuit, grupo_cliente=empresa.grupo_cliente or "", rol=rol,
                 activa=str(empresa.id) == principal.tenant_id,
             )
             for empresa, rol in filas
@@ -109,7 +109,10 @@ async def crear_empresa(body: EmpresaIn, principal: Principal = Depends(get_prin
                 status.HTTP_409_CONFLICT,
                 "Esa empresa ya está agregada a tu cuenta",
             )
-        await repo.crear(tenant_id, body.razon_social.strip(), cuit)
+        await repo.crear(
+            tenant_id, body.razon_social.strip(), cuit,
+            grupo_cliente=body.grupo_cliente.strip(),
+        )
         await repo.agregar_miembro(tenant_id, uuid.UUID(principal.usuario_id), "admin")
     return _emitir_par(principal.usuario_id, str(tenant_id), "admin")
 
