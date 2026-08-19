@@ -5,7 +5,7 @@ import io
 import pytest
 from pypdf import PdfReader
 
-from infrastructure.pdf.recibo import _unit, generar_recibo_pdf
+from infrastructure.pdf.recibo import _cost_group, _unit, generar_recibo_pdf
 
 
 def test_recibo_backend_es_pdf_a4_de_una_sola_pagina():
@@ -39,12 +39,17 @@ def test_recibo_backend_es_pdf_a4_de_una_sola_pagina():
     assert len(reader.pages) == 1
     assert tuple(round(float(v), 2) for v in reader.pages[0].mediabox[2:]) == (595.28, 841.89)
     text = reader.pages[0].extract_text()
-    assert "ANEXO III - DECRETO 407/2026" in text
+    assert "1. DATOS DEL EMPLEADOR, TRABAJADOR Y PAGO" in text
+    assert "2. CONTRIBUCIONES Y CONCEPTOS A CARGO DEL EMPLEADOR" in text
+    assert "3. REMUNERACIÓN BRUTA, HABERES Y DEDUCCIONES" in text
+    assert "4. SUELDO NETO" in text
     assert "Base" in text and "Unidad" in text and "Cant." in text
     assert "REMUNERATIVOS" in text and "DESCUENTOS" in text
     assert "Pesos cuatro mil con 00/100" in text
     assert "Seguridad social" in text and "Otros rubros" in text
     assert "DOCUMENTO DE PRUEBA" not in text
+    assert "SUELDO CLARO" not in text
+    assert "Recibo confeccionado conforme a los artículos 139 y 140 de la LCT" in text
 
 
 def test_porcentajes_conservan_el_valor_completo():
@@ -52,6 +57,13 @@ def test_porcentajes_conservan_el_valor_completo():
     assert _unit("6.00%") == "6%"
     assert _unit("1.00000000% por año") == "1% por año"
     assert _unit("8.33%") == "8,33%"
+
+
+def test_contribuciones_patronales_se_clasifican_como_seguridad_social():
+    assert _cost_group({
+        "codigo": "CONTRIB_SEG_SOCIAL",
+        "descripcion": "Contribuciones patronales seguridad social (18%)",
+    }) == "Seguridad social"
 
 
 def test_recibo_rechaza_datos_legales_incompletos():

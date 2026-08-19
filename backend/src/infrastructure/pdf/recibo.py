@@ -118,15 +118,8 @@ def _text(c: Canvas, x: float, y: float, value: Any, size: float = 7, bold: bool
 
 def _section(c: Canvas, y: float, title: str) -> float:
     c.setFillColor(PALE); c.setStrokeColor(LINE); c.rect(24, y - 14, 547, 17, fill=1, stroke=1)
-    _text(c, 30, y - 9, title, 7.5, True, DARK)
+    _text(c, 30, y - 9, title, 8, True, DARK)
     return y - 20
-
-
-def _logo(c: Canvas, x: float, y: float) -> None:
-    for index, color in enumerate(("#2563EB", "#10B981", "#F59E0B", "#EF4444", "#A855F7")):
-        c.setFillColor(HexColor(color)); c.wedge(x - 17, y - 17, x + 17, y + 17, 18 + index * 72, 66, fill=1, stroke=0)
-    c.setFillColor(HexColor("#E5E7EB")); c.circle(x, y, 5, fill=1, stroke=0)
-    c.setFillColor(DARK); c.circle(x, y, 2, fill=1, stroke=0)
 
 
 def _unit(value: Any) -> str:
@@ -145,16 +138,17 @@ def _unit(value: Any) -> str:
 
 
 def _row(c: Canvas, y: float, row: dict[str, Any], size: float, height: float, shaded: bool = False) -> float:
+    bottom = y - height / 2
     if shaded:
-        c.setFillColor(HexColor("#F3F4F6")); c.rect(28, y - 5, 540, height, fill=1, stroke=0)
+        c.setFillColor(HexColor("#F3F4F6")); c.rect(28, bottom, 540, height, fill=1, stroke=0)
     _text(c, 32, y, _fit(row["descripcion"], 250, size), size)
     _text(c, 370, y, _money(row["base_calculo"]), size, right=True)
     _text(c, 380, y, _fit(_unit(row["unidad"]), 86, size), size)
     _text(c, 508, y, row["cantidad"], size, right=True)
     _text(c, 562, y, _money(row["importe"]), size, True, right=True)
     c.setStrokeColor(LINE); c.setLineWidth(.35)
-    c.line(28, y - 5, 568, y - 5)
-    for x in (28, 292, 374, 466, 516, 568): c.line(x, y - 5, x, y - 5 + height)
+    c.line(28, bottom, 568, bottom)
+    for x in (28, 292, 374, 466, 516, 568): c.line(x, bottom, x, bottom + height)
     return y - height
 
 
@@ -180,7 +174,10 @@ def _cost_group(row: dict[str, Any]) -> str:
     if "inssjp" in code or "inssjp" in desc: return "INSSJP"
     if "art" in code or "a.r.t" in desc: return "ART"
     if "camara" in code or "cámara" in desc: return "Cámaras / entidades"
-    if any(word in desc for word in ("jubil", "asignaciones", "fondo de empleo")): return "Seguridad social"
+    if any(word in desc for word in (
+        "jubil", "asignaciones", "fondo de empleo", "seguridad social",
+        "contribuciones patronales", "contribución patronal",
+    )): return "Seguridad social"
     return "Otros rubros"
 
 
@@ -224,19 +221,19 @@ def _composition_block(
     for row in contributions:
         employer[_cost_group(row)] += _decimal(row["importe"])
 
-    x, width, row_h = 28, 326, 9.5
+    x, width, row_h = 28, 326, 10.2
     c.setStrokeColor(LINE); c.setLineWidth(.35)
     c.setFillColor(PALE); c.rect(x, top - 12, width, 14, fill=1, stroke=1)
-    _text(c, x + 5, top - 8, "DETALLE DE LA COMPOSICIÓN SALARIAL", 6.2, True)
-    _text(c, x + 210, top - 8, "TRABAJADOR", 5.3, True)
-    _text(c, x + 278, top - 8, "EMPLEADOR", 5.3, True)
+    _text(c, x + 5, top - 8, "DETALLE DE LA COMPOSICIÓN SALARIAL", 6.5, True)
+    _text(c, x + 210, top - 8, "TRABAJADOR", 5.7, True)
+    _text(c, x + 278, top - 8, "EMPLEADOR", 5.7, True)
     yy = top - 21
     for index, name in enumerate(employee):
         if index % 2:
             c.setFillColor(HexColor("#F3F4F6")); c.rect(x, yy - 3, width, row_h, fill=1, stroke=0)
-        _text(c, x + 5, yy, name, 5.5, index == 6)
-        _text(c, x + 263, yy, _money(employee[name]), 5.5, right=True)
-        _text(c, x + 321, yy, _money(employer[name]), 5.5, right=True)
+        _text(c, x + 5, yy, name, 5.8, index == 6)
+        _text(c, x + 263, yy, _money(employee[name]), 5.8, right=True)
+        _text(c, x + 321, yy, _money(employer[name]), 5.8, right=True)
         c.setStrokeColor(LINE); c.line(x, yy - 3, x + width, yy - 3)
         yy -= row_h
     c.rect(x, yy + row_h - 3, width, 14 + row_h * 7, fill=0, stroke=1)
@@ -248,17 +245,17 @@ def _composition_block(
         if employee[name] + employer[name] > 0
     ]
     total_cost = sum((amount for _, amount in grouped), Decimal("0")) or Decimal("1")
-    _pie_chart(c, 414, top - 39, 34, grouped)
+    _pie_chart(c, 414, top - 41, 38, grouped)
     legend_x, legend_y = 456, top - 8
     for index, (name, amount) in enumerate(grouped):
         c.setFillColor(_COMPOSITION_COLORS[index % len(_COMPOSITION_COLORS)])
         c.rect(legend_x, legend_y - 4, 6, 6, fill=1, stroke=0)
         pct = amount / total_cost * 100
-        _text(c, legend_x + 10, legend_y - 3, _fit(name, 72, 5.1), 5.1)
-        _text(c, 565, legend_y - 3, f"{pct:.1f}%".replace(".", ","), 5.1, True, right=True)
+        _text(c, legend_x + 10, legend_y - 3, _fit(name, 72, 5.4), 5.4)
+        _text(c, 565, legend_y - 3, f"{pct:.1f}%".replace(".", ","), 5.4, True, right=True)
         legend_y -= 9
     _text(c, 565, top - 80, f"Costo total: {_money(total_cost)}", 6.3, True, GREEN, True)
-    return top - 86
+    return top - 92
 
 
 def generar_recibo_pdf(data: dict[str, Any]) -> bytes:
@@ -269,21 +266,22 @@ def generar_recibo_pdf(data: dict[str, Any]) -> bytes:
     contributions = [r for r in concepts if r["tipo"] == "contribucion"]
     worker = [r for r in concepts if r["tipo"] != "contribucion"]
     count = len(contributions) + len(worker)
-    row_h = 11 if count <= 22 else max(6.3, 175 / max(count, 1))
-    font = 6.5 if count <= 22 else max(5.1, row_h - 1.5)
+    row_h = 12 if count <= 22 else max(6.3, 185 / max(count, 1))
+    font = 7 if count <= 22 else max(4.5, row_h - 2.1)
 
-    c.setFillColor(GREEN); c.rect(20, 775, 555, 47, fill=1, stroke=0)
-    _logo(c, 45, 798); _text(c, 70, 801, "SUELDO CLARO", 12, True, white)
-    _text(c, 70, 785, "RECIBO DE HABERES", 8, True, white)
-    _text(c, 558, 800, f"PERÍODO {data['periodo']}", 8.5, True, white, True)
-    _text(c, 558, 785, "ANEXO III - DECRETO 407/2026", 6.2, False, white, True)
+    # Encabezado documental compacto. La marca pertenece a la aplicación y no
+    # ocupa espacio en el instrumento laboral impreso.
+    c.setStrokeColor(DARK); c.setLineWidth(.8); c.line(24, 810, 571, 810)
+    _text(c, 24, 818, "RECIBO DE HABERES", 10, True)
+    _text(c, 571, 818, f"PERÍODO {data['periodo']}", 8.5, True, right=True)
 
-    y = _section(c, 765, "DATOS DEL EMPLEADOR, TRABAJADOR Y PAGO")
+    y = _section(c, 800, "1. DATOS DEL EMPLEADOR, TRABAJADOR Y PAGO")
     e, w = data["empresa"], data["empleado"]
     left = (("Empleador", e["razon_social"]), ("CUIT", e["cuit"]), ("Domicilio", e["domicilio"]),
             ("Pago sueldo", f"{_date_display(data['pago']['fecha'])} - {data['pago']['lugar']} - {data['pago']['forma']}"),
             ("Último pago cargas", f"{_date_display(data['cargas_sociales']['fecha'])} - {data['cargas_sociales']['lugar']}"))
-    right = (("Trabajador", f"{w['nombre']} {w['apellido']}"), ("CUIL / Legajo", f"{w['cuil']} / {w.get('legajo') or '-'}"),
+    worker_name = f"{w['nombre']} {w['apellido']}".strip().title()
+    right = (("Trabajador", worker_name), ("CUIL / Legajo", f"{w['cuil']} / {w.get('legajo') or '-'}"),
              ("Ingreso / Antig.", f"{_date_display(w['fecha_ingreso'])} / {w.get('antiguedad') or '-'}"),
              ("Categoría / CCT", f"{w['categoria']} / {w.get('cct_numero') or '-'}"),
              ("Modalidad", w.get("modalidad_contrato") or "-"))
@@ -291,11 +289,11 @@ def generar_recibo_pdf(data: dict[str, Any]) -> bytes:
     c.setStrokeColor(LINE); c.line(297, y - 62, 297, y + 6)
     for i, ((ll, vl), (lr, vr)) in enumerate(zip(left, right)):
         yy = y - 7 - i * 12
-        _text(c, 34, yy, ll + ":", 6.2, True, GRAY); _text(c, 104, yy, _fit(vl, 183, 6.2), 6.2)
-        _text(c, 303, yy, lr + ":", 6.2, True, GRAY); _text(c, 382, yy, _fit(vr, 176, 6.2), 6.2)
+        _text(c, 34, yy, ll + ":", 6.7, True, GRAY); _text(c, 104, yy, _fit(vl, 183, 6.7), 6.7)
+        _text(c, 303, yy, lr + ":", 6.7, True, GRAY); _text(c, 382, yy, _fit(vr, 176, 6.7), 6.7)
     y -= 72
 
-    y = _section(c, y, "CONTRIBUCIONES Y CONCEPTOS A CARGO DEL EMPLEADOR")
+    y = _section(c, y, "2. CONTRIBUCIONES Y CONCEPTOS A CARGO DEL EMPLEADOR")
     y = _table_header(c, y)
     for index, row in enumerate(contributions): y = _row(c, y, row, font, row_h, index % 2 == 1)
     total = sum((_decimal(r["importe"]) for r in contributions), Decimal("0"))
@@ -303,7 +301,7 @@ def generar_recibo_pdf(data: dict[str, Any]) -> bytes:
     _text(c, 375, y, "TOTAL EMPLEADOR", 6.7, True); _text(c, 558, y, _money(total), 7, True, DARK, True)
     y -= 20
 
-    y = _section(c, y, "REMUNERACIÓN BRUTA, HABERES Y DEDUCCIONES")
+    y = _section(c, y, "3. REMUNERACIÓN BRUTA, HABERES Y DEDUCCIONES")
     y = _table_header(c, y)
     grupos = (("REMUNERATIVOS", "remunerativo"), ("NO REMUNERATIVOS", "no_remunerativo"), ("DESCUENTOS", "deduccion"))
     shade = 0
@@ -318,7 +316,7 @@ def generar_recibo_pdf(data: dict[str, Any]) -> bytes:
     _text(c, 330, y, f"DESCUENTOS: {_money(data['total_deducciones'])}", 7, True)
     y -= 22
 
-    y = _section(c, y, "SUELDO NETO")
+    y = _section(c, y, "4. SUELDO NETO")
     c.setFillColor(white); c.setStrokeColor(DARK); c.setLineWidth(1); c.rect(28, y - 28, 540, 35, fill=1, stroke=1)
     _text(c, 38, y - 7, "NETO A COBRAR", 8.5, True, DARK)
     _text(c, 558, y - 7, _money(data["neto"]), 11, True, GREEN, True)
@@ -332,7 +330,7 @@ def generar_recibo_pdf(data: dict[str, Any]) -> bytes:
     sy = 82
     c.setStrokeColor(GRAY); c.line(45, sy, 250, sy); c.line(345, sy, 550, sy)
     _text(c, 103, sy - 14, "Firma del empleador", 7)
-    _text(c, 381, sy - 14, "Recibí el duplicado - Firma del trabajador", 7)
+    _text(c, 395, sy - 14, "Recibí copia fiel - Firma del trabajador", 7)
     c.setFillColor(PALE); c.rect(20, 20, 555, 25, fill=1, stroke=0)
-    _text(c, 297, 30, "Original para el trabajador - Conservar el duplicado firmado por el empleador", 6.2, color=GRAY, right=True)
+    _text(c, 297, 30, "Recibo confeccionado conforme a los artículos 139 y 140 de la LCT", 6.2, color=GRAY, right=True)
     c.showPage(); c.save(); return output.getvalue()
