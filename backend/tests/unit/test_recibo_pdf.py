@@ -5,7 +5,7 @@ import io
 import pytest
 from pypdf import PdfReader
 
-from infrastructure.pdf.recibo import _cost_group, _unit, generar_recibo_pdf
+from infrastructure.pdf.recibo import _cost_group, _date_display, _unit, generar_recibo_pdf
 
 
 def test_recibo_backend_es_pdf_a4_de_una_sola_pagina():
@@ -57,6 +57,13 @@ def test_porcentajes_conservan_el_valor_completo():
     assert _unit("6.00%") == "6%"
     assert _unit("1.00000000% por año") == "1% por año"
     assert _unit("8.33%") == "8,33%"
+    assert _unit("1/12.0000") == "8,33%"
+
+
+def test_fechas_del_recibo_siempre_se_muestran_dia_mes_anio():
+    assert _date_display("2026-08-19") == "19/08/2026"
+    assert _date_display("2026/08/19") == "19/08/2026"
+    assert _date_display("19/08/2026") == "19/08/2026"
 
 
 def test_contribuciones_patronales_se_clasifican_como_seguridad_social():

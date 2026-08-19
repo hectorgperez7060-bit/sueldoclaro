@@ -48,6 +48,16 @@ def test_ui_incluye_identidad_visual_propia_en_app_y_recibo():
     assert "Google" not in HTML
 
 
+def test_ui_ofrece_navegacion_y_cambio_de_empresa_sin_mezclar_contextos():
+    assert 'class="lateral"' in HTML
+    assert 'id="empresaActiva" onchange="cambiarEmpresa(this.value)"' in HTML
+    assert 'id="nuevaEmpresa"' in HTML
+    assert "async function cargarEmpresas()" in HTML
+    assert "api('/auth/empresas')" in HTML
+    assert "api('/auth/seleccionar-empresa','POST'" in HTML
+    assert "Los empleados y liquidaciones visibles pertenecen únicamente" in HTML
+
+
 def test_recibo_imprime_antiguedad_singular_y_evitar_enlaces_azules_ios():
     assert "a===1?'año':'años'" in HTML
     assert "a[x-apple-data-detectors]" in HTML

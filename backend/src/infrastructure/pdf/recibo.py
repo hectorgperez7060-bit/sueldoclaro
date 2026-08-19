@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import math
+import re
 from decimal import Decimal
 from io import BytesIO
 from typing import Any
@@ -26,8 +27,8 @@ def _money(value: Any) -> str:
 
 def _date_display(value: Any) -> str:
     text = str(value or "")
-    parts = text.split("-")
-    return f"{parts[2]}/{parts[1]}/{parts[0]}" if len(parts) == 3 else text
+    match = re.fullmatch(r"(\d{4})[-/](\d{2})[-/](\d{2})", text)
+    return f"{match[3]}/{match[2]}/{match[1]}" if match else text
 
 
 _UNITS = ("", "uno", "dos", "tres", "cuatro", "cinco", "seis", "siete", "ocho", "nueve")
@@ -124,6 +125,8 @@ def _section(c: Canvas, y: float, title: str) -> float:
 
 def _unit(value: Any) -> str:
     text = str(value or "")
+    if re.fullmatch(r"1/12(?:\.0+)?", text.strip()):
+        return "8,33%"
     if "%" in text:
         try:
             raw_number, suffix = text.split("%", 1)

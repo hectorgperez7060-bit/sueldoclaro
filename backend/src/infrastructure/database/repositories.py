@@ -83,6 +83,18 @@ class TenantRepo:
         self.s.add(m.UsuarioTenant(tenant_id=tenant_id, usuario_id=usuario_id, rol=rol))
         await self.s.flush()
 
+    async def listar_del_usuario(self, usuario_id: uuid.UUID) -> list[tuple[m.Tenant, str]]:
+        r = await self.s.execute(
+            select(m.Tenant, m.UsuarioTenant.rol)
+            .join(m.UsuarioTenant, m.UsuarioTenant.tenant_id == m.Tenant.id)
+            .where(
+                m.UsuarioTenant.usuario_id == usuario_id,
+                m.Tenant.estado == "activo",
+            )
+            .order_by(m.Tenant.razon_social)
+        )
+        return [(tenant, rol) for tenant, rol in r.all()]
+
 
 # --------------------------------------------------------------------------- #
 # Empleado (RLS)

@@ -4,11 +4,15 @@ from __future__ import annotations
 import uuid
 
 import jwt
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status
 
-from application.dto.schemas import Login, RefreshRequest, RegistroEstudio, TokenResponse
+from api.dependencies.auth import Principal, get_principal
+from application.dto.schemas import (
+    EmpresaIn, EmpresaOut, Login, RefreshRequest, RegistroEstudio,
+    SeleccionarEmpresa, TokenResponse,
+)
 from application.use_cases.registrar_estudio import RegistrarEstudio
-from infrastructure.database.repositories import UsuarioRepo
+from infrastructure.database.repositories import TenantRepo, UsuarioRepo
 from infrastructure.database.session import plain_session
 from infrastructure.security.passwords import verify_password
 from infrastructure.security.tokens import (
@@ -73,3 +77,54 @@ async def refresh(body: RefreshRequest):
     # rotación: revoca el viejo, emite uno nuevo
     store.revocar(jti)
     return _emitir_par(sub, payload.get("tid"), payload.get("rol"))
+
+
+@router.get("/empresas", response_model=list[EmpresaOut])
+async def listar_empresas(principal: Principal = Depends(get_principal)):
+    """Empresas a las que pertenece el usuario; nunca expone clientes ajenos."""
+    async with plain_session() as s:
+        filas = await TenantRepo(s).listar_del_usuario(uuid.UUID(principal.usuario_id))
+        return [
+            EmpresaOut(
+                id=str(empresa.id), razon_social=empresa.razon_social,
+                cuit=empresa.cuit, rol=rol,
+                activa=str(empresa.id) == principal.tenant_id,
+            )
+            for empresa, rol in filas
+        ]
+
+
+@router.post("/empresas", response_model=TokenResponse, status_code=201)
+async def crear_empresa(body: EmpresaIn, principal: Principal = Depends(get_principal)):
+    """Crea un cliente separado y devuelve una sesión limitada a ese cliente."""
+    cuit = "".join(ch for ch in body.cuit if ch.isdigit())
+    if len(cuit) != 11:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "El CUIT debe tener 11 dígitos")
+    tenant_id = uuid.uuid4()
+    async with plain_session() as s:
+        repo = TenantRepo(s)
+        existentes = await repo.listar_del_usuario(uuid.UUID(principal.usuario_id))
+        if any("".join(ch for ch in empresa.cuit if ch.isdigit()) == cuit for empresa, _ in existentes):
+            raise HTTPException(
+                status.HTTP_409_CONFLICT,
+                "Esa empresa ya está agregada a tu cuenta",
+            )
+        await repo.crear(tenant_id, body.razon_social.strip(), cuit)
+        await repo.agregar_miembro(tenant_id, uuid.UUID(principal.usuario_id), "admin")
+    return _emitir_par(principal.usuario_id, str(tenant_id), "admin")
+
+
+@router.post("/seleccionar-empresa", response_model=TokenResponse)
+async def seleccionar_empresa(
+    body: SeleccionarEmpresa,
+    principal: Principal = Depends(get_principal),
+):
+    try:
+        tenant_id = uuid.UUID(body.tenant_id)
+    except ValueError as exc:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "Empresa inválida") from exc
+    async with plain_session() as s:
+        membresia = await UsuarioRepo(s).membresia(uuid.UUID(principal.usuario_id), tenant_id)
+        if membresia is None:
+            raise HTTPException(status.HTTP_403_FORBIDDEN, "No pertenecés a esa empresa")
+    return _emitir_par(principal.usuario_id, str(tenant_id), membresia.rol)

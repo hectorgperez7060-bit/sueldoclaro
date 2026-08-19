@@ -34,6 +34,23 @@ class TokenResponse(BaseModel):
     rol: Optional[str] = None
 
 
+class EmpresaIn(BaseModel):
+    razon_social: str = Field(min_length=2, max_length=200)
+    cuit: str = Field(min_length=11, max_length=13)
+
+
+class EmpresaOut(BaseModel):
+    id: str
+    razon_social: str
+    cuit: str
+    rol: str
+    activa: bool = False
+
+
+class SeleccionarEmpresa(BaseModel):
+    tenant_id: str
+
+
 # --- Empleados ---
 class EmpleadoIn(BaseModel):
     nombre: str

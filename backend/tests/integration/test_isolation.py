@@ -55,3 +55,50 @@ async def test_listado_no_filtra_datos_cruzados(app_client):
 async def test_sin_token_401(app_client):
     r = await app_client.get("/empleados")
     assert r.status_code in (401, 403)
+
+
+async def test_un_usuario_administra_empresas_sin_mezclar_empleados(app_client):
+    primera = await _registrar(
+        app_client, "Empresa Uno", "30333333334", "estudio@contador.com",
+    )
+    creada = await app_client.post(
+        "/auth/empresas",
+        headers=_auth(primera["access_token"]),
+        json={"razon_social": "Empresa Dos", "cuit": "30444444441"},
+    )
+    assert creada.status_code == 201, creada.text
+    segunda = creada.json()
+    assert segunda["tenant_id"] != primera["tenant_id"]
+
+    await _crear_empleado(
+        app_client, primera["access_token"], "SoloPrimera", "20123456786",
+    )
+    await _crear_empleado(
+        app_client, segunda["access_token"], "SoloSegunda", "27123456780",
+    )
+
+    empleados_primera = await app_client.get(
+        "/empleados", headers=_auth(primera["access_token"]),
+    )
+    empleados_segunda = await app_client.get(
+        "/empleados", headers=_auth(segunda["access_token"]),
+    )
+    assert [e["apellido"] for e in empleados_primera.json()] == ["SoloPrimera"]
+    assert [e["apellido"] for e in empleados_segunda.json()] == ["SoloSegunda"]
+
+    listado = await app_client.get(
+        "/auth/empresas", headers=_auth(segunda["access_token"]),
+    )
+    assert listado.status_code == 200
+    assert {e["razon_social"] for e in listado.json()} == {"Empresa Uno", "Empresa Dos"}
+
+
+async def test_no_puede_activar_empresa_ajena(app_client):
+    a = await _registrar(app_client, "Empresa A", "30555555559", "aa@estudio.com")
+    b = await _registrar(app_client, "Empresa B", "30666666666", "bb@estudio.com")
+    intento = await app_client.post(
+        "/auth/seleccionar-empresa",
+        headers=_auth(a["access_token"]),
+        json={"tenant_id": b["tenant_id"]},
+    )
+    assert intento.status_code == 403

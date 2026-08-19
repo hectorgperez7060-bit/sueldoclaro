@@ -18,7 +18,7 @@ HTML = r"""<!DOCTYPE html>
   .marca{display:flex;align-items:center;gap:9px}
   .marca svg{width:38px;height:38px;flex:none}
   header small{opacity:.85}
-  .contenedor{max-width:960px;margin:24px auto;padding:0 16px}
+  .contenedor{max-width:1280px;margin:24px auto;padding:0 16px}
   .tarjeta{background:#fff;border:1px solid var(--borde);border-radius:12px;padding:20px;margin-bottom:20px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
   h2{font-size:1.05rem;margin-bottom:12px;color:var(--verde)}
   label{display:block;font-size:.85rem;margin:10px 0 4px;color:#374151}
@@ -44,6 +44,27 @@ HTML = r"""<!DOCTYPE html>
   .etiqueta{display:inline-block;background:#e0f2f1;color:var(--verde);border-radius:999px;padding:2px 10px;font-size:.75rem;margin-left:6px}
   .amparo{background:#ede9fe;color:#5b21b6}
   #app{display:none}
+  .sesion-activa>header{display:none}
+  .app-layout{display:grid;grid-template-columns:240px minmax(0,1fr);gap:22px;align-items:start}
+  .lateral{position:sticky;top:16px;background:#fff;border:1px solid var(--borde);border-radius:14px;padding:16px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+  .marca-lateral{display:flex;align-items:center;gap:10px;color:var(--verde);margin-bottom:18px}
+  .marca-lateral svg{width:40px;height:40px;flex:none;background:var(--verde);border-radius:10px;padding:6px}
+  .marca-lateral strong{font-size:1.08rem}
+  .selector-empresa{background:#f0fdfa;border:1px solid #99f6e4;border-radius:10px;padding:10px;margin-bottom:14px}
+  .selector-empresa label{margin:0 0 5px;font-weight:600;color:var(--verde)}
+  .selector-empresa select{background:#fff;font-weight:600}
+  .navegacion{display:grid;gap:5px}
+  .navegacion button{display:flex;align-items:center;gap:9px;width:100%;margin:0;padding:9px 11px;text-align:left;background:transparent;color:#374151;border:1px solid transparent}
+  .navegacion button:hover,.navegacion button.activo{background:#e0f2f1;color:var(--verde);border-color:#99f6e4}
+  .navegacion .icono{width:20px;text-align:center}
+  .lateral-pie{border-top:1px solid var(--borde);margin-top:14px;padding-top:12px}
+  .lateral-pie button{width:100%;margin:0}
+  .contenido-app{min-width:0}
+  .contexto-empresa{display:flex;justify-content:space-between;gap:12px;align-items:center;background:#ecfdf5;border:1px solid #a7f3d0;border-radius:10px;padding:10px 14px;margin-bottom:14px;color:#065f46}
+  .pasos{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px}
+  .paso{background:#fff;border:1px solid var(--borde);border-radius:9px;padding:9px;font-size:.82rem;color:#6b7280}
+  .paso b{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;background:#e5e7eb;margin-right:5px}
+  .paso.activo{border-color:#5eead4;color:var(--verde);font-weight:600}.paso.activo b{background:var(--verde);color:#fff}
   .cabecera-seccion{display:flex;justify-content:space-between;align-items:center}
   .detalle{margin-top:14px;border:1px solid var(--borde);border-radius:10px;padding:14px}
   .acciones-tabla{display:flex;gap:6px;white-space:nowrap}
@@ -61,6 +82,12 @@ HTML = r"""<!DOCTYPE html>
     table.tabla-movil td.acciones-celda{display:block}
     table.tabla-movil td.acciones-celda::before{display:none}
     .acciones-tabla button{flex:1;min-height:38px}
+    .app-layout{grid-template-columns:1fr;gap:12px}
+    .lateral{position:static;padding:12px}
+    .navegacion{grid-template-columns:1fr 1fr}
+    .navegacion button{font-size:.82rem}
+    .pasos{grid-template-columns:1fr 1fr}
+    .contexto-empresa{align-items:flex-start;flex-direction:column}
   }
 </style>
 </head>
@@ -102,14 +129,45 @@ HTML = r"""<!DOCTYPE html>
   </div>
 
   <div id="app">
-    <div class="tarjeta">
+    <div class="app-layout">
+      <aside class="lateral" aria-label="Menú principal">
+        <div class="marca-lateral">
+          <svg viewBox="0 0 64 64" role="img" aria-label="Logo Sueldo Claro">
+            <path d="M12 7h27l10 10v25H12z" fill="none" stroke="#fff" stroke-width="5" stroke-linejoin="round"/>
+            <path d="M39 7v11h10M20 24h19M20 33h12" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="m31 45 8 8 15-18" fill="none" stroke="#fbbf24" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <div><strong>Sueldo Claro</strong><small style="display:block;color:#6b7280">Gestión laboral</small></div>
+        </div>
+        <div class="selector-empresa">
+          <label for="empresaActiva">Empresa activa</label>
+          <select id="empresaActiva" onchange="cambiarEmpresa(this.value)"></select>
+          <button class="chico secundario" style="width:100%;margin-top:8px" onclick="mostrarNuevaEmpresa()">+ Nueva empresa</button>
+        </div>
+        <nav class="navegacion">
+          <button class="activo" onclick="irA('seccionEmpleados',this)"><span class="icono">👥</span>Empleados</button>
+          <button onclick="irA('seccionNovedades',this)"><span class="icono">🗓</span>Novedades</button>
+          <button onclick="irA('seccionLiquidar',this)"><span class="icono">🧮</span>Liquidar</button>
+          <button onclick="irA('seccionHistorial',this)"><span class="icono">📁</span>Historial</button>
+        </nav>
+        <div class="lateral-pie"><button class="chico secundario" onclick="salir()">Cerrar sesión</button></div>
+      </aside>
+      <main class="contenido-app">
+        <div class="contexto-empresa"><span><b id="empresaNombreActiva">Empresa</b><br><small>Los empleados y liquidaciones visibles pertenecen únicamente a esta empresa.</small></span><span id="empresaRol" class="etiqueta"></span></div>
+        <div class="pasos" aria-label="Camino para liquidar"><div class="paso activo"><b>1</b>Empresa</div><div class="paso activo"><b>2</b>Empleados</div><div class="paso"><b>3</b>Período</div><div class="paso"><b>4</b>Liquidar</div></div>
+        <div id="nuevaEmpresa" class="tarjeta" style="display:none">
+          <div class="cabecera-seccion"><h2>Nueva empresa o cliente</h2><button class="chico secundario" onclick="mostrarNuevaEmpresa(false)">Cerrar</button></div>
+          <p style="font-size:.88rem;color:#6b7280">Se creará un espacio independiente. Sus empleados y liquidaciones nunca se mezclarán con otra empresa.</p>
+          <div class="fila"><div><label>Razón social</label><input id="nuevaEmpresaRazon" placeholder="Empresa cliente S.A."></div><div><label>CUIT</label><input id="nuevaEmpresaCuit" inputmode="numeric" maxlength="13" placeholder="30123456789"></div></div>
+          <button onclick="crearEmpresa()">Crear y comenzar a trabajar</button><div id="empresaError" class="error"></div>
+        </div>
+    <div class="tarjeta" id="seccionEmpleados">
       <div class="cabecera-seccion">
         <h2>Empleados</h2>
         <div style="display:flex;gap:6px;flex-wrap:wrap">
           <button class="chico secundario" onclick="toggleAlta()">+ Agregar manual</button>
           <label class="chico secundario" style="cursor:pointer;display:inline-flex;align-items:center;margin:0">+ Importar Excel (.xlsx)<input type="file" id="inputExcel" accept=".xlsx" style="display:none" onchange="subirExcelPreview(this)"></label>
           <button class="chico secundario" onclick="descargarPlantillaExcel()" title="Descargar plantilla para importar empleados">📥 Plantilla de empleados</button>
-          <button class="chico secundario" onclick="salir()">Salir</button>
         </div>
       </div>
 
@@ -199,7 +257,7 @@ HTML = r"""<!DOCTYPE html>
       <p id="sinEmpleados" style="margin-top:10px;color:#6b7280;font-size:.9rem">Todavía no cargaste empleados.</p>
     </div>
 
-    <div class="tarjeta">
+    <div class="tarjeta" id="seccionNovedades">
       <div class="cabecera-seccion">
         <h2>Novedades mensuales</h2>
         <button class="chico secundario" onclick="toggleNovedad()">+ Cargar novedad</button>
@@ -296,7 +354,7 @@ HTML = r"""<!DOCTYPE html>
       <p id="sinNovedades" style="margin-top:10px;color:#6b7280;font-size:.9rem">No hay novedades cargadas para este mes.</p>
     </div>
 
-    <div class="tarjeta">
+    <div class="tarjeta" id="seccionLiquidar">
       <h2>Liquidar sueldos</h2>
       <div class="fila">
         <div><label>Mes a liquidar</label><input id="periodo" type="month" onchange="cargarConvenios();cargarCarpetas();mostrarEstadoNormativo()"></div>
@@ -307,7 +365,7 @@ HTML = r"""<!DOCTYPE html>
       <div id="resultados"></div>
     </div>
 
-    <div class="tarjeta">
+    <div class="tarjeta" id="seccionHistorial">
       <div class="cabecera-seccion">
         <h2>Carpeta mensual</h2>
         <button class="chico secundario" onclick="cargarCarpetas()">Actualizar historial</button>
@@ -316,6 +374,8 @@ HTML = r"""<!DOCTYPE html>
       <div class="error" id="carpetasError"></div>
       <table id="tablaCarpetas" class="tabla-movil" style="display:none"><thead><tr><th>Mes</th><th>Versión</th><th>Estado</th><th>Creada</th><th>Huella</th></tr></thead><tbody></tbody></table>
       <p id="sinCarpetas" style="margin-top:10px;color:#6b7280;font-size:.9rem">Todavía no hay carpetas generadas para este mes.</p>
+    </div>
+      </main>
     </div>
   </div>
 </div>
@@ -358,6 +418,7 @@ async function renovarSesion(){
         const d=await r.json();
         localStorage.setItem('sc_access',d.access_token);
         localStorage.setItem('sc_refresh',d.refresh_token);
+        if(d.tenant_id) localStorage.setItem('sc_tenant',d.tenant_id);
         return true;
       }catch(e){ return false; }
       finally{ renovacionEnCurso=null; }
@@ -388,9 +449,13 @@ async function api(ruta, metodo='GET', body=null, reintento=true){
   return data;
 }
 
-function guardarSesion(d){
+function guardarCredenciales(d){
   localStorage.setItem('sc_access', d.access_token);
   localStorage.setItem('sc_refresh', d.refresh_token);
+  if(d.tenant_id) localStorage.setItem('sc_tenant',d.tenant_id);
+}
+function guardarSesion(d){
+  guardarCredenciales(d);
   entrar();
 }
 async function crearCuenta(){
@@ -409,20 +474,85 @@ async function ingresar(){
     guardarSesion(d);
   }catch(e){ mostrarError('authError', e.message); }
 }
-function salir(){ localStorage.clear(); $('app').style.display='none'; $('auth').style.display='block'; $('quien').textContent=''; }
+function salir(){
+  localStorage.clear(); document.body.classList.remove('sesion-activa');
+  $('app').style.display='none'; $('auth').style.display='block'; $('quien').textContent='';
+}
 
-async function entrar(){
-  $('auth').style.display='none'; $('app').style.display='block';
-  $('quien').textContent='Sesión iniciada';
-  const hoy = new Date();
-  $('periodo').value = hoy.toISOString().slice(0,7);
-  $('novPeriodo').value = $('periodo').value;
-  try{ empresaCache = await api('/empresa'); }catch(e){ /* silencioso */ }
+function irA(id,boton){
+  document.querySelectorAll('.navegacion button').forEach(b=>b.classList.remove('activo'));
+  if(boton) boton.classList.add('activo');
+  $(id).scrollIntoView({behavior:'smooth',block:'start'});
+}
+function mostrarNuevaEmpresa(forzar=true){
+  const panel=$('nuevaEmpresa');
+  panel.style.display=forzar===false?'none':(panel.style.display==='none'?'block':'none');
+  ocultar('empresaError');
+  if(panel.style.display==='block') $('nuevaEmpresaRazon').focus();
+}
+async function cargarEmpresas(){
+  const empresas=await api('/auth/empresas');
+  const activa=localStorage.getItem('sc_tenant');
+  const sel=$('empresaActiva'); sel.innerHTML='';
+  empresas.forEach(e=>{
+    const o=document.createElement('option');
+    o.value=e.id; o.textContent=e.razon_social;
+    if(e.activa||e.id===activa) o.selected=true;
+    sel.appendChild(o);
+  });
+  const elegida=empresas.find(e=>e.id===sel.value)||empresas.find(e=>e.activa)||empresas[0];
+  if(elegida){
+    $('empresaNombreActiva').textContent=elegida.razon_social;
+    $('empresaRol').textContent=elegida.rol==='admin'?'Administrador':elegida.rol;
+  }
+}
+async function cambiarEmpresa(tenantId){
+  if(!tenantId||tenantId===localStorage.getItem('sc_tenant')) return;
+  try{
+    const d=await api('/auth/seleccionar-empresa','POST',{tenant_id:tenantId});
+    guardarCredenciales(d);
+    cancelarEdicion(); cancelarNovedad(); ultimaLiq=null;
+    $('resultados').innerHTML='';
+    await recargarEmpresaActiva();
+  }catch(e){
+    window.alert('No se pudo cambiar de empresa: '+e.message);
+    await cargarEmpresas();
+  }
+}
+async function crearEmpresa(){
+  ocultar('empresaError');
+  const razon=$('nuevaEmpresaRazon').value.trim();
+  const cuit=$('nuevaEmpresaCuit').value.replace(/\D/g,'');
+  if(razon.length<2){mostrarError('empresaError','Escribí la razón social.');return;}
+  if(cuit.length!==11){mostrarError('empresaError','El CUIT debe tener 11 dígitos.');return;}
+  try{
+    const d=await api('/auth/empresas','POST',{razon_social:razon,cuit:cuit});
+    guardarCredenciales(d);
+    $('nuevaEmpresaRazon').value=''; $('nuevaEmpresaCuit').value='';
+    mostrarNuevaEmpresa(false);
+    await recargarEmpresaActiva();
+  }catch(e){mostrarError('empresaError',e.message);}
+}
+
+async function recargarEmpresaActiva(){
+  await cargarEmpresas();
+  empresaCache=await api('/empresa');
   await cargarConvenios();
   await cargarEmpleados();
   await cargarNovedades();
   await mostrarEstadoNormativo();
   await cargarCarpetas();
+}
+
+async function entrar(){
+  document.body.classList.add('sesion-activa');
+  $('auth').style.display='none'; $('app').style.display='block';
+  $('quien').textContent='Sesión iniciada';
+  const hoy = new Date();
+  $('periodo').value = hoy.toISOString().slice(0,7);
+  $('novPeriodo').value = $('periodo').value;
+  try{ await recargarEmpresaActiva(); }
+  catch(e){ salir(); mostrarError('authError',e.message); }
 }
 function toggleAlta(){ const a=$('alta'); a.style.display = a.style.display==='none'?'block':'none'; }
 
