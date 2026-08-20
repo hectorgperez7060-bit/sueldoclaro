@@ -61,8 +61,8 @@ HTML = r"""<!DOCTYPE html>
   .lateral-pie button{width:100%;margin:0}
   .contenido-app{min-width:0}
   .contexto-empresa{display:flex;justify-content:space-between;gap:12px;align-items:center;background:#ecfdf5;border:1px solid #a7f3d0;border-radius:10px;padding:10px 14px;margin-bottom:14px;color:#065f46}
-  .pasos{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px}
-  .paso{background:#fff;border:1px solid var(--borde);border-radius:9px;padding:9px;font-size:.82rem;color:#6b7280}
+  .pasos{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
+  .paso{flex:1 1 120px;min-width:110px;background:#fff;border:1px solid var(--borde);border-radius:9px;padding:9px;font-size:.82rem;color:#6b7280}
   .paso b{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;background:#e5e7eb;margin-right:5px}
   .paso.activo{border-color:#5eead4;color:var(--verde);font-weight:600}.paso.activo b{background:var(--verde);color:#fff}
   .cabecera-seccion{display:flex;justify-content:space-between;align-items:center}
@@ -86,7 +86,7 @@ HTML = r"""<!DOCTYPE html>
     .lateral{position:static;padding:12px}
     .navegacion{grid-template-columns:1fr 1fr}
     .navegacion button{font-size:.82rem}
-    .pasos{grid-template-columns:1fr 1fr}
+    .paso{flex-basis:calc(50% - 6px);font-size:.76rem;padding:7px}
     .contexto-empresa{align-items:flex-start;flex-direction:column}
   }
 </style>
@@ -145,27 +145,67 @@ HTML = r"""<!DOCTYPE html>
           <button class="chico secundario" style="width:100%;margin-top:8px" onclick="mostrarNuevaEmpresa()">+ Nueva empresa</button>
         </div>
         <nav class="navegacion">
-          <button onclick="irA('seccionEstablecimientos',this)"><span class="icono">🏢</span>Establecimientos</button>
-          <button class="activo" onclick="irA('seccionEmpleados',this)"><span class="icono">👥</span>Empleados</button>
+          <button class="activo" onclick="irA('seccionInicio',this)"><span class="icono">🏠</span>Inicio</button>
+          <button onclick="irA('seccionEmpresas',this)"><span class="icono">🏢</span>Empresas</button>
+          <button onclick="irA('seccionEstablecimientos',this)"><span class="icono">📍</span>Establecimientos</button>
+          <button onclick="irA('seccionEmpleados',this)"><span class="icono">👥</span>Empleados</button>
           <button onclick="irA('seccionNovedades',this)"><span class="icono">🗓</span>Novedades</button>
           <button onclick="irA('seccionLiquidar',this)"><span class="icono">🧮</span>Liquidar</button>
-          <button onclick="irA('seccionHistorial',this)"><span class="icono">📁</span>Historial</button>
+          <button onclick="irA('seccionHistorial',this)"><span class="icono">📁</span>Recibos e historial</button>
         </nav>
         <div class="lateral-pie"><button class="chico secundario" onclick="salir()">Cerrar sesión</button></div>
       </aside>
       <main class="contenido-app">
         <div class="contexto-empresa"><span><b id="empresaNombreActiva">Empresa</b><br><small>Los empleados y liquidaciones visibles pertenecen únicamente a esta empresa.</small></span><span id="empresaRol" class="etiqueta"></span></div>
-        <div class="pasos" aria-label="Camino para liquidar"><div class="paso activo"><b>1</b>Empresa</div><div class="paso activo"><b>2</b>Empleados</div><div class="paso"><b>3</b>Período</div><div class="paso"><b>4</b>Liquidar</div></div>
+        <div class="pasos" aria-label="Camino de trabajo"><div class="paso activo"><b>1</b>Cliente / grupo</div><div class="paso activo"><b>2</b>Sociedad / CUIT</div><div class="paso"><b>3</b>Establecimiento</div><div class="paso"><b>4</b>Empleado</div><div class="paso"><b>5</b>Novedades</div><div class="paso"><b>6</b>Liquidación</div><div class="paso"><b>7</b>Recibo</div></div>
         <div id="nuevaEmpresa" class="tarjeta" style="display:none">
           <div class="cabecera-seccion"><h2>Nueva empresa o cliente</h2><button class="chico secundario" onclick="mostrarNuevaEmpresa(false)">Cerrar</button></div>
           <p style="font-size:.88rem;color:#6b7280">Se creará un espacio independiente. Sus empleados y liquidaciones nunca se mezclarán con otra empresa.</p>
           <div class="fila"><div><label>Cliente o grupo (opcional)</label><input id="nuevaEmpresaGrupo" placeholder="Ej.: Familia Pérez"></div><div><label>Razón social</label><input id="nuevaEmpresaRazon" placeholder="Empresa cliente S.A."></div><div><label>CUIT</label><input id="nuevaEmpresaCuit" inputmode="numeric" maxlength="13" placeholder="30123456789"></div></div>
           <button onclick="crearEmpresa()">Crear y comenzar a trabajar</button><div id="empresaError" class="error"></div>
         </div>
+    <div class="tarjeta" id="seccionInicio">
+      <div class="cabecera-seccion"><div><h2>Inicio</h2><p style="font-size:.85rem;color:#6b7280;margin:4px 0 0">Resumen de la empresa activa y accesos rápidos.</p></div></div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-top:14px">
+        <div style="border:1px solid var(--borde);border-radius:12px;padding:14px;background:#f8fafc">
+          <div style="font-size:.72rem;color:#6b7280;text-transform:uppercase;letter-spacing:.03em">Empresa activa</div>
+          <div id="kpiEmpresa" style="font-size:1.05rem;font-weight:700;color:var(--verde);margin-top:4px;line-height:1.15">—</div>
+          <div id="kpiEmpresaCuit" style="font-size:.78rem;color:#6b7280;margin-top:3px"></div>
+        </div>
+        <div style="border:1px solid var(--borde);border-radius:12px;padding:14px;background:#f8fafc">
+          <div style="font-size:.72rem;color:#6b7280;text-transform:uppercase;letter-spacing:.03em">Empleados</div>
+          <div id="kpiEmpleados" style="font-size:1.7rem;font-weight:800;color:var(--verde);margin-top:2px;line-height:1">0</div>
+          <div style="font-size:.78rem;color:#6b7280;margin-top:3px">en esta empresa</div>
+        </div>
+        <div style="border:1px solid var(--borde);border-radius:12px;padding:14px;background:#f8fafc">
+          <div style="font-size:.72rem;color:#6b7280;text-transform:uppercase;letter-spacing:.03em">Establecimientos</div>
+          <div id="kpiEstablecimientos" style="font-size:1.7rem;font-weight:800;color:var(--verde);margin-top:2px;line-height:1">0</div>
+          <div style="font-size:.78rem;color:#6b7280;margin-top:3px">activos</div>
+        </div>
+        <div style="border:1px solid var(--borde);border-radius:12px;padding:14px;background:#f8fafc">
+          <div style="font-size:.72rem;color:#6b7280;text-transform:uppercase;letter-spacing:.03em">Liquidaciones pendientes</div>
+          <div id="kpiPendientes" style="font-size:1.7rem;font-weight:800;color:var(--verde);margin-top:2px;line-height:1">—</div>
+          <div id="kpiEstadoLiq" style="font-size:.78rem;color:#6b7280;margin-top:3px"></div>
+        </div>
+      </div>
+      <h3 style="margin:18px 0 8px;font-size:.95rem">Accesos rápidos</h3>
+      <div style="display:flex;flex-wrap:wrap;gap:8px">
+        <button class="chico" onclick="irA('seccionEmpleados')">👥 Empleados</button>
+        <button class="chico secundario" onclick="irA('seccionNovedades')">🗓 Novedades</button>
+        <button class="chico secundario" onclick="irA('seccionLiquidar')">🧮 Liquidar</button>
+        <button class="chico secundario" onclick="irA('seccionEstablecimientos')">📍 Establecimientos</button>
+        <button class="chico secundario" onclick="irA('seccionHistorial')">📁 Recibos e historial</button>
+      </div>
+    </div>
+    <div class="tarjeta" id="seccionEmpresas">
+      <div class="cabecera-seccion"><div><h2>Empresas y clientes</h2><p style="font-size:.85rem;color:#6b7280;margin:4px 0 0">Cada sociedad (CUIT) es un espacio independiente. Elegí la activa o creá una nueva.</p></div><button class="chico secundario" onclick="mostrarNuevaEmpresa()">+ Nueva empresa</button></div>
+      <table id="tablaEmpresas" class="tabla-movil" style="display:none;margin-top:12px"><thead><tr><th>Cliente / grupo</th><th>Razón social</th><th>Rol</th><th>Estado</th><th></th></tr></thead><tbody></tbody></table>
+      <p id="sinEmpresas" style="margin-top:10px;color:#6b7280;font-size:.9rem">Cargando empresas…</p>
+    </div>
     <div class="tarjeta" id="seccionEstablecimientos">
-      <div class="cabecera-seccion"><div><h2>Establecimientos y domicilios de trabajo</h2><p style="font-size:.85rem;color:#6b7280;margin:4px 0 0">Cada sociedad conserva sus propios lugares. Al cambiar a un empleado queda registrado desde qué fecha trabaja allí.</p></div><button class="chico secundario" onclick="toggleEstablecimiento()">+ Agregar domicilio</button></div>
-      <div id="formEstablecimiento" style="display:none;border:1px dashed var(--borde);border-radius:10px;padding:14px;margin-top:12px"><div class="fila"><div><label>Nombre del lugar</label><input id="estNombre" placeholder="Casa central / Sucursal 1"></div><div><label>Domicilio</label><input id="estDomicilio" placeholder="Calle y número"></div><div><label>Localidad</label><input id="estLocalidad"></div><div><label>Provincia</label><input id="estProvincia"></div><div><label>Actividad del lugar</label><input id="estActividad" placeholder="Comercio, farmacia, depósito..."></div></div><button class="chico" onclick="crearEstablecimiento()">Guardar establecimiento</button><div id="estError" class="error"></div><div id="estOk" class="ok"></div></div>
-      <table id="tablaEstablecimientos" class="tabla-movil" style="display:none"><thead><tr><th>Nombre</th><th>Domicilio</th><th>Localidad</th><th>Provincia</th><th>Actividad</th></tr></thead><tbody></tbody></table><p id="sinEstablecimientos" style="margin-top:10px;color:#6b7280;font-size:.9rem">Todavía no cargaste domicilios de trabajo.</p>
+      <div class="cabecera-seccion"><div><h2>Establecimientos y domicilios de trabajo</h2><p style="font-size:.85rem;color:#6b7280;margin:4px 0 0">Cada sociedad conserva sus propios lugares. Al cambiar a un empleado queda registrado desde qué fecha trabaja allí.</p></div><div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><label style="display:flex;align-items:center;gap:6px;font-size:.82rem;color:#6b7280;margin:0"><input type="checkbox" id="verInactivosEst" onchange="cargarEstablecimientos()" style="width:auto;margin:0"> Ver inactivos</label><button class="chico secundario" onclick="toggleEstablecimiento()">+ Agregar domicilio</button></div></div>
+      <div id="formEstablecimiento" style="display:none;border:1px dashed var(--borde);border-radius:10px;padding:14px;margin-top:12px"><div class="fila"><div><label>Nombre del lugar</label><input id="estNombre" placeholder="Casa central / Sucursal 1"></div><div><label>Domicilio</label><input id="estDomicilio" placeholder="Calle y número"></div><div><label>Localidad</label><input id="estLocalidad"></div><div><label>Provincia</label><input id="estProvincia"></div><div><label>Actividad del lugar</label><input id="estActividad" placeholder="Comercio, farmacia, depósito..."></div></div><input type="hidden" id="estEditId"><button class="chico" id="btnGuardarEst" onclick="guardarEstablecimiento()">Guardar establecimiento</button><button class="chico secundario" id="btnCancelarEst" style="display:none;margin-left:6px" onclick="cancelarEdicionEst()">Cancelar</button><div id="estError" class="error"></div><div id="estOk" class="ok"></div></div>
+      <table id="tablaEstablecimientos" class="tabla-movil" style="display:none"><thead><tr><th>Nombre</th><th>Domicilio</th><th>Localidad</th><th>Provincia</th><th>Actividad</th><th>Estado</th><th></th></tr></thead><tbody></tbody></table><p id="sinEstablecimientos" style="margin-top:10px;color:#6b7280;font-size:.9rem">Todavía no cargaste domicilios de trabajo.</p>
     </div>
     <div class="tarjeta" id="seccionEmpleados">
       <div class="cabecera-seccion">
@@ -389,6 +429,7 @@ HTML = r"""<!DOCTYPE html>
 
 <script>
 const $ = id => document.getElementById(id);
+function esc(t){ return String(t==null?'':t).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 let empleadosCache = {};
 let establecimientosCache = {};
 let editandoEmpleadoId = null;
@@ -489,8 +530,9 @@ function salir(){
 
 function irA(id,boton){
   document.querySelectorAll('.navegacion button').forEach(b=>b.classList.remove('activo'));
+  if(!boton){ boton=[...document.querySelectorAll('.navegacion button')].find(b=>(b.getAttribute('onclick')||'').includes("irA('"+id+"'")); }
   if(boton) boton.classList.add('activo');
-  $(id).scrollIntoView({behavior:'smooth',block:'start'});
+  const destino=$(id); if(destino) destino.scrollIntoView({behavior:'smooth',block:'start'});
 }
 function mostrarNuevaEmpresa(forzar=true){
   const panel=$('nuevaEmpresa');
@@ -551,6 +593,8 @@ async function recargarEmpresaActiva(){
   await cargarNovedades();
   await mostrarEstadoNormativo();
   await cargarCarpetas();
+  await cargarEmpresasSeccion();
+  await cargarInicio();
 }
 
 async function entrar(){
@@ -566,24 +610,100 @@ async function entrar(){
 function toggleAlta(){ const a=$('alta'); a.style.display = a.style.display==='none'?'block':'none'; }
 function toggleEstablecimiento(){ const a=$('formEstablecimiento'); a.style.display=a.style.display==='none'?'block':'none'; }
 async function cargarEstablecimientos(){
-  const lista=await api('/establecimientos'); establecimientosCache={};
+  const verInactivos=$('verInactivosEst') && $('verInactivosEst').checked;
+  const lista=await api('/establecimientos?incluir_inactivos=true'); establecimientosCache={};
   const tb=$('tablaEstablecimientos').querySelector('tbody'); tb.innerHTML='';
   const sel=$('eEstablecimiento'); const elegido=sel.value;
   sel.innerHTML='<option value="">Sin establecimiento asignado</option>';
+  let visibles=0;
   lista.forEach(e=>{
     establecimientosCache[e.id]=e;
-    const tr=document.createElement('tr'); tr.innerHTML=`<td data-label="Nombre">${e.nombre}</td><td data-label="Domicilio">${e.domicilio}</td><td data-label="Localidad">${e.localidad||''}</td><td data-label="Provincia">${e.provincia||''}</td><td data-label="Actividad">${e.actividad||''}</td>`; tb.appendChild(tr);
-    const o=document.createElement('option'); o.value=e.id; o.textContent=`${e.nombre} — ${e.domicilio}${e.localidad?', '+e.localidad:''}`; sel.appendChild(o);
+    if(verInactivos || e.activo){
+      visibles++;
+      const tr=document.createElement('tr'); if(!e.activo) tr.style.opacity='.55';
+      const estado=e.activo?'<span class="etiqueta">Activo</span>':'<span style="display:inline-block;background:#fee2e2;color:#991b1b;border-radius:999px;padding:2px 10px;font-size:.75rem">Inactivo</span>';
+      const acciones=`<div class="acciones-tabla"><button class="chico secundario" onclick="editarEstablecimiento('${e.id}')" title="Editar">✏️ Editar</button><button class="chico secundario" onclick="cambiarActivoEstablecimiento('${e.id}')" title="${e.activo?'Desactivar':'Activar'}">${e.activo?'🚫 Desactivar':'✅ Activar'}</button></div>`;
+      tr.innerHTML=`<td data-label="Nombre">${esc(e.nombre)}</td><td data-label="Domicilio">${esc(e.domicilio)}</td><td data-label="Localidad">${esc(e.localidad||'')}</td><td data-label="Provincia">${esc(e.provincia||'')}</td><td data-label="Actividad">${esc(e.actividad||'')}</td><td data-label="Estado">${estado}</td><td class="acciones-celda">${acciones}</td>`;
+      tb.appendChild(tr);
+    }
+    { const o=document.createElement('option'); o.value=e.id; o.textContent=`${e.nombre} — ${e.domicilio}${e.localidad?', '+e.localidad:''}`+(e.activo?'':' (Inactivo)'); if(!e.activo) o.disabled=true; sel.appendChild(o); }
   });
   if([...sel.options].some(o=>o.value===elegido)) sel.value=elegido;
-  $('tablaEstablecimientos').style.display=lista.length?'table':'none'; $('sinEstablecimientos').style.display=lista.length?'none':'block';
+  $('tablaEstablecimientos').style.display=visibles?'table':'none'; $('sinEstablecimientos').style.display=visibles?'none':'block';
 }
-async function crearEstablecimiento(){
+function limpiarFormEst(){
+  ['estNombre','estDomicilio','estLocalidad','estProvincia','estActividad','estEditId'].forEach(id=>$(id).value='');
+  $('btnGuardarEst').textContent='Guardar establecimiento';
+  $('btnCancelarEst').style.display='none';
+}
+function cancelarEdicionEst(){ limpiarFormEst(); ocultar('estError'); ocultar('estOk'); $('formEstablecimiento').style.display='none'; }
+function editarEstablecimiento(id){
+  const e=establecimientosCache[id]; if(!e) return;
+  ocultar('estError'); ocultar('estOk');
+  $('estEditId').value=e.id; $('estNombre').value=e.nombre||''; $('estDomicilio').value=e.domicilio||'';
+  $('estLocalidad').value=e.localidad||''; $('estProvincia').value=e.provincia||''; $('estActividad').value=e.actividad||'';
+  $('btnGuardarEst').textContent='Guardar cambios'; $('btnCancelarEst').style.display='inline-block';
+  $('formEstablecimiento').style.display='block'; $('estNombre').focus();
+}
+async function guardarEstablecimiento(){
+  ocultar('estError'); ocultar('estOk');
+  const id=$('estEditId').value;
+  const datos={nombre:$('estNombre').value.trim(),domicilio:$('estDomicilio').value.trim(),localidad:$('estLocalidad').value.trim(),provincia:$('estProvincia').value.trim(),actividad:$('estActividad').value.trim(),activo:true};
+  try{
+    if(id){ const prev=establecimientosCache[id]; datos.activo=prev?prev.activo:true; await api('/establecimientos/'+id,'PUT',datos); }
+    else{ await api('/establecimientos','POST',datos); }
+    limpiarFormEst(); $('estOk').textContent=id?'Establecimiento actualizado ✔':'Establecimiento guardado ✔'; $('estOk').style.display='block';
+    await cargarEstablecimientos(); await cargarInicio();
+  }catch(e){mostrarError('estError',e.message);}
+}
+async function cambiarActivoEstablecimiento(id){
+  const e=establecimientosCache[id]; if(!e) return;
+  if(e.activo && !window.confirm(`¿Desactivar el establecimiento "${e.nombre}"? No se podrá asignar a nuevos empleados.`)) return;
   ocultar('estError'); ocultar('estOk');
   try{
-    await api('/establecimientos','POST',{nombre:$('estNombre').value.trim(),domicilio:$('estDomicilio').value.trim(),localidad:$('estLocalidad').value.trim(),provincia:$('estProvincia').value.trim(),actividad:$('estActividad').value.trim(),activo:true});
-    ['estNombre','estDomicilio','estLocalidad','estProvincia','estActividad'].forEach(id=>$(id).value=''); $('estOk').textContent='Establecimiento guardado ✔'; $('estOk').style.display='block'; await cargarEstablecimientos();
-  }catch(e){mostrarError('estError',e.message);}
+    await api('/establecimientos/'+id,'PUT',{nombre:e.nombre,domicilio:e.domicilio,localidad:e.localidad||'',provincia:e.provincia||'',actividad:e.actividad||'',activo:!e.activo});
+    await cargarEstablecimientos(); await cargarInicio();
+  }catch(err){mostrarError('estError',err.message);}
+}
+async function cargarEmpresasSeccion(){
+  try{
+    const empresas=await api('/auth/empresas');
+    const activa=localStorage.getItem('sc_tenant');
+    const tb=$('tablaEmpresas').querySelector('tbody'); tb.innerHTML='';
+    empresas.forEach(e=>{
+      const esActiva=(e.activa||e.id===activa);
+      const rol=e.rol==='admin'?'Administrador':(e.rol||'');
+      const estado=esActiva?'<span class="etiqueta">Activa</span>':'';
+      const accion=esActiva?'<span style="color:#6b7280;font-size:.8rem">En uso</span>':`<button class="chico secundario" onclick="cambiarEmpresa('${e.id}')">Usar esta</button>`;
+      const tr=document.createElement('tr');
+      tr.innerHTML=`<td data-label="Cliente / grupo">${esc(e.grupo_cliente||'—')}</td><td data-label="Razón social">${esc(e.razon_social||'')}</td><td data-label="Rol">${esc(rol)}</td><td data-label="Estado">${estado}</td><td class="acciones-celda">${accion}</td>`;
+      tb.appendChild(tr);
+    });
+    $('tablaEmpresas').style.display=empresas.length?'table':'none';
+    $('sinEmpresas').style.display=empresas.length?'none':'block';
+    if(!empresas.length) $('sinEmpresas').textContent='Todavía no tenés empresas cargadas.';
+  }catch(e){ /* silencioso */ }
+}
+async function cargarInicio(){
+  let emp=empresaCache; if(!emp||!emp.razon_social){ try{ emp=await api('/empresa'); }catch(e){ emp={razon_social:'',cuit:''}; } }
+  $('kpiEmpresa').textContent=emp.razon_social||'—';
+  $('kpiEmpresaCuit').textContent=emp.cuit?('CUIT '+emp.cuit):'';
+  const nEmp=Object.keys(empleadosCache||{}).length;
+  $('kpiEmpleados').textContent=nEmp;
+  const activos=Object.values(establecimientosCache||{}).filter(e=>e.activo).length;
+  $('kpiEstablecimientos').textContent=activos;
+  const periodo=new Date().toISOString().slice(0,7);
+  let estado='Sin generar', pend=nEmp;
+  try{
+    const carpetas=await api('/carpetas-mensuales?periodo='+periodo);
+    if(carpetas && carpetas.length){
+      const estados=carpetas.map(c=>c.estado);
+      if(estados.some(x=>['presentada','aceptada','pagada'].includes(x))){ estado='Presentada'; pend=0; }
+      else if(estados.some(x=>['borrador','calculada','revisada'].includes(x))){ estado='En preparación'; pend=nEmp; }
+    }
+  }catch(e){ /* período sin carpetas: queda Sin generar */ }
+  $('kpiPendientes').textContent = nEmp ? pend : '—';
+  $('kpiEstadoLiq').textContent = nEmp ? ('Mes '+periodo+' · '+estado) : 'Cargá empleados para liquidar';
 }
 
 const IDENTIDAD_CONVENIO={

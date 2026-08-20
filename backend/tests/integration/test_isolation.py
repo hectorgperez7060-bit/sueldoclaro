@@ -18,7 +18,7 @@ async def _crear_empleado(client, token, apellido="Pérez", cuil="20123456786"):
     r = await client.post("/empleados", headers=_auth(token), json={
         "nombre": "Juan", "apellido": apellido, "cuil": cuil,
         "fecha_ingreso": "2021-07-01", "cct_numero": "130/75",
-        "categoria": "Administrativo A", "legajo": "0001",
+        "categoria": "Administrativo A", "legajo": "0001", "forma_pago": "1",
     })
     assert r.status_code == 201, r.text
     return r.json()["id"]

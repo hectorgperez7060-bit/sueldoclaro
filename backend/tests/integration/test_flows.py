@@ -64,7 +64,7 @@ async def test_liquidacion_end_to_end_con_amparo(app_client):
     r = await app_client.post("/empleados", headers=_auth(tok), json={
         "nombre": "Juan", "apellido": "Pérez", "cuil": "20123456786",
         "fecha_ingreso": "2021-07-01", "cct_numero": "130/75",
-        "categoria": "Administrativo A", "legajo": "0001",
+        "categoria": "Administrativo A", "legajo": "0001", "forma_pago": "1",
     })
     assert r.status_code == 201, r.text
 

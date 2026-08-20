@@ -90,6 +90,8 @@ async def crear(body: EmpleadoIn, principal: Principal = Depends(require_rol("ad
                 establecimiento = None
             if establecimiento is None:
                 raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "El establecimiento no pertenece a esta empresa")
+            if not establecimiento.activo:
+                raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "El establecimiento está inactivo")
             datos["lugar_trabajo"] = None
         repo = EmpleadoRepo(s)
         emp = await repo.crear(tid, datos)
@@ -123,6 +125,7 @@ async def actualizar(empleado_id: str, body: EmpleadoIn, principal: Principal = 
         emp = await EmpleadoRepo(s).obtener(uuid.UUID(empleado_id))
         if emp is None:  # RLS: si es de otro tenant, no existe para este
             raise HTTPException(status.HTTP_404_NOT_FOUND, "Empleado no encontrado")
+        establecimiento_actual_id = emp.establecimiento_id
         datos = body.model_dump()
         establecimiento_id = datos.pop("establecimiento_id", None)
         lugar_desde = datos.pop("lugar_trabajo_desde", None) or body.fecha_ingreso
@@ -146,7 +149,16 @@ async def actualizar(empleado_id: str, body: EmpleadoIn, principal: Principal = 
                 establecimiento = None
             if establecimiento is None:
                 raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "El establecimiento no pertenece a esta empresa")
-            datos["lugar_trabajo"] = None
+            if not establecimiento.activo and establecimiento.id != establecimiento_actual_id:
+                raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "El establecimiento está inactivo")
+            if establecimiento.id != establecimiento_actual_id:
+                datos["lugar_trabajo"] = None
+            else:
+                # Editar otro dato no debe borrar el domicilio estructurado vigente.
+                datos.pop("lugar_trabajo", None)
+        elif establecimiento_actual_id is None and body.lugar_trabajo is None:
+            # Conserva el texto libre de legajos anteriores a establecimientos.
+            datos.pop("lugar_trabajo", None)
         for k, v in datos.items():
             setattr(emp, k, v)
         try:
