@@ -30,6 +30,12 @@ async def app_client():
     )
     from infrastructure.database.session import SessionFactory, engine
 
+    # Cada test corre en su propio event loop (pytest-asyncio function scope). El
+    # pool asyncpg del engine (a nivel módulo) queda atado al loop anterior, así
+    # que lo descartamos para recrearlo en el loop actual y evitar el error
+    # "attached to a different loop".
+    await engine.dispose()
+
     # Verifica conectividad; si no hay DB, se saltea.
     try:
         async with engine.begin():

@@ -12,6 +12,7 @@ from typing import Dict
 
 from domain.entities.empleado import Empleado
 from domain.entities.carpeta_mensual import construir_contenido_carpeta, huella_carpeta
+from domain.entities.escala_verificada import evaluar_escala
 from domain.entities.parametros import ParametroLegal as ParamDom
 from domain.payroll_engine.engine import MotorLiquidacion, Novedades
 from domain.value_objects.cuil import Cuil
@@ -76,7 +77,8 @@ def resolver_horas_extra(
 
 class LiquidarPeriodo:
     async def ejecutar(self, tenant_id: str, periodo_str: str, tipo: str,
-                       novedades: Dict[str, dict], usuario_id: str) -> dict:
+                       novedades: Dict[str, dict], usuario_id: str,
+                       confirmar_provisorios: bool = False) -> dict:
         periodo = Periodo.desde_texto(periodo_str)
         fecha_ref = date(periodo.anio, periodo.mes, 28)
 
@@ -95,12 +97,41 @@ class LiquidarPeriodo:
             liq = await liq_repo.crear(uuid.UUID(tenant_id), periodo_str, tipo, snapshot)
 
             detalles_out = []
+            bloqueos = []
             for emp in empleados:
                 cct_cfg = await params_repo.cct_config(emp.cct_numero, fecha_ref)
                 escala = await params_repo.escala(emp.cct_numero, emp.categoria, fecha_ref)
                 amparos = await params_repo.amparos(emp.cct_numero)
-                if cct_cfg is None or escala is None:
-                    continue  # sin parámetros no se liquida a este empleado
+
+                # Regla GENERAL (cualquier CCT/categoría/período): si no hay
+                # escala vigente, se evalúa reutilizar la última verificada como
+                # provisoria (con confirmación) o se bloquea con el mensaje
+                # normativo. Nunca se estima ni se pone en cero.
+                escala_provisoria = None
+                previa = None
+                if escala is None:
+                    previa = await params_repo.escala_previa_verificada(
+                        emp.cct_numero, emp.categoria, fecha_ref)
+                evaluacion = evaluar_escala(escala, previa, confirmado=confirmar_provisorios)
+                if cct_cfg is None or not evaluacion.puede_liquidar:
+                    bloqueos.append({
+                        "empleado_id": str(emp.id),
+                        "cct_numero": emp.cct_numero,
+                        "categoria": emp.categoria,
+                        "provisorio": evaluacion.provisorio,
+                        "requiere_confirmacion": evaluacion.requiere_confirmacion,
+                        "motivo": (
+                            "Falta la configuración del convenio para el período"
+                            if cct_cfg is None else (evaluacion.motivo or evaluacion.nota)
+                        ),
+                    })
+                    continue  # no se liquida a este empleado (sin cero ni estimación)
+                escala = evaluacion.escala
+                if evaluacion.provisorio:
+                    escala_provisoria = {
+                        "nota": evaluacion.nota,
+                        "escala_desde": escala.valid_from.isoformat(),
+                    }
 
                 # Cuota Art.101 (afiliados): el repositorio la resuelve por
                 # CCT + localidad/filial y la inyecta como ded_afil. Si no hay
@@ -231,6 +262,7 @@ class LiquidarPeriodo:
                     "conceptos": conceptos,
                     "aviso_cuota_afiliado": aviso_cuota_afiliado,
                     "aviso_art101": aviso_cuota_afiliado,
+                    "escala_provisoria": escala_provisoria,
                 })
 
             # Reasignar un objeto nuevo fuerza la detección de cambios de JSONB
@@ -269,6 +301,7 @@ class LiquidarPeriodo:
             return {
                 "id": str(liq.id), "periodo": periodo_str, "tipo": tipo,
                 "estado": liq.estado, "detalles": detalles_out,
+                "bloqueos": bloqueos,
                 "carpeta_mensual": {
                     "id": str(carpeta.id), "version": carpeta.version,
                     "estado": carpeta.estado, "hash_sha256": carpeta.hash_sha256,

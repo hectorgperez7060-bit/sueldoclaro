@@ -22,7 +22,8 @@ async def liquidar(body: LiquidarIn, principal: Principal = Depends(require_rol(
         for n in body.novedades
     }
     res = await LiquidarPeriodo().ejecutar(
-        principal.tenant_id, body.periodo, body.tipo, novedades, principal.usuario_id
+        principal.tenant_id, body.periodo, body.tipo, novedades, principal.usuario_id,
+        confirmar_provisorios=body.confirmar_provisorios,
     )
     return LiquidacionOut(**res)
 

@@ -257,6 +257,9 @@ class LiquidarIn(BaseModel):
     periodo: str = Field(pattern=r"^\d{4}-\d{2}$")
     tipo: str = "mensual"
     novedades: List[NovedadEmpleado] = []
+    # Confirmación expresa para liquidar reutilizando la última escala verificada
+    # como provisoria (p.ej. agosto reutilizando julio).
+    confirmar_provisorios: bool = False
 
 
 class ConceptoOut(BaseModel):
@@ -286,6 +289,7 @@ class DetalleOut(BaseModel):
     total_deducciones: Decimal
     neto: Decimal
     conceptos: List[ConceptoOut]
+    escala_provisoria: Optional[dict] = None
 
 
 class LiquidacionOut(BaseModel):
@@ -294,6 +298,7 @@ class LiquidacionOut(BaseModel):
     tipo: str
     estado: str
     detalles: List[DetalleOut]
+    bloqueos: List[dict] = []
     carpeta_mensual: Optional[dict] = None
 
 

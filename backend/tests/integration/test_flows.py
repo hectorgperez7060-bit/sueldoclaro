@@ -22,7 +22,7 @@ async def test_cuil_invalido_rechazado(app_client):
     r = await app_client.post("/empleados", headers=_auth(tok), json={
         "nombre": "X", "apellido": "Y", "cuil": "20123456785",  # DV incorrecto
         "fecha_ingreso": "2021-07-01", "cct_numero": "130/75",
-        "categoria": "Administrativo A",
+        "categoria": "Administrativo A", "legajo": "0001", "forma_pago": "1",
     })
     assert r.status_code == 422, r.text
 
