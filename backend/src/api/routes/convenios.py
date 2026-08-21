@@ -62,6 +62,10 @@ async def gestor_normativo(
             m.ParametroLegal.valid_from <= fecha,
             (m.ParametroLegal.valid_to.is_(None)) | (m.ParametroLegal.valid_to >= fecha),
         ))).scalars().all()
+        escalas_historicas = (await s.execute(select(
+            m.EscalaSalarial.cct_numero, m.EscalaSalarial.categoria,
+            m.EscalaSalarial.is_verified, m.EscalaSalarial.fuente,
+        ))).all()
 
     salida = []
     for cct in ccts:
@@ -69,12 +73,22 @@ async def gestor_normativo(
         regs = [r for r in reglas if r.cct_numero == cct.numero]
         esc = [e for e in escalas if e.cct_numero == cct.numero]
         par = [p for p in parametros if p.cct_numero == cct.numero]
-        cats_ok = sum(1 for c in cats if c.is_verified and c.fuente.strip())
+        estructura_registrada = bool(cats)
+        if estructura_registrada:
+            nombres_categorias = {c.nombre for c in cats}
+            cats_ok = sum(1 for c in cats if c.is_verified and c.fuente.strip())
+        else:
+            historicas = [e for e in escalas_historicas if e.cct_numero == cct.numero]
+            nombres_categorias = {e.categoria for e in historicas}
+            cats_ok = sum(1 for nombre in nombres_categorias if any(
+                e.categoria == nombre and e.is_verified and (e.fuente or '').strip()
+                for e in historicas
+            ))
         esc_ok = sum(1 for e in esc if e.is_verified and e.fuente.strip())
-        estructura_completa = bool(cats) and cats_ok == len(cats) and bool(regs) and all(
+        estructura_completa = estructura_registrada and bool(nombres_categorias) and cats_ok == len(nombres_categorias) and bool(regs) and all(
             r.is_verified and r.fuente.strip() for r in regs
         )
-        escala_completa = bool(cats) and esc_ok == len(cats)
+        escala_completa = bool(nombres_categorias) and esc_ok == len(nombres_categorias)
         if estructura_completa and escala_completa:
             estado = "completo"
         elif esc or par:
@@ -85,8 +99,9 @@ async def gestor_normativo(
             "numero": cct.numero, "nombre": cct.nombre, "sindicato": cct.sindicato,
             "periodo": periodo, "estado": estado,
             "estructura": {
-                "categorias": len(cats), "categorias_verificadas": cats_ok,
-                "reglas": len(regs), "completa": estructura_completa,
+                "categorias": len(nombres_categorias), "categorias_verificadas": cats_ok,
+                "reglas": len(regs), "registrada": estructura_registrada,
+                "completa": estructura_completa,
             },
             "periodo_actual": {
                 "escalas": len(esc), "escalas_verificadas": esc_ok,
