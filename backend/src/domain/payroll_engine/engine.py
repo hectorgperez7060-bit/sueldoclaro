@@ -51,6 +51,20 @@ class Novedades:
 _CONCEPTO_MODERNIZACION = "APORTE_MODERNIZACION"
 
 
+def _categoria_coincide(requerida, categoria_empleado) -> bool:
+    """True si un concepto sin restricción de categoría, o si la categoría
+    declarada coincide con la del empleado. Comparación general (sin nombres de
+    convenios): normaliza mayúsculas, espacios y acentos."""
+    if not requerida:
+        return True
+
+    def _norm(texto: str) -> str:
+        tabla = str.maketrans("ÁÉÍÓÚÜÑáéíóúüñ", "AEIOUUNaeiouun")
+        return " ".join(str(texto or "").translate(tabla).casefold().split())
+
+    return _norm(requerida) == _norm(categoria_empleado)
+
+
 def _desc_nr(codigo: str) -> str:
     """Descripción legible de un concepto no remunerativo de convenio (solo display)."""
     prefijos = {
@@ -158,11 +172,17 @@ class MotorLiquidacion:
         # (qué bases integra y qué aportes dispara). Ver ParametroSet.conceptos_convenio.
         nr: List[tuple] = []  # (importe, incidencias)
         for p in self._p.conceptos_convenio(cct.cct_numero):
+            inc = p.incidencias or {}
+            # Filtro data-driven por categoría: si el concepto declara una
+            # 'categoria' en sus incidencias, solo se aplica al empleado de esa
+            # categoría. El motor no conoce convenios ni categorías concretas.
+            if not _categoria_coincide(inc.get("categoria"), empleado.categoria):
+                continue
             imp = Dinero(p.valor)
             if empleado.proporcion_jornada != Decimal("1"):
                 imp = imp.porcentaje(empleado.proporcion_jornada)
             imp = imp.redondear()
-            nr.append((imp, p.incidencias or {}))
+            nr.append((imp, inc))
             conceptos.append(Concepto(p.codigo, _desc_nr(p.codigo),
                                       TipoConcepto.NO_REMUNERATIVO, imp,
                                       base_calculo=imp, unidad="suma fija"))

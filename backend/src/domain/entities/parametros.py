@@ -37,6 +37,9 @@ class EscalaSalarial:
     valid_to: Optional[date] = None
     is_verified: bool = False
     fuente: str = ""
+    # Escala PROVISORIA: reutiliza un básico verificado anterior por una vigencia
+    # acotada y explícita (dato versionado). Exige confirmación antes de liquidar.
+    provisoria: bool = False
 
 
 @dataclass(frozen=True)

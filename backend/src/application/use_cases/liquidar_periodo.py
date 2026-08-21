@@ -108,11 +108,7 @@ class LiquidarPeriodo:
                 # provisoria (con confirmación) o se bloquea con el mensaje
                 # normativo. Nunca se estima ni se pone en cero.
                 escala_provisoria = None
-                previa = None
-                if escala is None:
-                    previa = await params_repo.escala_previa_verificada(
-                        emp.cct_numero, emp.categoria, fecha_ref)
-                evaluacion = evaluar_escala(escala, previa, confirmado=confirmar_provisorios)
+                evaluacion = evaluar_escala(escala, confirmado=confirmar_provisorios)
                 if cct_cfg is None or not evaluacion.puede_liquidar:
                     bloqueos.append({
                         "empleado_id": str(emp.id),

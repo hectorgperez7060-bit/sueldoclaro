@@ -397,27 +397,9 @@ class ParametrosRepo:
         if not e:
             return None
         return EscalaDom(e.cct_numero, e.categoria, Dinero(Decimal(e.basico)),
-                         e.valid_from, e.valid_to, e.is_verified, e.fuente)
+                         e.valid_from, e.valid_to, e.is_verified, e.fuente,
+                         getattr(e, "provisoria", False))
 
-    async def escala_previa_verificada(
-        self, cct_numero: str, categoria: str, fecha: date
-    ) -> Optional[EscalaDom]:
-        """Última escala VERIFICADA anterior o igual a ``fecha`` (ignora
-        ``valid_to``). Sirve para reutilizarla como provisoria cuando no hay
-        escala vigente para el período. General a cualquier convenio."""
-        r = await self.s.execute(
-            select(m.EscalaSalarial).where(
-                m.EscalaSalarial.cct_numero == cct_numero,
-                m.EscalaSalarial.categoria == categoria,
-                m.EscalaSalarial.is_verified.is_(True),
-                m.EscalaSalarial.valid_from <= fecha,
-            ).order_by(m.EscalaSalarial.valid_from.desc())
-        )
-        e = r.scalars().first()
-        if not e:
-            return None
-        return EscalaDom(e.cct_numero, e.categoria, Dinero(Decimal(e.basico)),
-                         e.valid_from, e.valid_to, e.is_verified, e.fuente)
 
     async def amparos(self, cct_numero: str) -> AmparoSet:
         r = await self.s.execute(

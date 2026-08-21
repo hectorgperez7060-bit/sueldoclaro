@@ -136,6 +136,13 @@ async def test_agosto_provisorio_confirmado_sin_nr(app_client):
     assert basico["importe"] == "1828730.75"
     assert not any(c["codigo"].startswith("FARMACIA_NR") for c in det["conceptos"]), "no trasladar el NR"
 
+    # Septiembre confirmado: igualmente bloqueado (no hay escala verificada ni
+    # autorización provisoria específica; no se reutiliza julio sin vigencia).
+    sep = await LiquidarPeriodo().ejecutar(
+        tenant_id, "2026-09", "mensual", {}, usuario_id, confirmar_provisorios=True)
+    assert len(sep["detalles"]) == 0 and len(sep["bloqueos"]) == 1
+    assert sep["bloqueos"][0]["motivo"] == "Sin escala salarial verificada para el período"
+
 
 async def test_aislamiento_multiempresa(app_client):
     await _sembrar_referencia()

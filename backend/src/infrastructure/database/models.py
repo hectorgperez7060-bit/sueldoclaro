@@ -54,6 +54,8 @@ class EscalaSalarial(Base):
     fuente: Mapped[str] = mapped_column(Text, default="")
     is_verified: Mapped[bool] = mapped_column(Boolean, default=False)
     version: Mapped[int] = mapped_column(Integer, default=1)
+    # Escala provisoria (reutilización acotada de un básico verificado anterior).
+    provisoria: Mapped[bool] = mapped_column(Boolean, default=False)
 
 
 class ParametroLegal(Base):

@@ -40,22 +40,25 @@ class EvaluacionEscala:
 
 def evaluar_escala(
     vigente: Optional[EscalaSalarial],
-    previa_verificada: Optional[EscalaSalarial],
     *,
     confirmado: bool = False,
 ) -> EvaluacionEscala:
-    """Decide qué hacer con la escala de un empleado en un período.
+    """Decide qué hacer con la escala vigente de un empleado en un período.
 
-    - vigente presente: se liquida con ella (comportamiento actual intacto para
-      cualquier convenio que tenga su escala del período cargada).
-    - sin vigente pero con una escala verificada anterior: se ofrece PROVISORIA,
-      reutilizando la última verificada, y exige confirmación expresa.
-    - sin vigente ni anterior verificada: BLOQUEADA, con el mensaje normativo.
+    Toda la vigencia (incluida la reutilización provisoria acotada) vive en los
+    DATOS: ``vigente`` es la escala cuya vigencia cubre el período pedido.
+
+    - sin escala vigente: BLOQUEADA con el mensaje normativo. Nunca se reutiliza
+      una escala anterior por fuera de su vigencia declarada.
+    - escala vigente marcada ``provisoria``: se ofrece PROVISORIA y exige
+      confirmación expresa antes de liquidar.
+    - escala vigente normal: se liquida con ella (comportamiento intacto para
+      cualquier convenio con su escala del período cargada).
     """
-    if vigente is not None:
-        return EvaluacionEscala("vigente", vigente, False, False, "", "")
-    if previa_verificada is not None:
+    if vigente is None:
+        return EvaluacionEscala("bloqueada", None, False, False, MENSAJE_SIN_ESCALA, "")
+    if getattr(vigente, "provisoria", False):
         return EvaluacionEscala(
-            "provisoria", previa_verificada, True, not confirmado, "", NOTA_PROVISORIA
+            "provisoria", vigente, True, not confirmado, "", NOTA_PROVISORIA
         )
-    return EvaluacionEscala("bloqueada", None, False, False, MENSAJE_SIN_ESCALA, "")
+    return EvaluacionEscala("vigente", vigente, False, False, "", "")
