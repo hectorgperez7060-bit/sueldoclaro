@@ -35,6 +35,14 @@ def test_vigente_se_liquida():
     assert ev.estado == "vigente" and ev.puede_liquidar is True and ev.provisorio is False
 
 
+def test_no_verificada_ni_provisoria_se_bloquea():
+    ev = evaluar_escala(_escala(
+        date(2026, 7, 1), date(2026, 7, 31), verificada=False, provisoria=False
+    ))
+    assert ev.estado == "bloqueada" and ev.puede_liquidar is False
+    assert ev.escala is None and ev.motivo == MENSAJE_SIN_ESCALA
+
+
 def test_provisoria_requiere_confirmacion():
     ev = evaluar_escala(_escala(date(2026, 8, 1), date(2026, 8, 31), verificada=False,
                                 provisoria=True), confirmado=False)
@@ -80,7 +88,8 @@ def test_catalogo_seis_categorias_oficiales():
 # ----------------------------------------------------- NR por categoría (motor)
 def _parametros_con_nr() -> ParametroSet:
     desde = date(2026, 1, 1)
-    incid = {"categoria": ESPECIALIZADO, "integra_antiguedad": False,
+    incid = {"categoria": ESPECIALIZADO, "regla_jornada": "solo_completa",
+             "integra_antiguedad": False,
              "integra_presentismo": False, "aporte_jubilacion": False,
              "aporte_obra_social": False, "aporte_sindicato": True}
     return ParametroSet([
@@ -122,6 +131,24 @@ def test_nr_solo_para_categoria_declarada():
         assert not any(c.codigo.startswith("FARMACIA_NR") for c in res.conceptos), otra
 
 
+def test_nr_no_se_prorratea_sin_regla_verificada_de_jornada_parcial():
+    emp = Empleado(
+        "N", "A", Cuil("27240320520"), date(2018, 4, 9), "414/05",
+        ESPECIALIZADO, "1", afiliado_sindicato=True,
+        proporcion_jornada=D("0.5"),
+    )
+    escala = EscalaSalarial(
+        "414/05", ESPECIALIZADO, Dinero(D("1828730.75")),
+        date(2026, 7, 1), date(2026, 7, 31), True, "f",
+    )
+    from domain.value_objects.periodo import Periodo
+    import pytest
+    with pytest.raises(ValueError, match="sin regla verificada para jornada parcial"):
+        MotorLiquidacion(_parametros_con_nr(), AmparoSet()).liquidar_mensual(
+            emp, Periodo(2026, 7), escala, _cfg(), a_fecha=date(2026, 7, 28)
+        )
+
+
 # ----------------------------------------------------- importes solo en migración
 def test_importes_no_estan_en_dominio_ni_motor():
     base = RAIZ / "src" / "domain"
@@ -141,6 +168,7 @@ def test_migracion_010_datos_y_provisorio():
     assert "IF NOT FOUND" in sql and "WHERE NOT EXISTS" in sql
     # NR acotado a julio con categoría declarada.
     assert "\"categoria\":\"Empleado Especializado de Farmacia\"" in sql
+    assert '"regla_jornada":"solo_completa"' in sql
     assert "DATE '2026-07-31'" in sql
     # Provisorio de agosto con vigencia propia y marca provisoria.
     assert "DATE '2026-08-01'" in sql and "DATE '2026-08-31'" in sql

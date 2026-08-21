@@ -103,10 +103,9 @@ class LiquidarPeriodo:
                 escala = await params_repo.escala(emp.cct_numero, emp.categoria, fecha_ref)
                 amparos = await params_repo.amparos(emp.cct_numero)
 
-                # Regla GENERAL (cualquier CCT/categoría/período): si no hay
-                # escala vigente, se evalúa reutilizar la última verificada como
-                # provisoria (con confirmación) o se bloquea con el mensaje
-                # normativo. Nunca se estima ni se pone en cero.
+                # Regla GENERAL (cualquier CCT/categoría/período): solo se usa
+                # una escala vigente verificada o una fila provisoria vigente
+                # confirmada expresamente. Nunca se estima ni se pone en cero.
                 escala_provisoria = None
                 evaluacion = evaluar_escala(escala, confirmado=confirmar_provisorios)
                 if cct_cfg is None or not evaluacion.puede_liquidar:
@@ -128,6 +127,23 @@ class LiquidarPeriodo:
                         "nota": evaluacion.nota,
                         "escala_desde": escala.valid_from.isoformat(),
                     }
+
+                sin_regla_jornada = parametros.conceptos_sin_regla_jornada(
+                    emp.cct_numero, emp.categoria, emp.proporcion_jornada
+                )
+                if sin_regla_jornada:
+                    bloqueos.append({
+                        "empleado_id": str(emp.id),
+                        "cct_numero": emp.cct_numero,
+                        "categoria": emp.categoria,
+                        "provisorio": evaluacion.provisorio,
+                        "requiere_confirmacion": False,
+                        "motivo": (
+                            "No existe una regla verificada para jornada parcial en: "
+                            + ", ".join(p.codigo for p in sin_regla_jornada)
+                        ),
+                    })
+                    continue
 
                 # Cuota Art.101 (afiliados): el repositorio la resuelve por
                 # CCT + localidad/filial y la inyecta como ded_afil. Si no hay

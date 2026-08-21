@@ -57,7 +57,7 @@ async def _sembrar_referencia():
         await drv.execute(mig010)
 
 
-async def _crear_empleado(tenant_id, categoria, cuil, apellido):
+async def _crear_empleado(tenant_id, categoria, cuil, apellido, proporcion_jornada=1):
     from infrastructure.database.repositories import EmpleadoRepo
     from infrastructure.database.session import tenant_session
     async with tenant_session(tenant_id) as s:
@@ -65,6 +65,7 @@ async def _crear_empleado(tenant_id, categoria, cuil, apellido):
             "nombre": "Emp", "apellido": apellido, "cuil": cuil,
             "fecha_ingreso": date(2018, 4, 9), "cct_numero": "414/05",
             "categoria": categoria, "afiliado_sindicato": True,
+            "proporcion_jornada": proporcion_jornada,
         })
 
 
@@ -142,6 +143,23 @@ async def test_agosto_provisorio_confirmado_sin_nr(app_client):
         tenant_id, "2026-09", "mensual", {}, usuario_id, confirmar_provisorios=True)
     assert len(sep["detalles"]) == 0 and len(sep["bloqueos"]) == 1
     assert sep["bloqueos"][0]["motivo"] == "Sin escala salarial verificada para el período"
+
+
+async def test_julio_parcial_bloquea_nr_sin_regla_verificada(app_client):
+    await _sembrar_referencia()
+    tenant_id, usuario_id = await _registrar(
+        app_client, "Farmacia Parcial", "30444444440", "parcial@farma.com")
+    await _crear_empleado(
+        tenant_id, "Empleado Especializado de Farmacia", _cuil(20, 24000000),
+        "Parcial", proporcion_jornada="0.5",
+    )
+    from application.use_cases.liquidar_periodo import LiquidarPeriodo
+    resultado = await LiquidarPeriodo().ejecutar(
+        tenant_id, "2026-07", "mensual", {}, usuario_id
+    )
+    assert resultado["detalles"] == []
+    assert len(resultado["bloqueos"]) == 1
+    assert "sin regla verificada para jornada parcial" in resultado["bloqueos"][0]["motivo"].lower()
 
 
 async def test_aislamiento_multiempresa(app_client):

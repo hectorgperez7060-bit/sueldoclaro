@@ -132,6 +132,33 @@ class ParametroSet:
                 if p.cct_numero == cct_numero and p.unidad == "ARS"
                 and p.ambito != "contrib_emp"]
 
+    @staticmethod
+    def categoria_coincide(requerida: Optional[str], categoria: str) -> bool:
+        """Compara categorías declarativas sin depender de un convenio."""
+        if not requerida:
+            return True
+        tabla = str.maketrans("ÁÉÍÓÚÜÑáéíóúüñ", "AEIOUUNaeiouun")
+
+        def normalizar(texto: str) -> str:
+            return " ".join(str(texto or "").translate(tabla).casefold().split())
+
+        return normalizar(requerida) == normalizar(categoria)
+
+    def conceptos_sin_regla_jornada(
+        self, cct_numero: str, categoria: str, proporcion_jornada: Decimal
+    ) -> List[ParametroLegal]:
+        """Conceptos aplicables que no autorizan liquidación a jornada parcial."""
+        if proporcion_jornada == Decimal("1"):
+            return []
+        resultado = []
+        for parametro in self.conceptos_convenio(cct_numero):
+            incidencias = parametro.incidencias or {}
+            if not self.categoria_coincide(incidencias.get("categoria"), categoria):
+                continue
+            if incidencias.get("regla_jornada") == "solo_completa":
+                resultado.append(parametro)
+        return resultado
+
     def contribuciones_convenio(self, cct_numero: str) -> List[ParametroLegal]:
         """Obligaciones patronales propias del convenio, fijas o porcentuales."""
         return [p for p in self._todos

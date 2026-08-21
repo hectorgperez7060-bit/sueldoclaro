@@ -61,4 +61,8 @@ def evaluar_escala(
         return EvaluacionEscala(
             "provisoria", vigente, True, not confirmado, "", NOTA_PROVISORIA
         )
+    if not vigente.is_verified:
+        return EvaluacionEscala(
+            "bloqueada", None, False, False, MENSAJE_SIN_ESCALA, ""
+        )
     return EvaluacionEscala("vigente", vigente, False, False, "", "")

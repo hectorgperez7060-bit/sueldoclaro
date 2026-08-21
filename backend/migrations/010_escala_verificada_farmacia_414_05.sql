@@ -72,18 +72,27 @@ END $$;
 -- No remunerativo VERIFICADO: EXCLUSIVO del Empleado Especializado y de julio
 -- 2026. La categoría queda declarada en las incidencias (el motor la respeta) y
 -- la vigencia acotada (jul 2026) impide que se traslade a agosto u otros períodos.
-INSERT INTO public.parametro_legal (
-  id, codigo, valor, unidad, ambito, valid_from, valid_to,
-  fuente, is_verified, version, cct_numero, incidencias
-)
-SELECT
-  gen_random_uuid(), 'FARMACIA_NR_ESPECIALIZADO_414/05', 54100.54, 'ARS', 'no_rem',
-  DATE '2026-07-01', DATE '2026-07-31',
-  'Recibo real de control + CCT 414/05', true, 1, '414/05',
-  '{"categoria":"Empleado Especializado de Farmacia","integra_antiguedad":false,"integra_presentismo":false,"aporte_jubilacion":false,"aporte_obra_social":false,"aporte_sindicato":true}'::jsonb
-WHERE NOT EXISTS (
-  SELECT 1 FROM public.parametro_legal
-  WHERE codigo = 'FARMACIA_NR_ESPECIALIZADO_414/05' AND valid_from = DATE '2026-07-01'
-);
+DO $$
+BEGIN
+  UPDATE public.parametro_legal
+  SET valor = 54100.54, unidad = 'ARS', ambito = 'no_rem',
+      valid_to = DATE '2026-07-31',
+      fuente = 'Recibo real de control + CCT 414/05',
+      is_verified = true, cct_numero = '414/05',
+      incidencias = '{"categoria":"Empleado Especializado de Farmacia","regla_jornada":"solo_completa","integra_antiguedad":false,"integra_presentismo":false,"aporte_jubilacion":false,"aporte_obra_social":false,"aporte_sindicato":true}'::jsonb
+  WHERE codigo = 'FARMACIA_NR_ESPECIALIZADO_414/05'
+    AND valid_from = DATE '2026-07-01';
+  IF NOT FOUND THEN
+    INSERT INTO public.parametro_legal (
+      id, codigo, valor, unidad, ambito, valid_from, valid_to,
+      fuente, is_verified, version, cct_numero, incidencias
+    ) VALUES (
+      gen_random_uuid(), 'FARMACIA_NR_ESPECIALIZADO_414/05', 54100.54,
+      'ARS', 'no_rem', DATE '2026-07-01', DATE '2026-07-31',
+      'Recibo real de control + CCT 414/05', true, 1, '414/05',
+      '{"categoria":"Empleado Especializado de Farmacia","regla_jornada":"solo_completa","integra_antiguedad":false,"integra_presentismo":false,"aporte_jubilacion":false,"aporte_obra_social":false,"aporte_sindicato":true}'::jsonb
+    );
+  END IF;
+END $$;
 
 COMMIT;
