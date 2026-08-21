@@ -14,6 +14,7 @@ def test_migracion_separa_estructura_de_valores_temporales():
     assert "escala_salarial" in sql
     assert "CREATE TABLE IF NOT EXISTS public.parametro_legal" not in sql
     assert "ON CONFLICT" in sql and "NOT EXISTS" in sql
+    assert "1, 50" in sql  # código técnico <= 60 caracteres aun con categorías largas
 
 
 def test_api_expone_tablero_separado_por_periodo():

@@ -42,7 +42,7 @@ INSERT INTO public.cct_categoria (
 )
 SELECT DISTINCT
   e.cct_numero,
-  upper(regexp_replace(e.categoria, '[^[:alnum:]]+', '_', 'g'))
+  substr(upper(regexp_replace(e.categoria, '[^[:alnum:]]+', '_', 'g')), 1, 50)
     || '_' || substr(md5(e.categoria), 1, 8),
   e.categoria,
   0,
