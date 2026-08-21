@@ -486,7 +486,7 @@ async function renovarSesion(){
 async function api(ruta, metodo='GET', body=null, reintento=true){
   const h = {'Content-Type':'application/json'};
   if(token()) h['Authorization'] = 'Bearer ' + token();
-  const r = await fetch(ruta,{method:metodo,headers:h,body:body?JSON.stringify(body):null});
+  const r = await fetch(ruta,{method:metodo,headers:h,body:body?JSON.stringify(body):null,cache:metodo==='GET'?'no-store':'default'});
   if(r.status===401 && token() && reintento){
     if(await renovarSesion()) return api(ruta,metodo,body,false);
     salir();
