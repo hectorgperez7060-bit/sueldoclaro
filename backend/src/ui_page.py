@@ -199,7 +199,7 @@ HTML = r"""<!DOCTYPE html>
       </div>
     </div>
     <div class="tarjeta" id="seccionConvenios">
-      <div class="cabecera-seccion"><div><h2>Convenios y escalas</h2><p style="font-size:.85rem;color:#6b7280;margin:4px 0 0">La estructura permanente se conserva; las paritarias se cargan por período sin modificar el historial.</p></div><button class="chico secundario" onclick="cargarGestorNormativo()">Actualizar estado</button></div>
+      <div class="cabecera-seccion"><div><h2>Convenios y escalas</h2><p style="font-size:.85rem;color:#6b7280;margin:4px 0 0">La estructura permanente se conserva; las paritarias se cargan por período sin modificar el historial.</p></div><div style="text-align:right"><button id="btnActualizarGestor" class="chico secundario" onclick="cargarGestorNormativo()">Actualizar estado</button><small id="gestorActualizado" style="display:block;color:#6b7280;margin-top:4px"></small></div></div>
       <div class="fila" style="margin-top:10px"><div><label>Período a revisar</label><input id="periodoGestor" type="month" onchange="cargarGestorNormativo()"></div><div style="display:flex;align-items:end"><p style="font-size:.82rem;color:#6b7280;padding-bottom:9px">🧱 Estructura estable · 📅 Valores del período · 🔒 El historial no se reemplaza</p></div></div>
       <div id="gestorNormativoError" class="error"></div>
       <div id="listaGestorNormativo" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;margin-top:14px"></div>
@@ -696,6 +696,7 @@ async function cargarEmpresasSeccion(){
 async function cargarGestorNormativo(){
   const periodo=$('periodoGestor').value||$('periodo').value||new Date().toISOString().slice(0,7);
   $('periodoGestor').value=periodo; ocultar('gestorNormativoError');
+  const boton=$('btnActualizarGestor'); if(boton){boton.disabled=true;boton.textContent='Actualizando…';}
   try{
     const lista=await api('/convenios/gestor-normativo?periodo='+encodeURIComponent(periodo));
     const colores={completo:['#d1fae5','#065f46','Completo'],parcial:['#fef3c7','#92400e','Parcial'],pendiente:['#fee2e2','#991b1b','Pendiente']};
@@ -706,7 +707,9 @@ async function cargarGestorNormativo(){
         <div style="margin-top:12px;font-size:.83rem;display:grid;gap:6px"><div>🧱 Estructura: <b>${c.estructura.categorias_verificadas}/${c.estructura.categorias}</b> categorías · <b>${c.estructura.reglas}</b> reglas</div><div>📅 ${esc(periodo)}: <b>${c.periodo_actual.escalas_verificadas}/${c.estructura.categorias}</b> escalas · <b>${c.periodo_actual.parametros}</b> parámetros</div></div>
       </div>`;
     }).join('')||'<p style="color:#6b7280">Todavía no hay convenios activos.</p>';
+    $('gestorActualizado').textContent='Actualizado '+new Date().toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
   }catch(e){ mostrarError('gestorNormativoError',e.message); }
+  finally{if(boton){boton.disabled=false;boton.textContent='Actualizar estado';}}
 }
 async function cargarInicio(){
   let emp=empresaCache; if(!emp||!emp.razon_social){ try{ emp=await api('/empresa'); }catch(e){ emp={razon_social:'',cuit:''}; } }
@@ -731,8 +734,9 @@ async function cargarInicio(){
 }
 
 const IDENTIDAD_CONVENIO={
-  '414/05':{actividad:'Farmacia',sindicato:'ADEF',obraSocial:'OSADEF - Obra Social de las Asociaciones de Empleados de Farmacia'},
-  '122/75':{actividad:'Sanidad',sindicato:'FATSA',obraSocial:'OSPSA - Obra Social del Personal de la Sanidad Argentina'},
+  '414/05':{actividad:'Farmacia comercial / comunitaria',sindicato:'ADEF',obraSocial:'OSADEF - Obra Social de las Asociaciones de Empleados de Farmacia'},
+  '659/13':{actividad:'Farmacia comercial / comunitaria',sindicato:'FATFA',obraSocial:''},
+  '122/75':{actividad:'Clínica, sanatorio o geriátrico con internación',sindicato:'FATSA',obraSocial:'OSPSA - Obra Social del Personal de la Sanidad Argentina'},
   '130/75':{actividad:'Comercio',sindicato:'FAECYS',obraSocial:'OSECAC - Obra Social de Empleados de Comercio'}
 };
 function actividadConvenio(c){

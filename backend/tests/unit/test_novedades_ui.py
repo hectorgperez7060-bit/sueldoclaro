@@ -146,7 +146,7 @@ def test_edicion_empleado_permite_fecha_manual_y_separa_convenio_de_obra_social(
     assert "15081974 se transforma en 15/08/1974" in HTML
     assert "Revisá la fecha: escribí los 8 números" in HTML
     assert "function fechaIso(valor,nombre)" in HTML
-    assert "'414/05':{actividad:'Farmacia',sindicato:'ADEF'" in HTML
+    assert "'414/05':{actividad:'Farmacia comercial / comunitaria',sindicato:'ADEF'" in HTML
     assert 'id="eActividad" onchange="llenarConvenios()"' in HTML
     assert 'id="eSindicato" readonly' in HTML
     assert "function actividadConvenio(c)" in HTML
