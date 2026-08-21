@@ -165,7 +165,7 @@ def test_migracion_010_datos_y_provisorio():
     assert "escala_salarial" in sql and "parametro_legal" in sql
     # Columna e idempotencia.
     assert "ADD COLUMN IF NOT EXISTS provisoria" in sql
-    assert "IF NOT FOUND" in sql and "WHERE NOT EXISTS" in sql
+    assert sql.count("IF NOT FOUND") >= 3
     # NR acotado a julio con categoría declarada.
     assert "\"categoria\":\"Empleado Especializado de Farmacia\"" in sql
     assert '"regla_jornada":"solo_completa"' in sql

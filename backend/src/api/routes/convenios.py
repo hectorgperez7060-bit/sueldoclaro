@@ -36,6 +36,66 @@ async def preview_normativa(
     return vista_previa_normativa(await archivo.read())
 
 
+@router.get("/gestor-normativo")
+async def gestor_normativo(
+    periodo: str = Query(..., description="Período AAAA-MM"),
+    _: Principal = Depends(require_tenant),
+):
+    """Tablero: estructura estable separada de los valores del período."""
+    fecha = _fecha_periodo(periodo)
+    async with plain_session() as s:
+        ccts = (await s.execute(
+            select(m.Cct).where(m.Cct.activo.is_(True)).order_by(m.Cct.numero)
+        )).scalars().all()
+        categorias = (await s.execute(select(m.CctCategoria).where(
+            m.CctCategoria.activa.is_(True)
+        ))).scalars().all()
+        reglas = (await s.execute(select(m.CctReglaEstructural).where(
+            m.CctReglaEstructural.activa.is_(True)
+        ))).scalars().all()
+        escalas = (await s.execute(select(m.EscalaSalarial).where(
+            m.EscalaSalarial.valid_from <= fecha,
+            (m.EscalaSalarial.valid_to.is_(None)) | (m.EscalaSalarial.valid_to >= fecha),
+        ))).scalars().all()
+        parametros = (await s.execute(select(m.ParametroLegal).where(
+            m.ParametroLegal.cct_numero.is_not(None),
+            m.ParametroLegal.valid_from <= fecha,
+            (m.ParametroLegal.valid_to.is_(None)) | (m.ParametroLegal.valid_to >= fecha),
+        ))).scalars().all()
+
+    salida = []
+    for cct in ccts:
+        cats = [c for c in categorias if c.cct_numero == cct.numero]
+        regs = [r for r in reglas if r.cct_numero == cct.numero]
+        esc = [e for e in escalas if e.cct_numero == cct.numero]
+        par = [p for p in parametros if p.cct_numero == cct.numero]
+        cats_ok = sum(1 for c in cats if c.is_verified and c.fuente.strip())
+        esc_ok = sum(1 for e in esc if e.is_verified and e.fuente.strip())
+        estructura_completa = bool(cats) and cats_ok == len(cats) and bool(regs) and all(
+            r.is_verified and r.fuente.strip() for r in regs
+        )
+        escala_completa = bool(cats) and esc_ok == len(cats)
+        if estructura_completa and escala_completa:
+            estado = "completo"
+        elif esc or par:
+            estado = "parcial"
+        else:
+            estado = "pendiente"
+        salida.append({
+            "numero": cct.numero, "nombre": cct.nombre, "sindicato": cct.sindicato,
+            "periodo": periodo, "estado": estado,
+            "estructura": {
+                "categorias": len(cats), "categorias_verificadas": cats_ok,
+                "reglas": len(regs), "completa": estructura_completa,
+            },
+            "periodo_actual": {
+                "escalas": len(esc), "escalas_verificadas": esc_ok,
+                "parametros": len(par), "completa": escala_completa,
+            },
+        })
+    return salida
+
+
 def _fecha_periodo(periodo: str) -> date:
     try:
         anio_s, mes_s = periodo.split("-")
@@ -85,6 +145,9 @@ async def listar(
                 m.EscalaSalarial.valid_to,
             ).distinct()
         )).all()
+        categorias_estructurales = (await s.execute(
+            select(m.CctCategoria).where(m.CctCategoria.activa.is_(True))
+        )).scalars().all()
     cats: dict[str, dict[str, dict]] = {}
     vigentes: set[tuple[str, str]] = set()
     for numero, categoria, verificada, fuente, valid_from, valid_to in filas:
@@ -97,6 +160,14 @@ async def listar(
             estado["fuentes"].add(fuente.strip())
         if valid_from <= fecha and (valid_to is None or valid_to >= fecha):
             vigentes.add((numero, categoria))
+    for categoria in categorias_estructurales:
+        estado = cats.setdefault(categoria.cct_numero, {}).setdefault(
+            categoria.nombre,
+            {"nombre": categoria.nombre, "verificada": False, "fuentes": set()},
+        )
+        estado["verificada"] = estado["verificada"] or categoria.is_verified
+        if categoria.fuente.strip():
+            estado["fuentes"].add(categoria.fuente.strip())
 
     salida = []
     for c in ccts:

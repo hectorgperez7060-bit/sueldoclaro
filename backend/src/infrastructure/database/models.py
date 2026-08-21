@@ -43,6 +43,36 @@ class Cct(Base):
     activo: Mapped[bool] = mapped_column(Boolean, default=True)
 
 
+class CctCategoria(Base):
+    __tablename__ = "cct_categoria"
+    id: Mapped[uuid.UUID] = UUIDPK()
+    cct_numero: Mapped[str] = mapped_column(String(20), index=True)
+    codigo: Mapped[str] = mapped_column(String(60))
+    nombre: Mapped[str] = mapped_column(String(160))
+    orden: Mapped[int] = mapped_column(Integer, default=0)
+    activa: Mapped[bool] = mapped_column(Boolean, default=True)
+    fuente: Mapped[str] = mapped_column(Text, default="")
+    is_verified: Mapped[bool] = mapped_column(Boolean, default=False)
+    version: Mapped[int] = mapped_column(Integer, default=1)
+    __table_args__ = (UniqueConstraint("cct_numero", "codigo", "version"),)
+
+
+class CctReglaEstructural(Base):
+    __tablename__ = "cct_regla_estructural"
+    id: Mapped[uuid.UUID] = UUIDPK()
+    cct_numero: Mapped[str] = mapped_column(String(20), index=True)
+    codigo: Mapped[str] = mapped_column(String(80))
+    tipo: Mapped[str] = mapped_column(String(40))
+    descripcion: Mapped[str] = mapped_column(Text)
+    articulo: Mapped[str] = mapped_column(String(40), default="")
+    configuracion: Mapped[dict] = mapped_column(JSONB, default=dict)
+    fuente: Mapped[str] = mapped_column(Text, default="")
+    is_verified: Mapped[bool] = mapped_column(Boolean, default=False)
+    version: Mapped[int] = mapped_column(Integer, default=1)
+    activa: Mapped[bool] = mapped_column(Boolean, default=True)
+    __table_args__ = (UniqueConstraint("cct_numero", "codigo", "version"),)
+
+
 class EscalaSalarial(Base):
     __tablename__ = "escala_salarial"
     id: Mapped[uuid.UUID] = UUIDPK()

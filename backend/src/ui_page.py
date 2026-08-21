@@ -147,6 +147,7 @@ HTML = r"""<!DOCTYPE html>
         <nav class="navegacion">
           <button class="activo" onclick="irA('seccionInicio',this)"><span class="icono">🏠</span>Inicio</button>
           <button onclick="irA('seccionEmpresas',this)"><span class="icono">🏢</span>Empresas</button>
+          <button onclick="irA('seccionConvenios',this);cargarGestorNormativo()"><span class="icono">📚</span>Convenios y escalas</button>
           <button onclick="irA('seccionEstablecimientos',this)"><span class="icono">📍</span>Establecimientos</button>
           <button onclick="irA('seccionEmpleados',this)"><span class="icono">👥</span>Empleados</button>
           <button onclick="irA('seccionNovedades',this)"><span class="icono">🗓</span>Novedades</button>
@@ -196,6 +197,12 @@ HTML = r"""<!DOCTYPE html>
         <button class="chico secundario" onclick="irA('seccionEstablecimientos')">📍 Establecimientos</button>
         <button class="chico secundario" onclick="irA('seccionHistorial')">📁 Recibos e historial</button>
       </div>
+    </div>
+    <div class="tarjeta" id="seccionConvenios">
+      <div class="cabecera-seccion"><div><h2>Convenios y escalas</h2><p style="font-size:.85rem;color:#6b7280;margin:4px 0 0">La estructura permanente se conserva; las paritarias se cargan por período sin modificar el historial.</p></div><button class="chico secundario" onclick="cargarGestorNormativo()">Actualizar estado</button></div>
+      <div class="fila" style="margin-top:10px"><div><label>Período a revisar</label><input id="periodoGestor" type="month" onchange="cargarGestorNormativo()"></div><div style="display:flex;align-items:end"><p style="font-size:.82rem;color:#6b7280;padding-bottom:9px">🧱 Estructura estable · 📅 Valores del período · 🔒 El historial no se reemplaza</p></div></div>
+      <div id="gestorNormativoError" class="error"></div>
+      <div id="listaGestorNormativo" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;margin-top:14px"></div>
     </div>
     <div class="tarjeta" id="seccionEmpresas">
       <div class="cabecera-seccion"><div><h2>Empresas y clientes</h2><p style="font-size:.85rem;color:#6b7280;margin:4px 0 0">Cada sociedad (CUIT) es un espacio independiente. Elegí la activa o creá una nueva.</p></div><button class="chico secundario" onclick="mostrarNuevaEmpresa()">+ Nueva empresa</button></div>
@@ -595,6 +602,7 @@ async function recargarEmpresaActiva(){
   await cargarCarpetas();
   await cargarEmpresasSeccion();
   await cargarInicio();
+  await cargarGestorNormativo();
 }
 
 async function entrar(){
@@ -603,6 +611,7 @@ async function entrar(){
   $('quien').textContent='Sesión iniciada';
   const hoy = new Date();
   $('periodo').value = hoy.toISOString().slice(0,7);
+  $('periodoGestor').value = $('periodo').value;
   $('novPeriodo').value = $('periodo').value;
   try{ await recargarEmpresaActiva(); }
   catch(e){ salir(); mostrarError('authError',e.message); }
@@ -683,6 +692,21 @@ async function cargarEmpresasSeccion(){
     $('sinEmpresas').style.display=empresas.length?'none':'block';
     if(!empresas.length) $('sinEmpresas').textContent='Todavía no tenés empresas cargadas.';
   }catch(e){ /* silencioso */ }
+}
+async function cargarGestorNormativo(){
+  const periodo=$('periodoGestor').value||$('periodo').value||new Date().toISOString().slice(0,7);
+  $('periodoGestor').value=periodo; ocultar('gestorNormativoError');
+  try{
+    const lista=await api('/convenios/gestor-normativo?periodo='+encodeURIComponent(periodo));
+    const colores={completo:['#d1fae5','#065f46','Completo'],parcial:['#fef3c7','#92400e','Parcial'],pendiente:['#fee2e2','#991b1b','Pendiente']};
+    $('listaGestorNormativo').innerHTML=lista.map(c=>{
+      const est=colores[c.estado]||colores.pendiente;
+      return `<div style="border:1px solid var(--borde);border-radius:12px;padding:14px;background:#fff">
+        <div style="display:flex;justify-content:space-between;gap:8px;align-items:start"><div><b>${esc(c.nombre)}</b><div style="font-size:.78rem;color:#6b7280">CCT ${esc(c.numero)} · ${esc(c.sindicato||'Sin sindicato informado')}</div></div><span style="background:${est[0]};color:${est[1]};border-radius:999px;padding:3px 9px;font-size:.72rem;font-weight:700">${est[2]}</span></div>
+        <div style="margin-top:12px;font-size:.83rem;display:grid;gap:6px"><div>🧱 Estructura: <b>${c.estructura.categorias_verificadas}/${c.estructura.categorias}</b> categorías · <b>${c.estructura.reglas}</b> reglas</div><div>📅 ${esc(periodo)}: <b>${c.periodo_actual.escalas_verificadas}/${c.estructura.categorias}</b> escalas · <b>${c.periodo_actual.parametros}</b> parámetros</div></div>
+      </div>`;
+    }).join('')||'<p style="color:#6b7280">Todavía no hay convenios activos.</p>';
+  }catch(e){ mostrarError('gestorNormativoError',e.message); }
 }
 async function cargarInicio(){
   let emp=empresaCache; if(!emp||!emp.razon_social){ try{ emp=await api('/empresa'); }catch(e){ emp={razon_social:'',cuit:''}; } }

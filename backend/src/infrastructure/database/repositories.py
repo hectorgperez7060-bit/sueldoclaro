@@ -330,16 +330,25 @@ class ParametrosRepo:
         if not catalogo:
             return catalogo
         r = await self.s.execute(
-            select(m.EscalaSalarial.cct_numero, m.EscalaSalarial.categoria)
+            select(m.CctCategoria.cct_numero, m.CctCategoria.nombre)
             .where(
-                m.EscalaSalarial.cct_numero.in_(catalogo),
+                m.CctCategoria.cct_numero.in_(catalogo),
+                m.CctCategoria.activa.is_(True),
             )
             .distinct()
         )
         for cct_numero, categoria in r.all():
             catalogo[cct_numero].add(categoria)
-        from domain.entities.farmacia_414_05 import CATEGORIAS_FARMACIA, CCT_FARMACIA
-        catalogo.setdefault(CCT_FARMACIA, set()).update(CATEGORIAS_FARMACIA)
+        # Compatibilidad durante el despliegue: una escala histórica también
+        # hace visible su categoría aunque la migración estructural todavía no
+        # se haya ejecutado. La fuente principal sigue siendo cct_categoria.
+        r = await self.s.execute(
+            select(m.EscalaSalarial.cct_numero, m.EscalaSalarial.categoria)
+            .where(m.EscalaSalarial.cct_numero.in_(catalogo))
+            .distinct()
+        )
+        for cct_numero, categoria in r.all():
+            catalogo[cct_numero].add(categoria)
         return catalogo
 
     async def parametro_set(self, fecha: date) -> ParametroSet:
