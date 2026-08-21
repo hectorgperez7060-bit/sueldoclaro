@@ -100,7 +100,19 @@ class LiquidarPeriodo:
             bloqueos = []
             for emp in empleados:
                 cct_cfg = await params_repo.cct_config(emp.cct_numero, fecha_ref)
-                escala = await params_repo.escala(emp.cct_numero, emp.categoria, fecha_ref)
+                zona_escala, error_zona = await params_repo.zona_escala(
+                    emp.cct_numero, emp.establecimiento_id
+                )
+                if error_zona:
+                    bloqueos.append({
+                        "empleado_id": str(emp.id), "cct_numero": emp.cct_numero,
+                        "categoria": emp.categoria, "provisorio": False,
+                        "requiere_confirmacion": False, "motivo": error_zona,
+                    })
+                    continue
+                escala = await params_repo.escala(
+                    emp.cct_numero, emp.categoria, fecha_ref, zona_escala
+                )
                 amparos = await params_repo.amparos(emp.cct_numero)
 
                 # Regla GENERAL (cualquier CCT/categoría/período): solo se usa
@@ -242,7 +254,7 @@ class LiquidarPeriodo:
                 )
                 snapshot["empleados"][str(emp.id)] = {
                     "cct": emp.cct_numero, "categoria": emp.categoria,
-                    "basico": str(escala.basico.monto),
+                    "basico": str(escala.basico.monto), "zona_escala": escala.zona,
                     "amparos": [a[0] + ":" + (a[2] or "") for a in res.regimenes_aplicados()],
                     "novedades": {
                         "horas_extra_50": str(nv.get("horas_extra_50", "0")),

@@ -704,7 +704,7 @@ async function cargarGestorNormativo(){
       const est=colores[c.estado]||colores.pendiente;
       return `<div style="border:1px solid var(--borde);border-radius:12px;padding:14px;background:#fff">
         <div style="display:flex;justify-content:space-between;gap:8px;align-items:start"><div><b>${esc(c.nombre)}</b><div style="font-size:.78rem;color:#6b7280">CCT ${esc(c.numero)} · ${esc(c.sindicato||'Sin sindicato informado')}</div></div><span style="background:${est[0]};color:${est[1]};border-radius:999px;padding:3px 9px;font-size:.72rem;font-weight:700">${est[2]}</span></div>
-        <div style="margin-top:12px;font-size:.83rem;display:grid;gap:6px"><div>🧱 Estructura: <b>${c.estructura.categorias_verificadas}/${c.estructura.categorias}</b> categorías · <b>${c.estructura.reglas}</b> reglas</div><div>📅 ${esc(periodo)}: <b>${c.periodo_actual.escalas_verificadas}/${c.estructura.categorias}</b> escalas · <b>${c.periodo_actual.parametros}</b> parámetros</div></div>
+        <div style="margin-top:12px;font-size:.83rem;display:grid;gap:6px"><div>🧱 Estructura: <b>${c.estructura.categorias_verificadas}/${c.estructura.categorias}</b> categorías · <b>${c.estructura.reglas}</b> reglas</div><div>📅 ${esc(periodo)}: <b>${c.periodo_actual.escalas_verificadas}/${c.periodo_actual.escalas_esperadas||c.estructura.categorias}</b> escalas · <b>${c.periodo_actual.parametros}</b> parámetros</div></div>
       </div>`;
     }).join('')||'<p style="color:#6b7280">Todavía no hay convenios activos.</p>';
     $('gestorActualizado').textContent='Actualizado '+new Date().toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit',second:'2-digit'});

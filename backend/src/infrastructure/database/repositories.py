@@ -30,6 +30,7 @@ from domain.entities.farmacia_414_05 import (
     configurar_adicionales_farmacia,
 )
 from domain.entities.sanidad_122_75 import CCT_SANIDAD, configurar_adicionales_sanidad
+from domain.entities.zonificacion_salarial import resolver_zona
 from domain.payroll_engine.config import CctConfig
 from domain.value_objects.dinero import Dinero
 
@@ -393,11 +394,37 @@ class ParametrosRepo:
         ]
         return resolver_cuota_art101(candidatas, cct_numero, localidad, filial, fecha)
 
-    async def escala(self, cct_numero: str, categoria: str, fecha: date) -> Optional[EscalaDom]:
+    async def zona_escala(
+        self, cct_numero: str, establecimiento_id: Optional[uuid.UUID],
+    ) -> tuple[str, Optional[str]]:
+        """Resuelve una zona solo si el CCT declara una regla de zonificación."""
+        r = await self.s.execute(select(m.CctReglaEstructural).where(
+            m.CctReglaEstructural.cct_numero == cct_numero,
+            m.CctReglaEstructural.codigo == "ZONIFICACION",
+            m.CctReglaEstructural.activa.is_(True),
+            m.CctReglaEstructural.is_verified.is_(True),
+        ).order_by(m.CctReglaEstructural.version.desc()))
+        regla = r.scalars().first()
+        if regla is None:
+            return "", None
+        if establecimiento_id is None:
+            return "", "El trabajador no tiene establecimiento laboral asignado para resolver la zona salarial"
+        establecimiento = await self.s.get(m.Establecimiento, establecimiento_id)
+        if establecimiento is None or not (establecimiento.provincia or "").strip():
+            return "", "El establecimiento no tiene provincia informada para resolver la zona salarial"
+        zona = resolver_zona(regla.configuracion or {}, establecimiento.provincia)
+        if zona is None:
+            return "", f"La provincia {establecimiento.provincia} no está contemplada en la zonificación verificada"
+        return zona, None
+
+    async def escala(
+        self, cct_numero: str, categoria: str, fecha: date, zona: str = "",
+    ) -> Optional[EscalaDom]:
         r = await self.s.execute(
             select(m.EscalaSalarial).where(
                 m.EscalaSalarial.cct_numero == cct_numero,
                 m.EscalaSalarial.categoria == categoria,
+                m.EscalaSalarial.zona == zona,
                 m.EscalaSalarial.valid_from <= fecha,
                 (m.EscalaSalarial.valid_to.is_(None)) | (m.EscalaSalarial.valid_to >= fecha),
             ).order_by(m.EscalaSalarial.valid_from.desc())
@@ -407,7 +434,7 @@ class ParametrosRepo:
             return None
         return EscalaDom(e.cct_numero, e.categoria, Dinero(Decimal(e.basico)),
                          e.valid_from, e.valid_to, e.is_verified, e.fuente,
-                         getattr(e, "provisoria", False))
+                         getattr(e, "provisoria", False), getattr(e, "zona", ""))
 
 
     async def amparos(self, cct_numero: str) -> AmparoSet:

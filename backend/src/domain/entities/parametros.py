@@ -40,6 +40,9 @@ class EscalaSalarial:
     # Escala PROVISORIA: reutiliza un básico verificado anterior por una vigencia
     # acotada y explícita (dato versionado). Exige confirmación antes de liquidar.
     provisoria: bool = False
+    # Vacío = escala nacional. Los convenios regionalizados usan el código
+    # definido por su regla estructural (por ejemplo A, B, C, C_AUSTRAL).
+    zona: str = ""
 
 
 @dataclass(frozen=True)

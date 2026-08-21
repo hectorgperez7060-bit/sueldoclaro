@@ -88,7 +88,10 @@ async def gestor_normativo(
         estructura_completa = estructura_registrada and bool(nombres_categorias) and cats_ok == len(nombres_categorias) and bool(regs) and all(
             r.is_verified and r.fuente.strip() for r in regs
         )
-        escala_completa = bool(nombres_categorias) and esc_ok == len(nombres_categorias)
+        regla_zona = next((r for r in regs if r.codigo == "ZONIFICACION" and r.is_verified), None)
+        cantidad_zonas = len((regla_zona.configuracion or {}).get("zonas", {})) if regla_zona else 1
+        escalas_esperadas = len(nombres_categorias) * max(cantidad_zonas, 1)
+        escala_completa = bool(nombres_categorias) and esc_ok == escalas_esperadas
         if estructura_completa and escala_completa:
             estado = "completo"
         elif esc or par:
@@ -105,6 +108,7 @@ async def gestor_normativo(
             },
             "periodo_actual": {
                 "escalas": len(esc), "escalas_verificadas": esc_ok,
+                "escalas_esperadas": escalas_esperadas,
                 "parametros": len(par), "completa": escala_completa,
             },
         })

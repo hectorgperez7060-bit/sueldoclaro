@@ -86,6 +86,7 @@ class EscalaSalarial(Base):
     version: Mapped[int] = mapped_column(Integer, default=1)
     # Escala provisoria (reutilización acotada de un básico verificado anterior).
     provisoria: Mapped[bool] = mapped_column(Boolean, default=False)
+    zona: Mapped[str] = mapped_column(String(20), default="")
 
 
 class ParametroLegal(Base):
