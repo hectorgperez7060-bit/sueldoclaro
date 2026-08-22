@@ -23,6 +23,7 @@ def test_migracion_registra_sesenta_escalas_y_preserva_totales_oficiales():
     assert "'Oficial','B',6348,702,7049,'HORA'" in bloque
     assert "'Sereno','C_AUSTRAL',980858,980858,1961716,'MENSUAL'" in bloque
     assert "true, false, false, 1" in sql  # verificada, no provisoria, motor bloqueado
+    assert "SELECT gen_random_uuid(), '76/75'" in sql
 
 
 def test_escala_documentada_puede_quedar_bloqueada_para_el_motor():

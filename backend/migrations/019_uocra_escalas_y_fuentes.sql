@@ -193,10 +193,10 @@ WITH datos(periodo,categoria,zona,basico_puro,adicional,total,unidad) AS (VALUES
   (DATE '2026-08-01','Sereno','C_AUSTRAL',980858,980858,1961716,'MENSUAL')
 )
 INSERT INTO public.escala_salarial
-  (cct_numero,categoria,zona,basico,basico_puro,adicional_zona,unidad_escala,
+  (id,cct_numero,categoria,zona,basico,basico_puro,adicional_zona,unidad_escala,
    valid_from,valid_to,fuente,estado_fuente,is_verified,provisoria,
    habilitada_liquidacion,version)
-SELECT '76/75', categoria, zona, total, basico_puro, adicional, unidad,
+SELECT gen_random_uuid(), '76/75', categoria, zona, total, basico_puro, adicional, unidad,
        periodo, (periodo + INTERVAL '1 month - 1 day')::date,
        'UOCRA - Anexo I comunicado segundo tramo junio-julio-agosto 2026; resolución homologatoria 02/06/2026',
        'PUBLICADA_POR_PARTE_SIGNATARIA', true, false, false, 1
