@@ -101,7 +101,7 @@ class LiquidarPeriodo:
             for emp in empleados:
                 cct_cfg = await params_repo.cct_config(emp.cct_numero, fecha_ref)
                 zona_escala, error_zona = await params_repo.zona_escala(
-                    emp.cct_numero, emp.establecimiento_id
+                    emp.cct_numero, emp.establecimiento_id, fecha_ref
                 )
                 if error_zona:
                     bloqueos.append({

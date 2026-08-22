@@ -52,6 +52,7 @@ class CctCategoria(Base):
     orden: Mapped[int] = mapped_column(Integer, default=0)
     activa: Mapped[bool] = mapped_column(Boolean, default=True)
     fuente: Mapped[str] = mapped_column(Text, default="")
+    estado_fuente: Mapped[str] = mapped_column(String(40), default="PENDIENTE_DOCUMENTACION")
     is_verified: Mapped[bool] = mapped_column(Boolean, default=False)
     version: Mapped[int] = mapped_column(Integer, default=1)
     __table_args__ = (UniqueConstraint("cct_numero", "codigo", "version"),)
@@ -67,6 +68,7 @@ class CctReglaEstructural(Base):
     articulo: Mapped[str] = mapped_column(String(40), default="")
     configuracion: Mapped[dict] = mapped_column(JSONB, default=dict)
     fuente: Mapped[str] = mapped_column(Text, default="")
+    estado_fuente: Mapped[str] = mapped_column(String(40), default="PENDIENTE_DOCUMENTACION")
     is_verified: Mapped[bool] = mapped_column(Boolean, default=False)
     version: Mapped[int] = mapped_column(Integer, default=1)
     activa: Mapped[bool] = mapped_column(Boolean, default=True)
@@ -82,11 +84,16 @@ class EscalaSalarial(Base):
     valid_from: Mapped[date] = mapped_column(Date)
     valid_to: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
     fuente: Mapped[str] = mapped_column(Text, default="")
+    estado_fuente: Mapped[str] = mapped_column(String(40), default="PENDIENTE_DOCUMENTACION")
     is_verified: Mapped[bool] = mapped_column(Boolean, default=False)
     version: Mapped[int] = mapped_column(Integer, default=1)
     # Escala provisoria (reutilización acotada de un básico verificado anterior).
     provisoria: Mapped[bool] = mapped_column(Boolean, default=False)
     zona: Mapped[str] = mapped_column(String(20), default="")
+    unidad_escala: Mapped[str] = mapped_column(String(12), default="MENSUAL")
+    basico_puro: Mapped[Optional[Decimal]] = mapped_column(MONEY, nullable=True)
+    adicional_zona: Mapped[Optional[Decimal]] = mapped_column(MONEY, nullable=True)
+    habilitada_liquidacion: Mapped[bool] = mapped_column(Boolean, default=True)
 
 
 class ParametroLegal(Base):
@@ -99,12 +106,32 @@ class ParametroLegal(Base):
     valid_from: Mapped[date] = mapped_column(Date)
     valid_to: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
     fuente: Mapped[str] = mapped_column(Text, default="")
+    estado_fuente: Mapped[str] = mapped_column(String(40), default="PENDIENTE_DOCUMENTACION")
     is_verified: Mapped[bool] = mapped_column(Boolean, default=False)
     version: Mapped[int] = mapped_column(Integer, default=1)
     # Concepto propio de un convenio (null = parámetro global de ley).
     cct_numero: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
     # Incidencias del concepto: qué bases integra y qué aportes dispara (data-driven).
     incidencias: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True)
+
+
+class CctZonaVigencia(Base):
+    """Zona salarial determinada por provincia y vigencia histórica."""
+
+    __tablename__ = "cct_zona_vigencia"
+    id: Mapped[uuid.UUID] = UUIDPK()
+    cct_numero: Mapped[str] = mapped_column(String(20), index=True)
+    provincia: Mapped[str] = mapped_column(String(80), index=True)
+    zona: Mapped[str] = mapped_column(String(20))
+    valid_from: Mapped[date] = mapped_column(Date)
+    valid_to: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
+    fuente: Mapped[str] = mapped_column(Text, default="")
+    estado_fuente: Mapped[str] = mapped_column(String(40), default="PENDIENTE_DOCUMENTACION")
+    is_verified: Mapped[bool] = mapped_column(Boolean, default=False)
+    version: Mapped[int] = mapped_column(Integer, default=1)
+    __table_args__ = (
+        UniqueConstraint("cct_numero", "provincia", "valid_from", "version"),
+    )
 
 
 class AmparoCct(Base):

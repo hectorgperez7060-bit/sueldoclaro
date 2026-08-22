@@ -43,6 +43,13 @@ class EscalaSalarial:
     # Vacío = escala nacional. Los convenios regionalizados usan el código
     # definido por su regla estructural (por ejemplo A, B, C, C_AUSTRAL).
     zona: str = ""
+    # Unidad declarada por la fuente: MENSUAL u HORA. Nunca se infiere por el monto.
+    unidad_escala: str = "MENSUAL"
+    # Una escala puede estar documentada pero todavía no ser liquidable por el motor.
+    habilitada_liquidacion: bool = True
+    estado_fuente: str = "VERIFICADA_OFICIAL"
+    basico_puro: Optional[Dinero] = None
+    adicional_zona: Optional[Dinero] = None
 
 
 @dataclass(frozen=True)

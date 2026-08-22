@@ -18,6 +18,10 @@ from domain.entities.parametros import EscalaSalarial
 
 MENSAJE_SIN_ESCALA = "Sin escala salarial verificada para el período"
 NOTA_PROVISORIA = "Valor provisorio: última escala verificada disponible"
+MENSAJE_MOTOR_NO_HABILITADO = (
+    "La escala está documentada, pero el motor todavía no está habilitado "
+    "para su unidad y modalidad de liquidación"
+)
 
 
 @dataclass(frozen=True)
@@ -57,6 +61,10 @@ def evaluar_escala(
     """
     if vigente is None:
         return EvaluacionEscala("bloqueada", None, False, False, MENSAJE_SIN_ESCALA, "")
+    if not getattr(vigente, "habilitada_liquidacion", True):
+        return EvaluacionEscala(
+            "bloqueada", None, False, False, MENSAJE_MOTOR_NO_HABILITADO, ""
+        )
     if getattr(vigente, "provisoria", False):
         return EvaluacionEscala(
             "provisoria", vigente, True, not confirmado, "", NOTA_PROVISORIA

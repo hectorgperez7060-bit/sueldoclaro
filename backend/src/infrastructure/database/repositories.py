@@ -30,7 +30,7 @@ from domain.entities.farmacia_414_05 import (
     configurar_adicionales_farmacia,
 )
 from domain.entities.sanidad_122_75 import CCT_SANIDAD, configurar_adicionales_sanidad
-from domain.entities.zonificacion_salarial import resolver_zona
+from domain.entities.zonificacion_salarial import normalizar_provincia
 from domain.payroll_engine.config import CctConfig
 from domain.value_objects.dinero import Dinero
 
@@ -395,7 +395,7 @@ class ParametrosRepo:
         return resolver_cuota_art101(candidatas, cct_numero, localidad, filial, fecha)
 
     async def zona_escala(
-        self, cct_numero: str, establecimiento_id: Optional[uuid.UUID],
+        self, cct_numero: str, establecimiento_id: Optional[uuid.UUID], fecha: date,
     ) -> tuple[str, Optional[str]]:
         """Resuelve una zona solo si el CCT declara una regla de zonificación."""
         r = await self.s.execute(select(m.CctReglaEstructural).where(
@@ -412,9 +412,21 @@ class ParametrosRepo:
         establecimiento = await self.s.get(m.Establecimiento, establecimiento_id)
         if establecimiento is None or not (establecimiento.provincia or "").strip():
             return "", "El establecimiento no tiene provincia informada para resolver la zona salarial"
-        zona = resolver_zona(regla.configuracion or {}, establecimiento.provincia)
+        # Las zonas son históricas: nunca se resuelven desde un mapa fijo.
+        filas = (await self.s.execute(select(m.CctZonaVigencia).where(
+            m.CctZonaVigencia.cct_numero == cct_numero,
+            m.CctZonaVigencia.is_verified.is_(True),
+            m.CctZonaVigencia.valid_from <= fecha,
+            (m.CctZonaVigencia.valid_to.is_(None))
+            | (m.CctZonaVigencia.valid_to >= fecha),
+        ).order_by(m.CctZonaVigencia.valid_from.desc()))).scalars().all()
+        buscada = normalizar_provincia(establecimiento.provincia)
+        zona = next((f.zona for f in filas if normalizar_provincia(f.provincia) == buscada), None)
         if zona is None:
-            return "", f"La provincia {establecimiento.provincia} no está contemplada en la zonificación verificada"
+            return "", (
+                f"La provincia {establecimiento.provincia} no tiene una zona salarial "
+                f"verificada para {fecha:%Y-%m}"
+            )
         return zona, None
 
     async def escala(
@@ -432,9 +444,18 @@ class ParametrosRepo:
         e = r.scalars().first()
         if not e:
             return None
-        return EscalaDom(e.cct_numero, e.categoria, Dinero(Decimal(e.basico)),
-                         e.valid_from, e.valid_to, e.is_verified, e.fuente,
-                         getattr(e, "provisoria", False), getattr(e, "zona", ""))
+        basico_puro = getattr(e, "basico_puro", None)
+        adicional_zona = getattr(e, "adicional_zona", None)
+        return EscalaDom(
+            e.cct_numero, e.categoria, Dinero(Decimal(e.basico)),
+            e.valid_from, e.valid_to, e.is_verified, e.fuente,
+            getattr(e, "provisoria", False), getattr(e, "zona", ""),
+            getattr(e, "unidad_escala", "MENSUAL"),
+            getattr(e, "habilitada_liquidacion", True),
+            getattr(e, "estado_fuente", "VERIFICADA_OFICIAL"),
+            Dinero(Decimal(basico_puro)) if basico_puro is not None else None,
+            Dinero(Decimal(adicional_zona)) if adicional_zona is not None else None,
+        )
 
 
     async def amparos(self, cct_numero: str) -> AmparoSet:

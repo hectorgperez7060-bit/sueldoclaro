@@ -85,14 +85,21 @@ async def gestor_normativo(
                 for e in historicas
             ))
         esc_ok = sum(1 for e in esc if e.is_verified and e.fuente.strip())
+        esc_habilitadas = sum(
+            1 for e in esc
+            if e.is_verified and e.fuente.strip()
+            and getattr(e, "habilitada_liquidacion", True)
+        )
         estructura_completa = estructura_registrada and bool(nombres_categorias) and cats_ok == len(nombres_categorias) and bool(regs) and all(
             r.is_verified and r.fuente.strip() for r in regs
         )
         regla_zona = next((r for r in regs if r.codigo == "ZONIFICACION" and r.is_verified), None)
-        cantidad_zonas = len((regla_zona.configuracion or {}).get("zonas", {})) if regla_zona else 1
+        zonas_config = (regla_zona.configuracion or {}).get("zonas", {}) if regla_zona else {}
+        cantidad_zonas = len(zonas_config) if zonas_config else 1
         escalas_esperadas = len(nombres_categorias) * max(cantidad_zonas, 1)
         escala_completa = bool(nombres_categorias) and esc_ok == escalas_esperadas
-        if estructura_completa and escala_completa:
+        motor_periodo_habilitado = escala_completa and esc_habilitadas == escalas_esperadas
+        if estructura_completa and escala_completa and motor_periodo_habilitado:
             estado = "completo"
         elif esc or par:
             estado = "parcial"
@@ -108,8 +115,10 @@ async def gestor_normativo(
             },
             "periodo_actual": {
                 "escalas": len(esc), "escalas_verificadas": esc_ok,
+                "escalas_habilitadas": esc_habilitadas,
                 "escalas_esperadas": escalas_esperadas,
                 "parametros": len(par), "completa": escala_completa,
+                "motor_habilitado": motor_periodo_habilitado,
             },
         })
     return salida
@@ -128,17 +137,28 @@ def _fecha_periodo(periodo: str) -> date:
         ) from exc
 
 
-def _estado_item(tipo: str, codigo: str, verificado: bool, fuente: str) -> dict:
+def _estado_item(
+    tipo: str,
+    codigo: str,
+    verificado: bool,
+    fuente: str,
+    estado_fuente: str = "PENDIENTE_DOCUMENTACION",
+    habilitado: bool = True,
+) -> dict:
     problemas = []
     if not verificado:
         problemas.append("pendiente de aprobación profesional")
     if not (fuente or "").strip():
         problemas.append("fuente legal faltante")
+    if not habilitado:
+        problemas.append("dato documentado, motor de liquidación pendiente")
     return {
         "tipo": tipo,
         "codigo": codigo,
         "verificado": bool(verificado),
         "fuente": fuente or "",
+        "estado_fuente": estado_fuente,
+        "habilitado_liquidacion": habilitado,
         "problemas": problemas,
     }
 
@@ -258,11 +278,17 @@ async def estado_normativo(
         ))).scalars().all()
 
     items = [
-        _estado_item("escala", f"{e.categoria} v{e.version}", e.is_verified, e.fuente)
+        _estado_item(
+            "escala", f"{e.categoria} v{e.version}", e.is_verified, e.fuente,
+            e.estado_fuente, e.habilitada_liquidacion,
+        )
         for e in escalas
     ]
     items += [
-        _estado_item("parametro", f"{p.codigo} v{p.version}", p.is_verified, p.fuente)
+        _estado_item(
+            "parametro", f"{p.codigo} v{p.version}", p.is_verified, p.fuente,
+            p.estado_fuente,
+        )
         for p in parametros
     ]
     items += [
