@@ -58,6 +58,7 @@ def _to_out(novedad, bloqueada: bool = False) -> NovedadMensualOut:
         fcl_criterio_aniversario=novedad.fcl_criterio_aniversario,
         fcl_aprobado_por=novedad.fcl_aprobado_por,
         fcl_fundamento=novedad.fcl_fundamento,
+        base_contribucion_uocra_mes_anterior=novedad.base_contribucion_uocra_mes_anterior,
         bloqueada=bloqueada,
     )
 

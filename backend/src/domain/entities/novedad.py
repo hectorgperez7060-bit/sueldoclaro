@@ -38,6 +38,7 @@ class DatosNovedadMensual:
     fcl_criterio_aniversario: Optional[str] = None
     fcl_aprobado_por: Optional[str] = None
     fcl_fundamento: Optional[str] = None
+    base_contribucion_uocra_mes_anterior: Optional[Decimal] = None
 
     def __post_init__(self) -> None:
         try:
@@ -141,6 +142,11 @@ class DatosNovedadMensual:
                 raise ValueError("Criterio del Fondo de Cese inválido")
             if not (self.fcl_aprobado_por or "").strip() or not (self.fcl_fundamento or "").strip():
                 raise ValueError("El criterio del Fondo de Cese requiere profesional y fundamento")
+        if (
+            self.base_contribucion_uocra_mes_anterior is not None
+            and Decimal(str(self.base_contribucion_uocra_mes_anterior)) < 0
+        ):
+            raise ValueError("La base UOCRA del mes anterior no puede ser negativa")
 
         for nombre, valor in {
             "horas extra al 50%": self.horas_extra_50,
@@ -205,4 +211,5 @@ class DatosNovedadMensual:
             "fcl_criterio_aniversario": self.fcl_criterio_aniversario,
             "fcl_aprobado_por": (self.fcl_aprobado_por or "").strip() or None,
             "fcl_fundamento": (self.fcl_fundamento or "").strip() or None,
+            "base_contribucion_uocra_mes_anterior": self.base_contribucion_uocra_mes_anterior,
         }

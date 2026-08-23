@@ -416,6 +416,7 @@ HTML = r"""<!DOCTYPE html>
                 <div><label>Criterio Fondo de Cese</label><select id="novFclCriterio"><option value="">No corresponde / sin definir</option><option value="MES_COMPLETO_12">Mes completo al 12%</option><option value="MES_COMPLETO_8">Mes completo al 8%</option><option value="PRORRATEO_DIAS">Prorrateo por bases separadas</option></select></div>
                 <div><label>Profesional que lo aprueba</label><input id="novFclAprobado" maxlength="200" placeholder="Nombre y matrícula"></div>
                 <div style="grid-column:1/-1"><label>Fundamento</label><textarea id="novFclFundamento" rows="2" placeholder="Criterio profesional documentado"></textarea></div>
+                <div style="grid-column:1/-1"><label>Base remunerativa UOCRA del plantel del mes anterior ($)</label><input id="novBaseUocraAnterior" type="number" min="0" step="0.01" placeholder="Obligatoria para calcular la contribución empresaria del 2%"><small style="color:#6b7280">Copiar de la liquidación cerrada del mes anterior. Queda guardada para auditoría.</small></div>
               </div>
             </div>
           </div>
@@ -1110,6 +1111,7 @@ function cuerpoNovedad(incluirEmpleado=true){
     fcl_criterio_aniversario:$('novFclCriterio').value||null,
     fcl_aprobado_por:$('novFclAprobado').value.trim()||null,
     fcl_fundamento:$('novFclFundamento').value.trim()||null
+    ,base_contribucion_uocra_mes_anterior:numeroNovOpcional('novBaseUocraAnterior')
   });
   Object.assign(cuerpo,datosAdicionalesConvenio());
   if(incluirEmpleado) cuerpo.empleado_id=$('novEmpleado').value;
@@ -1149,6 +1151,7 @@ function editarNovedad(id){
   $('novFclCriterio').value=n.fcl_criterio_aniversario||'';
   $('novFclAprobado').value=n.fcl_aprobado_por||'';
   $('novFclFundamento').value=n.fcl_fundamento||'';
+  $('novBaseUocraAnterior').value=n.base_contribucion_uocra_mes_anterior??'';
   $('novPremios').value=n.premios;
   $('novTipoPremio').value=n.tipo_premio||'pendiente';
   $('novDescuentos').value=n.descuentos_adicionales; $('novObservaciones').value=n.observaciones||'';
@@ -1484,7 +1487,11 @@ async function liquidar(){
   try{
     const d = await api('/liquidaciones','POST',{periodo:$('periodo').value, tipo:'mensual', novedades:[]});
     ultimaLiq = d;
-    if(!d.detalles.length){ $('resultados').innerHTML='<p style="margin-top:12px">No hay empleados para liquidar.</p>'; return; }
+    if(!d.detalles.length){
+      const motivos=(d.bloqueos||[]).map(b=>`<li>${esc(b.categoria||'Empleado')}: ${esc(b.motivo)}</li>`).join('');
+      $('resultados').innerHTML=motivos?`<div class="error" style="display:block"><b>No se pudo calcular:</b><ul>${motivos}</ul></div>`:'<p style="margin-top:12px">No hay empleados para liquidar.</p>';
+      return;
+    }
     renderLiquidacion();
     await cargarCarpetas();
   }catch(e){ $('resultados').innerHTML=''; mostrarError('liqError', e.message); }
@@ -1507,7 +1514,7 @@ function renderLiquidacion(){
         filas += `<tr><td>${c.descripcion} ${amparo}</td><td>${tipo}</td><td class="num">$ ${fmt(c.importe)}</td></tr>`;
       });
       html += `<div class="detalle">
-        <b>${emp.apellido}, ${emp.nombre}</b> <span class="etiqueta">CCT ${emp.cct_numero}</span> <span class="etiqueta">${d.periodo}</span>
+        <b>${emp.apellido}, ${emp.nombre}</b> <span class="etiqueta">CCT ${emp.cct_numero}</span> <span class="etiqueta">${d.periodo}</span> ${det.vista_previa?'<span class="etiqueta" style="background:#fff3cd;color:#7c5700">VISTA PREVIA UOCRA</span>':''}
         <table><thead><tr><th>Concepto</th><th>Tipo</th><th class="num">Importe</th></tr></thead><tbody>${filas}</tbody></table>
         <div style="display:flex;justify-content:space-between;margin-top:10px;flex-wrap:wrap;gap:8px">
           <span>Bruto: <b>$ ${fmt(det.bruto)}</b> &nbsp;·&nbsp; Descuentos: <b>$ ${fmt(det.total_deducciones)}</b></span>
@@ -1520,7 +1527,8 @@ function renderLiquidacion(){
         <div id="ajuste-${det.empleado_id}"></div>
         </div>`;
     });
-    $('resultados').innerHTML = html + resumenF931(d) + resumenSindical(d);
+    const bloqueos=(d.bloqueos||[]).map(b=>`<li>${esc(b.categoria||'Empleado')}: ${esc(b.motivo)}</li>`).join('');
+    $('resultados').innerHTML = (bloqueos?`<div class="error" style="display:block"><b>Empleados bloqueados:</b><ul>${bloqueos}</ul></div>`:'') + html + resumenF931(d) + resumenSindical(d);
 }
 
 function abrirAjusteManual(empId){

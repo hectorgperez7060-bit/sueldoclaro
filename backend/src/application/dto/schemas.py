@@ -171,6 +171,7 @@ class NovedadMensualIn(BaseModel):
     fcl_criterio_aniversario: Optional[str] = None
     fcl_aprobado_por: Optional[str] = None
     fcl_fundamento: Optional[str] = None
+    base_contribucion_uocra_mes_anterior: Optional[Decimal] = Field(default=None, ge=0)
 
     @model_validator(mode="after")
     def _validar_novedad(self):
@@ -225,6 +226,7 @@ class NovedadMensualUpdate(BaseModel):
     fcl_criterio_aniversario: Optional[str] = None
     fcl_aprobado_por: Optional[str] = None
     fcl_fundamento: Optional[str] = None
+    base_contribucion_uocra_mes_anterior: Optional[Decimal] = Field(default=None, ge=0)
 
     @model_validator(mode="after")
     def _validar_novedad(self):
@@ -275,6 +277,7 @@ class NovedadMensualOut(BaseModel):
     fcl_criterio_aniversario: Optional[str] = None
     fcl_aprobado_por: Optional[str] = None
     fcl_fundamento: Optional[str] = None
+    base_contribucion_uocra_mes_anterior: Optional[Decimal] = None
     bloqueada: bool = False
 
 
@@ -292,6 +295,7 @@ class LiquidarIn(BaseModel):
     # Confirmación expresa para liquidar reutilizando la última escala verificada
     # como provisoria (p.ej. agosto reutilizando julio).
     confirmar_provisorios: bool = False
+    vista_previa_uocra: bool = True
 
 
 class ConceptoOut(BaseModel):
@@ -322,6 +326,7 @@ class DetalleOut(BaseModel):
     neto: Decimal
     conceptos: List[ConceptoOut]
     escala_provisoria: Optional[dict] = None
+    vista_previa: bool = False
 
 
 class LiquidacionOut(BaseModel):

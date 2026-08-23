@@ -373,6 +373,9 @@ class NovedadMensual(TenantMixin, Base):
     fcl_criterio_aniversario: Mapped[Optional[str]] = mapped_column(String(24), nullable=True)
     fcl_aprobado_por: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
     fcl_fundamento: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    base_contribucion_uocra_mes_anterior: Mapped[Optional[Decimal]] = mapped_column(
+        MONEY, nullable=True
+    )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=now_utc, onupdate=now_utc

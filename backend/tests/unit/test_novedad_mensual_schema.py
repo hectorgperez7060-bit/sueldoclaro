@@ -23,6 +23,7 @@ def test_novedad_mensual_tiene_columnas_y_claves_esperadas():
         "feriados_habilitados_q1", "feriados_habilitados_q2",
         "feriados_uocra_detalle", "fcl_criterio_aniversario",
         "fcl_aprobado_por", "fcl_fundamento",
+        "base_contribucion_uocra_mes_anterior",
         "created_at", "updated_at",
     }
     assert esperadas == set(tabla.columns.keys())

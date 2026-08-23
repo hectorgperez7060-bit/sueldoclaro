@@ -1,4 +1,4 @@
-"""Núcleo quincenal UOCRA, todavía desacoplado del recibo productivo.
+"""Núcleo quincenal UOCRA conectado en modo de vista previa segura.
 
 No contiene escalas ni fechas: recibe la escala versionada y los hechos de
 cada quincena. El jornal usa el total de zona; la asistencia, el básico puro.
@@ -278,8 +278,9 @@ def armar_recibo_prueba_uocra(
     base: ResultadoBaseUocra,
     fondo_cese: ResultadoFondoCese,
     aportes: ResultadoAportesUocra,
+    feriados: tuple[ResultadoFeriadoUocra, ...] = (),
 ) -> ResultadoLiquidacion:
-    """Arma un resultado auditable; no habilita por sí mismo el flujo productivo."""
+    """Arma un resultado auditable de prueba; no habilita la confirmación productiva."""
     conceptos = [
         Concepto(
             "BASICO_Q1", "Jornal básico · 1.ª quincena", TipoConcepto.REMUNERATIVO,
@@ -301,6 +302,16 @@ def armar_recibo_prueba_uocra(
             TipoConcepto.REMUNERATIVO, base.segunda.asistencia,
             base_calculo=base.segunda.base_asistencia, unidad="20% sobre básico puro",
         ),
+        *[
+            Concepto(
+                f"FERIADO_{feriado.fecha.isoformat()}",
+                ("Feriado trabajado" if feriado.trabajado else "Feriado no trabajado")
+                + f" · {feriado.fecha:%d/%m/%Y}",
+                TipoConcepto.REMUNERATIVO, feriado.adicional_a_pagar,
+                base_calculo=feriado.valor_dia, unidad=feriado.motivo,
+            )
+            for feriado in feriados if feriado.adicional_a_pagar.monto > 0
+        ],
         Concepto("APORTE_JUBILACION", "Jubilación", TipoConcepto.DEDUCCION,
                  aportes.jubilacion, base_calculo=aportes.base_remunerativa_actual,
                  unidad="porcentaje versionado"),

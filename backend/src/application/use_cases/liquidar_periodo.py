@@ -6,6 +6,7 @@ Persiste la liquidación con un snapshot inmutable de los parámetros usados
 from __future__ import annotations
 
 import uuid
+from dataclasses import replace
 from datetime import date
 from decimal import Decimal
 from typing import Dict
@@ -15,6 +16,12 @@ from domain.entities.carpeta_mensual import construir_contenido_carpeta, huella_
 from domain.entities.escala_verificada import evaluar_escala
 from domain.entities.parametros import ParametroLegal as ParamDom
 from domain.payroll_engine.engine import MotorLiquidacion, Novedades
+from domain.payroll_engine.uocra import (
+    ComponentesFondoCese, DecisionProfesionalFcl, FeriadoDetalladoUocra,
+    HechosQuincenalesUocra, TasasAportesUocra, armar_recibo_prueba_uocra,
+    calcular_aportes_y_contribuciones, calcular_base_quincenal,
+    calcular_feriados_detallados, calcular_fondo_cese, resolver_alicuota_fcl,
+)
 from domain.value_objects.cuil import Cuil
 from domain.value_objects.dinero import Dinero
 from domain.value_objects.periodo import Periodo
@@ -71,6 +78,17 @@ def resolver_horas_extra(
                     getattr(novedad, "cantidades_adicionales", None) or {}
                 ).items()
             ),
+            "horas_normales_q1": getattr(novedad, "horas_normales_q1", None),
+            "horas_normales_q2": getattr(novedad, "horas_normales_q2", None),
+            "asistencia_perfecta_q1": getattr(novedad, "asistencia_perfecta_q1", None),
+            "asistencia_perfecta_q2": getattr(novedad, "asistencia_perfecta_q2", None),
+            "feriados_uocra_detalle": tuple(getattr(novedad, "feriados_uocra_detalle", None) or []),
+            "fcl_criterio_aniversario": getattr(novedad, "fcl_criterio_aniversario", None),
+            "fcl_aprobado_por": getattr(novedad, "fcl_aprobado_por", None),
+            "fcl_fundamento": getattr(novedad, "fcl_fundamento", None),
+            "base_contribucion_uocra_mes_anterior": getattr(
+                novedad, "base_contribucion_uocra_mes_anterior", None
+            ),
         }
     return res
 
@@ -78,7 +96,8 @@ def resolver_horas_extra(
 class LiquidarPeriodo:
     async def ejecutar(self, tenant_id: str, periodo_str: str, tipo: str,
                        novedades: Dict[str, dict], usuario_id: str,
-                       confirmar_provisorios: bool = False) -> dict:
+                       confirmar_provisorios: bool = False,
+                       vista_previa_uocra: bool = True) -> dict:
         periodo = Periodo.desde_texto(periodo_str)
         fecha_ref = date(periodo.anio, periodo.mes, 28)
 
@@ -119,7 +138,17 @@ class LiquidarPeriodo:
                 # una escala vigente verificada o una fila provisoria vigente
                 # confirmada expresamente. Nunca se estima ni se pone en cero.
                 escala_provisoria = None
-                evaluacion = evaluar_escala(escala, confirmado=confirmar_provisorios)
+                es_vista_uocra = bool(
+                    vista_previa_uocra and emp.cct_numero == "76/75"
+                    and escala is not None and escala.is_verified
+                )
+                escala_a_evaluar = (
+                    replace(escala, habilitada_liquidacion=True)
+                    if es_vista_uocra else escala
+                )
+                evaluacion = evaluar_escala(
+                    escala_a_evaluar, confirmado=confirmar_provisorios
+                )
                 if cct_cfg is None or not evaluacion.puede_liquidar:
                     bloqueos.append({
                         "empleado_id": str(emp.id),
@@ -161,11 +190,13 @@ class LiquidarPeriodo:
                 # CCT + localidad/filial y la inyecta como ded_afil. Si no hay
                 # cuota oficial verificada, NO se aplica ningun % y se avisa.
                 aviso_cuota_afiliado = None
+                cuota_sindical_verificada = None
                 params_emp = parametros
                 if emp.afiliado_sindicato:
                     cuota = await params_repo.resolver_art101(
                         emp.cct_numero, emp.localidad, emp.filial_sindical, fecha_ref)
                     if cuota is not None:
+                        cuota_sindical_verificada = cuota.porcentaje
                         if emp.cct_numero == "414/05":
                             codigo_cuota = "CUOTA_SINDICAL_ART47_414/05"
                             incidencias_cuota = {
@@ -201,7 +232,6 @@ class LiquidarPeriodo:
                             f"Cuota sindical de afiliado ({articulo}) pendiente de verificar "
                             "para esta localidad/filial"
                         )
-                motor = MotorLiquidacion(params_emp, amparos)
                 dom_emp = Empleado(
                     nombre=emp.nombre, apellido=emp.apellido, cuil=Cuil(emp.cuil),
                     fecha_ingreso=emp.fecha_ingreso, cct_numero=emp.cct_numero,
@@ -213,7 +243,62 @@ class LiquidarPeriodo:
                     filial_sindical=emp.filial_sindical,
                 )
                 nv = horas_extra.get(str(emp.id), {})
-                res = motor.liquidar_mensual(
+                if es_vista_uocra:
+                    try:
+                        if Decimal(str(nv.get("horas_extra_50", 0))) or Decimal(str(nv.get("horas_extra_100", 0))):
+                            raise ValueError("Las horas extra UOCRA requieren detalle horario y todavía no se calculan")
+                        base = calcular_base_quincenal(escala, HechosQuincenalesUocra(
+                            nv.get("horas_normales_q1"), nv.get("horas_normales_q2"),
+                            nv.get("asistencia_perfecta_q1"), nv.get("asistencia_perfecta_q2"),
+                        ))
+                        feriados = calcular_feriados_detallados(escala, tuple(
+                            FeriadoDetalladoUocra(
+                                date.fromisoformat(item["fecha"]), bool(item["trabajado"]),
+                                bool(item["cumple_requisito_art168"]),
+                                Decimal(str(item["horas_jornada_anterior"])),
+                                Dinero(Decimal(str(item.get("remuneraciones_accesorias", 0)))),
+                            ) for item in nv.get("feriados_uocra_detalle", ())
+                        ))
+                        total_feriados = sum((f.adicional_a_pagar.monto for f in feriados), Decimal("0"))
+                        decision = None
+                        if nv.get("fcl_criterio_aniversario"):
+                            decision = DecisionProfesionalFcl(
+                                nv["fcl_criterio_aniversario"], nv.get("fcl_aprobado_por") or "",
+                                nv.get("fcl_fundamento") or "",
+                            )
+                        alicuota = resolver_alicuota_fcl(emp.fecha_ingreso, periodo, decision)
+                        fondo = calcular_fondo_cese(ComponentesFondoCese(
+                            basico=base.basico_total, asistencia=base.asistencia_total,
+                            adicionales_remunerativos=Dinero(total_feriados),
+                        ), alicuota)
+                        base_rem = Dinero(base.remunerativo_total.monto + total_feriados)
+                        base_anterior = nv.get("base_contribucion_uocra_mes_anterior")
+                        tasas = TasasAportesUocra(
+                            parametros.fraccion("APORTE_JUBILACION"),
+                            parametros.fraccion("APORTE_LEY19032"),
+                            parametros.fraccion("APORTE_OBRA_SOCIAL"),
+                            parametros.fraccion("CONTRIB_JUBILACION"),
+                            parametros.fraccion("CONTRIB_OBRA_SOCIAL"),
+                            parametros.fraccion("APORTE_SOLIDARIO_UOCRA_76/75"),
+                            parametros.fraccion("CONTRIB_EMP_UOCRA_76/75"),
+                        )
+                        aportes = calcular_aportes_y_contribuciones(
+                            base_rem, base_rem,
+                            Dinero(Decimal(base_anterior)) if base_anterior is not None else None,
+                            tasas, emp.afiliado_sindicato, cuota_sindical_verificada,
+                        )
+                        res = armar_recibo_prueba_uocra(emp.cuil, periodo, base, fondo, aportes, feriados)
+                    except (KeyError, TypeError, ValueError) as exc:
+                        bloqueos.append({
+                            "empleado_id": str(emp.id), "cct_numero": emp.cct_numero,
+                            "categoria": emp.categoria, "provisorio": False,
+                            "requiere_confirmacion": False,
+                            "motivo": f"Vista previa UOCRA bloqueada: {exc}",
+                        })
+                        continue
+                else:
+                    motor = MotorLiquidacion(params_emp, amparos)
+                    res = motor.liquidar_mensual(
                     dom_emp, periodo, escala, cct_cfg,
                     Novedades(
                         horas_extra_50=Decimal(str(nv.get("horas_extra_50", "0"))),
@@ -227,8 +312,8 @@ class LiquidarPeriodo:
                         adicionales_convencionales=nv.get("adicionales_convencionales", ()),
                         cantidades_adicionales=nv.get("cantidades_adicionales", ()),
                     ),
-                    a_fecha=fecha_ref,
-                )
+                        a_fecha=fecha_ref,
+                    )
                 conceptos = [
                     {
                         "codigo": c.codigo, "descripcion": c.descripcion, "tipo": c.tipo.value,
@@ -287,6 +372,7 @@ class LiquidarPeriodo:
                     "aviso_cuota_afiliado": aviso_cuota_afiliado,
                     "aviso_art101": aviso_cuota_afiliado,
                     "escala_provisoria": escala_provisoria,
+                    "vista_previa": es_vista_uocra,
                 })
 
             # Reasignar un objeto nuevo fuerza la detección de cambios de JSONB
@@ -299,6 +385,16 @@ class LiquidarPeriodo:
                     "cct_numero": p.cct_numero,
                     "verificado": p.is_verified,
                     "fuente": p.fuente,
+                })
+            if any(detalle.get("vista_previa") for detalle in detalles_out):
+                reglas_pendientes.append({
+                    "codigo": "VISTA_PREVIA_UOCRA_NO_CONFIRMABLE",
+                    "cct_numero": "76/75",
+                    "verificado": False,
+                    "fuente": (
+                        "Cálculo de prueba conectado al recibo; pendiente habilitación "
+                        "productiva y validación contra caso real"
+                    ),
                 })
             contenido_carpeta = construir_contenido_carpeta(
                 periodo=periodo_str, tipo=tipo, liquidacion_id=str(liq.id),
