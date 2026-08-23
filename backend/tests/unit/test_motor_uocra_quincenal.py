@@ -4,7 +4,13 @@ from decimal import Decimal
 import pytest
 
 from domain.entities.parametros import EscalaSalarial
-from domain.payroll_engine.uocra import HechosQuincenalesUocra, calcular_base_quincenal
+from domain.payroll_engine.uocra import (
+    ComponentesFondoCese,
+    HechosQuincenalesUocra,
+    calcular_base_quincenal,
+    calcular_fondo_cese,
+    evaluar_feriados_no_trabajados,
+)
 from domain.value_objects.dinero import Dinero
 
 
@@ -60,3 +66,48 @@ def test_sereno_rechaza_horas_para_no_mezclar_modalidades():
             escala("MENSUAL", "1092719", "980858"),
             HechosQuincenalesUocra(Decimal("80"), Decimal("80"), True, True),
         )
+
+
+def test_fondo_cese_incluye_remuneracion_y_excluye_sac_recargo_e_indemnizacion():
+    resultado = calcular_fondo_cese(
+        ComponentesFondoCese(
+            basico=Dinero.de("1000000"), asistencia=Dinero.de("200000"),
+            adicionales_remunerativos=Dinero.de("50000"),
+            horas_extra_valor_normal=Dinero.de("30000"),
+            sac=Dinero.de("100000"), recargos_legales_horas_extra=Dinero.de("15000"),
+            indemnizaciones=Dinero.de("80000"),
+        ),
+        Decimal("0.12"),
+    )
+    assert resultado.base.monto == Decimal("1280000.00")
+    assert resultado.importe.monto == Decimal("153600.00")
+    assert resultado.sac_excluido.monto == Decimal("100000.00")
+    assert resultado.recargos_extra_excluidos.monto == Decimal("15000.00")
+    assert resultado.indemnizaciones_excluidas.monto == Decimal("80000.00")
+
+
+@pytest.mark.parametrize("porcentaje,esperado", [("0.12", "120000.00"), ("0.08", "80000.00")])
+def test_fondo_cese_admite_los_dos_tramos_verificados(porcentaje, esperado):
+    resultado = calcular_fondo_cese(
+        ComponentesFondoCese(basico=Dinero.de("1000000")), Decimal(porcentaje)
+    )
+    assert resultado.importe.monto == Decimal(esperado)
+
+
+def test_fondo_cese_rechaza_alicuota_inventada():
+    with pytest.raises(ValueError, match="12% u 8%"):
+        calcular_fondo_cese(
+            ComponentesFondoCese(basico=Dinero.de("1000000")), Decimal("0.10")
+        )
+
+
+def test_feriado_separa_habilitados_y_pendientes_sin_calcular_importe():
+    evaluacion = evaluar_feriados_no_trabajados(2, 1, 0)
+    assert evaluacion.habilitados_q1 == 1
+    assert evaluacion.pendientes_requisito == 1
+    assert evaluacion.importe_automatico_habilitado is False
+
+
+def test_feriado_no_permite_habilitar_mas_que_los_informados():
+    with pytest.raises(ValueError, match="no pueden superar"):
+        evaluar_feriados_no_trabajados(1, 1, 1)

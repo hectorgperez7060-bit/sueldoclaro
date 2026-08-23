@@ -54,6 +54,80 @@ class ResultadoBaseUocra:
         return (self.basico_total + self.asistencia_total).redondear()
 
 
+@dataclass(frozen=True)
+class ComponentesFondoCese:
+    """Bases clasificadas: las exclusiones se conservan para trazabilidad."""
+    basico: Dinero
+    asistencia: Dinero = Dinero(Decimal("0"))
+    adicionales_remunerativos: Dinero = Dinero(Decimal("0"))
+    horas_extra_valor_normal: Dinero = Dinero(Decimal("0"))
+    sac: Dinero = Dinero(Decimal("0"))
+    recargos_legales_horas_extra: Dinero = Dinero(Decimal("0"))
+    indemnizaciones: Dinero = Dinero(Decimal("0"))
+
+    @property
+    def base_incluida(self) -> Dinero:
+        return (
+            self.basico + self.asistencia + self.adicionales_remunerativos
+            + self.horas_extra_valor_normal
+        ).redondear()
+
+
+@dataclass(frozen=True)
+class ResultadoFondoCese:
+    porcentaje: Decimal
+    base: Dinero
+    importe: Dinero
+    sac_excluido: Dinero
+    recargos_extra_excluidos: Dinero
+    indemnizaciones_excluidas: Dinero
+
+
+@dataclass(frozen=True)
+class EvaluacionFeriadosUocra:
+    informados_no_trabajados: int
+    habilitados_q1: int
+    habilitados_q2: int
+    pendientes_requisito: int
+    importe_automatico_habilitado: bool = False
+
+
+def calcular_fondo_cese(
+    componentes: ComponentesFondoCese,
+    porcentaje: Decimal,
+) -> ResultadoFondoCese:
+    """Aplica una alícuota versionada; no decide por sí mismo si es 12% u 8%."""
+    porcentaje = Decimal(str(porcentaje))
+    if porcentaje not in {Decimal("0.12"), Decimal("0.08")}:
+        raise ValueError("La alícuota del Fondo de Cese debe estar verificada como 12% u 8%")
+    base = componentes.base_incluida
+    return ResultadoFondoCese(
+        porcentaje=porcentaje,
+        base=base,
+        importe=base.porcentaje(porcentaje).redondear(),
+        sac_excluido=componentes.sac.redondear(),
+        recargos_extra_excluidos=componentes.recargos_legales_horas_extra.redondear(),
+        indemnizaciones_excluidas=componentes.indemnizaciones.redondear(),
+    )
+
+
+def evaluar_feriados_no_trabajados(
+    informados: int,
+    habilitados_q1: int,
+    habilitados_q2: int,
+) -> EvaluacionFeriadosUocra:
+    """Registra el test previo; no inventa la fórmula monetaria pendiente."""
+    valores = (informados, habilitados_q1, habilitados_q2)
+    if any(isinstance(v, bool) or not isinstance(v, int) or v < 0 for v in valores):
+        raise ValueError("Las cantidades de feriados deben ser enteros no negativos")
+    habilitados = habilitados_q1 + habilitados_q2
+    if habilitados > informados:
+        raise ValueError("Los feriados habilitados no pueden superar los informados")
+    return EvaluacionFeriadosUocra(
+        informados, habilitados_q1, habilitados_q2, informados - habilitados
+    )
+
+
 def _validar_escala(escala: EscalaSalarial) -> None:
     if escala.unidad_escala not in {"HORA", "MENSUAL"}:
         raise ValueError("La escala UOCRA debe declarar unidad HORA o MENSUAL")
