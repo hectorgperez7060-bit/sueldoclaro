@@ -393,6 +393,19 @@ HTML = r"""<!DOCTYPE html>
               </div>
             </div>
           </div>
+          <div id="novUocra" style="display:none;grid-column:1/-1;border:1px solid var(--borde);border-radius:8px;padding:12px">
+            <b>Control quincenal — UOCRA CCT 76/75</b>
+            <p style="font-size:.82rem;color:#6b7280;margin:5px 0 10px">Informá horas normales y asistencia por separado. No sumes horas extra acá.</p>
+            <div class="fila">
+              <div><label>Horas normales · 1.ª quincena</label><input id="novHorasQ1" type="number" min="0" max="200" step="0.01" placeholder="Sin informar"></div>
+              <div><label>Asistencia perfecta · 1.ª quincena</label><select id="novAsistenciaQ1"><option value="">Sin informar</option><option value="true">Sí</option><option value="false">No</option></select></div>
+              <div><label>Feriados no trabajados habilitados · 1.ª</label><input id="novFeriadosHabQ1" type="number" min="0" step="1" value="0"></div>
+              <div><label>Horas normales · 2.ª quincena</label><input id="novHorasQ2" type="number" min="0" max="200" step="0.01" placeholder="Sin informar"></div>
+              <div><label>Asistencia perfecta · 2.ª quincena</label><select id="novAsistenciaQ2"><option value="">Sin informar</option><option value="true">Sí</option><option value="false">No</option></select></div>
+              <div><label>Feriados no trabajados habilitados · 2.ª</label><input id="novFeriadosHabQ2" type="number" min="0" step="1" value="0"></div>
+            </div>
+            <small style="color:#92400e">“Habilitado” significa que cumple el requisito legal previo; la app no lo presume.</small>
+          </div>
           <div style="grid-column:1/-1"><label>Observaciones</label><textarea id="novObservaciones" rows="3" placeholder="Detalle opcional"></textarea></div>
         </div>
         <div style="display:flex;gap:8px;margin-top:10px">
@@ -848,6 +861,8 @@ async function cargarEmpleados(){
 }
 
 function numeroNov(id){ return Number($(id).value || 0); }
+function numeroNovOpcional(id){ return $(id).value===''?null:Number($(id).value); }
+function booleanoNovOpcional(id){ return $(id).value===''?null:$(id).value==='true'; }
 const checksFarmacia=['novTituloFarmaceutico','novTituloAuxiliar','novTituloSecundario','novCajero','novAdminPerfumeria','novBicicleta','novFallaCaja'];
 function actualizarAdicionalesFarmacia(){
   const emp=empleadosCache[$('novEmpleado').value];
@@ -861,6 +876,8 @@ function actualizarAdicionalesSanidad(){
 function actualizarAdicionalesConvenio(){
   actualizarAdicionalesFarmacia();
   actualizarAdicionalesSanidad();
+  const emp=empleadosCache[$('novEmpleado').value];
+  $('novUocra').style.display=emp && emp.cct_numero==='76/75'?'block':'none';
 }
 function actualizarNocturnidadSanidad(){
   $('novNocturnidadSanidadDatos').style.display=$('novNocturnidadSanidad').checked?'grid':'none';
@@ -935,6 +952,9 @@ function limpiarNovedad(){
   editandoNovedadId=null;
   $('novEmpleado').value=''; $('novEmpleado').disabled=false;
   ['novDias','novFaltasJ','novFaltasI','novLicencias','novVacaciones','novHE50','novHE100','novFeriados','novFeriadosNoTrab','novPremios','novDescuentos'].forEach(id=>$(id).value='0');
+  ['novHorasQ1','novHorasQ2'].forEach(id=>$(id).value='');
+  ['novAsistenciaQ1','novAsistenciaQ2'].forEach(id=>$(id).value='');
+  ['novFeriadosHabQ1','novFeriadosHabQ2'].forEach(id=>$(id).value='0');
   $('novObservaciones').value='';
   $('novTipoPremio').value='pendiente';
   limpiarAdicionalesFarmacia();
@@ -967,7 +987,8 @@ async function cargarNovedades(){
         ? '<span class="estado-edicion">🔒 Cerrada por liquidación confirmada</span>'
         : `<div class="acciones-tabla"><button class="chico secundario" onclick="editarNovedad('${n.id}')" title="Editar">✏️ Editar</button><button class="chico secundario" onclick="borrarNovedad('${n.id}')" title="Eliminar">🗑 Eliminar</button></div><span class="estado-edicion">Editable: la liquidación está calculada, no confirmada</span>`;
       const adicionales=(n.adicionales_convencionales||[]).length?`<br><small>Convenio: ${(n.adicionales_convencionales||[]).join(', ')}</small>`:'';
-      tr.innerHTML=`<td data-label="Empleado">${emp.apellido}, ${emp.nombre}</td><td data-label="Días">${n.dias_trabajados}<br><small>Feriados: ${n.feriados_trabajados||0} trabajados · ${n.feriados_no_trabajados||0} no trabajados</small></td><td data-label="Faltas">${faltas}</td><td data-label="Extras">50%: ${n.horas_extra_50} · 100%: ${n.horas_extra_100}${adicionales}</td><td data-label="Premios / descuentos">$ ${fmt(n.premios)} / $ ${fmt(n.descuentos_adicionales)}</td><td class="acciones-celda">${acciones}</td>`;
+      const quincenas=emp.cct_numero==='76/75'?`<br><small>Q1: ${n.horas_normales_q1??'—'} h · Q2: ${n.horas_normales_q2??'—'} h</small>`:'';
+      tr.innerHTML=`<td data-label="Empleado">${emp.apellido}, ${emp.nombre}</td><td data-label="Días">${n.dias_trabajados}<br><small>Feriados: ${n.feriados_trabajados||0} trabajados · ${n.feriados_no_trabajados||0} no trabajados</small>${quincenas}</td><td data-label="Faltas">${faltas}</td><td data-label="Extras">50%: ${n.horas_extra_50} · 100%: ${n.horas_extra_100}${adicionales}</td><td data-label="Premios / descuentos">$ ${fmt(n.premios)} / $ ${fmt(n.descuentos_adicionales)}</td><td class="acciones-celda">${acciones}</td>`;
       tb.appendChild(tr);
     });
     $('tablaNovedades').style.display=lista.length?'table':'none';
@@ -1031,6 +1052,14 @@ function cuerpoNovedad(incluirEmpleado=true){
     descuentos_adicionales:numeroNov('novDescuentos'),
     observaciones:$('novObservaciones').value.trim()
   };
+  Object.assign(cuerpo,{
+    horas_normales_q1:numeroNovOpcional('novHorasQ1'),
+    horas_normales_q2:numeroNovOpcional('novHorasQ2'),
+    asistencia_perfecta_q1:booleanoNovOpcional('novAsistenciaQ1'),
+    asistencia_perfecta_q2:booleanoNovOpcional('novAsistenciaQ2'),
+    feriados_habilitados_q1:numeroNov('novFeriadosHabQ1'),
+    feriados_habilitados_q2:numeroNov('novFeriadosHabQ2')
+  });
   Object.assign(cuerpo,datosAdicionalesConvenio());
   if(incluirEmpleado) cuerpo.empleado_id=$('novEmpleado').value;
   return cuerpo;
@@ -1059,6 +1088,11 @@ function editarNovedad(id){
   $('novVacaciones').value=n.vacaciones; $('novHE50').value=n.horas_extra_50;
   $('novHE100').value=n.horas_extra_100; $('novFeriados').value=n.feriados_trabajados||0;
   $('novFeriadosNoTrab').value=n.feriados_no_trabajados||0;
+  $('novHorasQ1').value=n.horas_normales_q1??''; $('novHorasQ2').value=n.horas_normales_q2??'';
+  $('novAsistenciaQ1').value=n.asistencia_perfecta_q1===null?'':String(n.asistencia_perfecta_q1);
+  $('novAsistenciaQ2').value=n.asistencia_perfecta_q2===null?'':String(n.asistencia_perfecta_q2);
+  $('novFeriadosHabQ1').value=n.feriados_habilitados_q1||0;
+  $('novFeriadosHabQ2').value=n.feriados_habilitados_q2||0;
   $('novPremios').value=n.premios;
   $('novTipoPremio').value=n.tipo_premio||'pendiente';
   $('novDescuentos').value=n.descuentos_adicionales; $('novObservaciones').value=n.observaciones||'';

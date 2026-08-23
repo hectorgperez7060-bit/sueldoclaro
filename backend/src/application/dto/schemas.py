@@ -161,6 +161,12 @@ class NovedadMensualIn(BaseModel):
     observaciones: str = ""
     adicionales_convencionales: List[str] = Field(default_factory=list)
     cantidades_adicionales: dict[str, Decimal] = Field(default_factory=dict)
+    horas_normales_q1: Optional[Decimal] = None
+    horas_normales_q2: Optional[Decimal] = None
+    asistencia_perfecta_q1: Optional[bool] = None
+    asistencia_perfecta_q2: Optional[bool] = None
+    feriados_habilitados_q1: int = 0
+    feriados_habilitados_q2: int = 0
 
     @model_validator(mode="after")
     def _validar_novedad(self):
@@ -204,6 +210,12 @@ class NovedadMensualUpdate(BaseModel):
     observaciones: str = ""
     adicionales_convencionales: List[str] = Field(default_factory=list)
     cantidades_adicionales: dict[str, Decimal] = Field(default_factory=dict)
+    horas_normales_q1: Optional[Decimal] = None
+    horas_normales_q2: Optional[Decimal] = None
+    asistencia_perfecta_q1: Optional[bool] = None
+    asistencia_perfecta_q2: Optional[bool] = None
+    feriados_habilitados_q1: int = 0
+    feriados_habilitados_q2: int = 0
 
     @model_validator(mode="after")
     def _validar_novedad(self):
@@ -243,6 +255,12 @@ class NovedadMensualOut(BaseModel):
     observaciones: str
     adicionales_convencionales: List[str] = Field(default_factory=list)
     cantidades_adicionales: dict[str, Decimal] = Field(default_factory=dict)
+    horas_normales_q1: Optional[Decimal] = None
+    horas_normales_q2: Optional[Decimal] = None
+    asistencia_perfecta_q1: Optional[bool] = None
+    asistencia_perfecta_q2: Optional[bool] = None
+    feriados_habilitados_q1: int = 0
+    feriados_habilitados_q2: int = 0
     bloqueada: bool = False
 
 

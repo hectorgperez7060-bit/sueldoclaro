@@ -4,6 +4,7 @@ from __future__ import annotations
 import calendar
 from dataclasses import dataclass
 from decimal import Decimal
+from typing import Optional
 
 from domain.value_objects.periodo import Periodo
 
@@ -26,6 +27,12 @@ class DatosNovedadMensual:
     observaciones: str = ""
     adicionales_convencionales: tuple[str, ...] = ()
     cantidades_adicionales: tuple[tuple[str, Decimal], ...] = ()
+    horas_normales_q1: Optional[Decimal] = None
+    horas_normales_q2: Optional[Decimal] = None
+    asistencia_perfecta_q1: Optional[bool] = None
+    asistencia_perfecta_q2: Optional[bool] = None
+    feriados_habilitados_q1: int = 0
+    feriados_habilitados_q2: int = 0
 
     def __post_init__(self) -> None:
         try:
@@ -73,6 +80,24 @@ class DatosNovedadMensual:
             )
         if self.feriados_trabajados + self.feriados_no_trabajados > max_dias:
             raise ValueError("La cantidad total de feriados informados supera los días del mes")
+        for nombre, valor in {
+            "Horas normales de la primera quincena": self.horas_normales_q1,
+            "Horas normales de la segunda quincena": self.horas_normales_q2,
+        }.items():
+            if valor is not None and not Decimal("0") <= Decimal(str(valor)) <= Decimal("200"):
+                raise ValueError(f"{nombre} debe estar entre 0 y 200")
+        for nombre, valor in {
+            "Asistencia perfecta de la primera quincena": self.asistencia_perfecta_q1,
+            "Asistencia perfecta de la segunda quincena": self.asistencia_perfecta_q2,
+        }.items():
+            if valor is not None and not isinstance(valor, bool):
+                raise ValueError(f"{nombre} debe informarse como sí o no")
+        if self.feriados_habilitados_q1 < 0 or self.feriados_habilitados_q2 < 0:
+            raise ValueError("Los feriados habilitados por quincena no pueden ser negativos")
+        if self.feriados_habilitados_q1 + self.feriados_habilitados_q2 > self.feriados_no_trabajados:
+            raise ValueError(
+                "Los feriados habilitados por quincena no pueden superar los feriados no trabajados"
+            )
 
         for nombre, valor in {
             "horas extra al 50%": self.horas_extra_50,
@@ -127,4 +152,10 @@ class DatosNovedadMensual:
                 codigo: str(Decimal(str(cantidad)))
                 for codigo, cantidad in self.cantidades_adicionales
             },
+            "horas_normales_q1": self.horas_normales_q1,
+            "horas_normales_q2": self.horas_normales_q2,
+            "asistencia_perfecta_q1": self.asistencia_perfecta_q1,
+            "asistencia_perfecta_q2": self.asistencia_perfecta_q2,
+            "feriados_habilitados_q1": self.feriados_habilitados_q1,
+            "feriados_habilitados_q2": self.feriados_habilitados_q2,
         }

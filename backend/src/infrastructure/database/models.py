@@ -363,6 +363,12 @@ class NovedadMensual(TenantMixin, Base):
     observaciones: Mapped[str] = mapped_column(Text, default="")
     adicionales_convencionales: Mapped[list] = mapped_column(JSONB, default=list)
     cantidades_adicionales: Mapped[dict] = mapped_column(JSONB, default=dict)
+    horas_normales_q1: Mapped[Optional[Decimal]] = mapped_column(Numeric(8, 2), nullable=True)
+    horas_normales_q2: Mapped[Optional[Decimal]] = mapped_column(Numeric(8, 2), nullable=True)
+    asistencia_perfecta_q1: Mapped[Optional[bool]] = mapped_column(Boolean, nullable=True)
+    asistencia_perfecta_q2: Mapped[Optional[bool]] = mapped_column(Boolean, nullable=True)
+    feriados_habilitados_q1: Mapped[int] = mapped_column(Integer, default=0)
+    feriados_habilitados_q2: Mapped[int] = mapped_column(Integer, default=0)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=now_utc, onupdate=now_utc

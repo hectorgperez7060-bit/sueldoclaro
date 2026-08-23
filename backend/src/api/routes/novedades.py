@@ -48,6 +48,12 @@ def _to_out(novedad, bloqueada: bool = False) -> NovedadMensualOut:
         observaciones=novedad.observaciones,
         adicionales_convencionales=novedad.adicionales_convencionales or [],
         cantidades_adicionales=novedad.cantidades_adicionales or {},
+        horas_normales_q1=novedad.horas_normales_q1,
+        horas_normales_q2=novedad.horas_normales_q2,
+        asistencia_perfecta_q1=novedad.asistencia_perfecta_q1,
+        asistencia_perfecta_q2=novedad.asistencia_perfecta_q2,
+        feriados_habilitados_q1=novedad.feriados_habilitados_q1,
+        feriados_habilitados_q2=novedad.feriados_habilitados_q2,
         bloqueada=bloqueada,
     )
 
