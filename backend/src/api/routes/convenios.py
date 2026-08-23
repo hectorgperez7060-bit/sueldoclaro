@@ -99,6 +99,9 @@ async def gestor_normativo(
         escalas_esperadas = len(nombres_categorias) * max(cantidad_zonas, 1)
         escala_completa = bool(nombres_categorias) and esc_ok == escalas_esperadas
         motor_periodo_habilitado = escala_completa and esc_habilitadas == escalas_esperadas
+        # Motores conectados al flujo únicamente como borrador no confirmable.
+        # No equivale a habilitación productiva.
+        vista_previa_habilitada = cct.numero in {"76/75"} and escala_completa
         if estructura_completa and escala_completa and motor_periodo_habilitado:
             estado = "completo"
         elif esc or par:
@@ -119,6 +122,7 @@ async def gestor_normativo(
                 "escalas_esperadas": escalas_esperadas,
                 "parametros": len(par), "completa": escala_completa,
                 "motor_habilitado": motor_periodo_habilitado,
+                "vista_previa_habilitada": vista_previa_habilitada,
             },
         })
     return salida

@@ -34,6 +34,9 @@ def test_migracion_y_ui_exponen_base_anterior_y_bloqueos():
     assert "ADD COLUMN IF NOT EXISTS base_contribucion_uocra_mes_anterior" in sql
     assert "ck_novedad_base_uocra_anterior_no_negativa" in sql
     assert "novBaseUocraAnterior" in ui
+    assert "Motor conectado en vista previa" in ui
+    convenios = (ROOT / "src/api/routes/convenios.py").read_text()
+    assert 'vista_previa_habilitada = cct.numero in {"76/75"}' in convenios
     assert "Vista previa UOCRA bloqueada" in (
         ROOT / "src/application/use_cases/liquidar_periodo.py"
     ).read_text()
