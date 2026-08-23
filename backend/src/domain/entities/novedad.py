@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import calendar
 from dataclasses import dataclass
+from datetime import date
 from decimal import Decimal
 from typing import Optional
 
@@ -33,6 +34,10 @@ class DatosNovedadMensual:
     asistencia_perfecta_q2: Optional[bool] = None
     feriados_habilitados_q1: int = 0
     feriados_habilitados_q2: int = 0
+    feriados_uocra_detalle: tuple[dict, ...] = ()
+    fcl_criterio_aniversario: Optional[str] = None
+    fcl_aprobado_por: Optional[str] = None
+    fcl_fundamento: Optional[str] = None
 
     def __post_init__(self) -> None:
         try:
@@ -98,6 +103,44 @@ class DatosNovedadMensual:
             raise ValueError(
                 "Los feriados habilitados por quincena no pueden superar los feriados no trabajados"
             )
+        fechas_feriado = set()
+        trabajados_detalle = 0
+        no_trabajados_detalle = 0
+        for detalle in self.feriados_uocra_detalle:
+            try:
+                fecha = date.fromisoformat(str(detalle["fecha"]))
+                trabajado = detalle["trabajado"]
+                requisito = detalle["cumple_requisito_art168"]
+                horas = Decimal(str(detalle["horas_jornada_anterior"]))
+                accesorios = Decimal(str(detalle.get("remuneraciones_accesorias", 0)))
+            except (KeyError, TypeError, ValueError) as exc:
+                raise ValueError("Cada feriado UOCRA debe tener fecha, condición, horas y accesorios válidos") from exc
+            if fecha.year != periodo.anio or fecha.month != periodo.mes:
+                raise ValueError("La fecha del feriado UOCRA debe pertenecer al período")
+            if fecha in fechas_feriado:
+                raise ValueError("No se puede informar dos veces el mismo feriado UOCRA")
+            fechas_feriado.add(fecha)
+            if not isinstance(trabajado, bool) or not isinstance(requisito, bool):
+                raise ValueError("Trabajado y requisito del feriado deben informarse como sí o no")
+            if not Decimal("0") < horas <= Decimal("9"):
+                raise ValueError("Las horas de jornada anterior del feriado deben ser mayores que 0 y no superar 9")
+            if accesorios < 0:
+                raise ValueError("Los accesorios de la jornada anterior no pueden ser negativos")
+            trabajados_detalle += int(trabajado)
+            no_trabajados_detalle += int(not trabajado)
+        if self.feriados_uocra_detalle and (
+            trabajados_detalle != self.feriados_trabajados
+            or no_trabajados_detalle != self.feriados_no_trabajados
+        ):
+            raise ValueError("El detalle UOCRA debe coincidir con las cantidades totales de feriados")
+
+        criterio_fcl = self.fcl_criterio_aniversario
+        campos_fcl = (criterio_fcl, self.fcl_aprobado_por, self.fcl_fundamento)
+        if any(valor not in (None, "") for valor in campos_fcl):
+            if criterio_fcl not in {"MES_COMPLETO_12", "MES_COMPLETO_8", "PRORRATEO_DIAS"}:
+                raise ValueError("Criterio del Fondo de Cese inválido")
+            if not (self.fcl_aprobado_por or "").strip() or not (self.fcl_fundamento or "").strip():
+                raise ValueError("El criterio del Fondo de Cese requiere profesional y fundamento")
 
         for nombre, valor in {
             "horas extra al 50%": self.horas_extra_50,
@@ -158,4 +201,8 @@ class DatosNovedadMensual:
             "asistencia_perfecta_q2": self.asistencia_perfecta_q2,
             "feriados_habilitados_q1": self.feriados_habilitados_q1,
             "feriados_habilitados_q2": self.feriados_habilitados_q2,
+            "feriados_uocra_detalle": list(self.feriados_uocra_detalle),
+            "fcl_criterio_aniversario": self.fcl_criterio_aniversario,
+            "fcl_aprobado_por": (self.fcl_aprobado_por or "").strip() or None,
+            "fcl_fundamento": (self.fcl_fundamento or "").strip() or None,
         }

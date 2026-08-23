@@ -54,6 +54,10 @@ def _to_out(novedad, bloqueada: bool = False) -> NovedadMensualOut:
         asistencia_perfecta_q2=novedad.asistencia_perfecta_q2,
         feriados_habilitados_q1=novedad.feriados_habilitados_q1,
         feriados_habilitados_q2=novedad.feriados_habilitados_q2,
+        feriados_uocra_detalle=novedad.feriados_uocra_detalle or [],
+        fcl_criterio_aniversario=novedad.fcl_criterio_aniversario,
+        fcl_aprobado_por=novedad.fcl_aprobado_por,
+        fcl_fundamento=novedad.fcl_fundamento,
         bloqueada=bloqueada,
     )
 

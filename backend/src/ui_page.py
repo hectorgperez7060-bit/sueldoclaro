@@ -405,6 +405,19 @@ HTML = r"""<!DOCTYPE html>
               <div><label>Feriados no trabajados habilitados · 2.ª</label><input id="novFeriadosHabQ2" type="number" min="0" step="1" value="0"></div>
             </div>
             <small style="color:#92400e">“Habilitado” significa que cumple el requisito legal previo; la app no lo presume.</small>
+            <div style="margin-top:12px;border-top:1px solid var(--borde);padding-top:10px">
+              <div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><b>Detalle de feriados</b><button type="button" class="chico secundario" onclick="agregarFeriadoUocra()">+ Agregar feriado</button></div>
+              <div id="novFeriadosUocraLista" style="display:grid;gap:8px;margin-top:8px"></div>
+              <small style="color:#6b7280">Cada fecha guarda si fue trabajada, el requisito del art. 168, las horas de la jornada anterior y sus accesorios.</small>
+            </div>
+            <div style="margin-top:12px;border-top:1px solid var(--borde);padding-top:10px">
+              <b>Criterio profesional · mes del primer aniversario</b>
+              <div class="fila" style="margin-top:8px">
+                <div><label>Criterio Fondo de Cese</label><select id="novFclCriterio"><option value="">No corresponde / sin definir</option><option value="MES_COMPLETO_12">Mes completo al 12%</option><option value="MES_COMPLETO_8">Mes completo al 8%</option><option value="PRORRATEO_DIAS">Prorrateo por bases separadas</option></select></div>
+                <div><label>Profesional que lo aprueba</label><input id="novFclAprobado" maxlength="200" placeholder="Nombre y matrícula"></div>
+                <div style="grid-column:1/-1"><label>Fundamento</label><textarea id="novFclFundamento" rows="2" placeholder="Criterio profesional documentado"></textarea></div>
+              </div>
+            </div>
           </div>
           <div style="grid-column:1/-1"><label>Observaciones</label><textarea id="novObservaciones" rows="3" placeholder="Detalle opcional"></textarea></div>
         </div>
@@ -879,6 +892,36 @@ function actualizarAdicionalesConvenio(){
   const emp=empleadosCache[$('novEmpleado').value];
   $('novUocra').style.display=emp && emp.cct_numero==='76/75'?'block':'none';
 }
+function agregarFeriadoUocra(datos={}){
+  const fila=document.createElement('div'); fila.className='feriado-uocra-fila fila';
+  fila.style.cssText='border:1px solid var(--borde);border-radius:8px;padding:8px';
+  fila.innerHTML='<div><label>Fecha</label><input class="fu-fecha" type="date"></div><label><input class="fu-trabajado" type="checkbox"> Trabajado</label><label><input class="fu-requisito" type="checkbox"> Cumple art. 168</label><div><label>Horas jornada anterior</label><input class="fu-horas" type="number" min="0.01" max="9" step="0.01"></div><div><label>Accesorios jornada ($)</label><input class="fu-accesorios" type="number" min="0" step="0.01" value="0"></div><div style="display:flex;align-items:end"><button type="button" class="chico secundario fu-quitar">Quitar</button></div>';
+  fila.querySelector('.fu-fecha').value=datos.fecha||'';
+  fila.querySelector('.fu-trabajado').checked=Boolean(datos.trabajado);
+  fila.querySelector('.fu-requisito').checked=Boolean(datos.cumple_requisito_art168);
+  fila.querySelector('.fu-horas').value=datos.horas_jornada_anterior??'';
+  fila.querySelector('.fu-accesorios').value=datos.remuneraciones_accesorias??0;
+  fila.querySelectorAll('input').forEach(i=>i.addEventListener('change',sincronizarFeriadosUocra));
+  fila.querySelector('.fu-quitar').onclick=()=>{fila.remove();sincronizarFeriadosUocra();};
+  $('novFeriadosUocraLista').appendChild(fila);
+  sincronizarFeriadosUocra();
+}
+function detalleFeriadosUocra(){
+  return [...document.querySelectorAll('.feriado-uocra-fila')].map(f=>({
+    fecha:f.querySelector('.fu-fecha').value,
+    trabajado:f.querySelector('.fu-trabajado').checked,
+    cumple_requisito_art168:f.querySelector('.fu-requisito').checked,
+    horas_jornada_anterior:Number(f.querySelector('.fu-horas').value||0),
+    remuneraciones_accesorias:Number(f.querySelector('.fu-accesorios').value||0)
+  }));
+}
+function sincronizarFeriadosUocra(){
+  const detalles=detalleFeriadosUocra();
+  $('novFeriados').value=detalles.filter(d=>d.trabajado).length;
+  $('novFeriadosNoTrab').value=detalles.filter(d=>!d.trabajado).length;
+  $('novFeriadosHabQ1').value=detalles.filter(d=>!d.trabajado&&d.cumple_requisito_art168&&Number((d.fecha||'').slice(8,10))<=15).length;
+  $('novFeriadosHabQ2').value=detalles.filter(d=>!d.trabajado&&d.cumple_requisito_art168&&Number((d.fecha||'').slice(8,10))>15).length;
+}
 function actualizarNocturnidadSanidad(){
   $('novNocturnidadSanidadDatos').style.display=$('novNocturnidadSanidad').checked?'grid':'none';
 }
@@ -955,6 +998,8 @@ function limpiarNovedad(){
   ['novHorasQ1','novHorasQ2'].forEach(id=>$(id).value='');
   ['novAsistenciaQ1','novAsistenciaQ2'].forEach(id=>$(id).value='');
   ['novFeriadosHabQ1','novFeriadosHabQ2'].forEach(id=>$(id).value='0');
+  $('novFeriadosUocraLista').innerHTML='';
+  $('novFclCriterio').value=''; $('novFclAprobado').value=''; $('novFclFundamento').value='';
   $('novObservaciones').value='';
   $('novTipoPremio').value='pendiente';
   limpiarAdicionalesFarmacia();
@@ -1060,6 +1105,12 @@ function cuerpoNovedad(incluirEmpleado=true){
     feriados_habilitados_q1:numeroNov('novFeriadosHabQ1'),
     feriados_habilitados_q2:numeroNov('novFeriadosHabQ2')
   });
+  Object.assign(cuerpo,{
+    feriados_uocra_detalle:detalleFeriadosUocra(),
+    fcl_criterio_aniversario:$('novFclCriterio').value||null,
+    fcl_aprobado_por:$('novFclAprobado').value.trim()||null,
+    fcl_fundamento:$('novFclFundamento').value.trim()||null
+  });
   Object.assign(cuerpo,datosAdicionalesConvenio());
   if(incluirEmpleado) cuerpo.empleado_id=$('novEmpleado').value;
   return cuerpo;
@@ -1093,6 +1144,11 @@ function editarNovedad(id){
   $('novAsistenciaQ2').value=n.asistencia_perfecta_q2===null?'':String(n.asistencia_perfecta_q2);
   $('novFeriadosHabQ1').value=n.feriados_habilitados_q1||0;
   $('novFeriadosHabQ2').value=n.feriados_habilitados_q2||0;
+  $('novFeriadosUocraLista').innerHTML='';
+  (n.feriados_uocra_detalle||[]).forEach(agregarFeriadoUocra);
+  $('novFclCriterio').value=n.fcl_criterio_aniversario||'';
+  $('novFclAprobado').value=n.fcl_aprobado_por||'';
+  $('novFclFundamento').value=n.fcl_fundamento||'';
   $('novPremios').value=n.premios;
   $('novTipoPremio').value=n.tipo_premio||'pendiente';
   $('novDescuentos').value=n.descuentos_adicionales; $('novObservaciones').value=n.observaciones||'';

@@ -167,6 +167,10 @@ class NovedadMensualIn(BaseModel):
     asistencia_perfecta_q2: Optional[bool] = None
     feriados_habilitados_q1: int = 0
     feriados_habilitados_q2: int = 0
+    feriados_uocra_detalle: List[dict] = Field(default_factory=list)
+    fcl_criterio_aniversario: Optional[str] = None
+    fcl_aprobado_por: Optional[str] = None
+    fcl_fundamento: Optional[str] = None
 
     @model_validator(mode="after")
     def _validar_novedad(self):
@@ -185,6 +189,7 @@ class NovedadMensualIn(BaseModel):
         datos = self.model_dump(exclude={"empleado_id"})
         datos["adicionales_convencionales"] = tuple(datos["adicionales_convencionales"])
         datos["cantidades_adicionales"] = tuple(datos["cantidades_adicionales"].items())
+        datos["feriados_uocra_detalle"] = tuple(datos["feriados_uocra_detalle"])
         return datos
 
     def datos_dominio(self):
@@ -216,6 +221,10 @@ class NovedadMensualUpdate(BaseModel):
     asistencia_perfecta_q2: Optional[bool] = None
     feriados_habilitados_q1: int = 0
     feriados_habilitados_q2: int = 0
+    feriados_uocra_detalle: List[dict] = Field(default_factory=list)
+    fcl_criterio_aniversario: Optional[str] = None
+    fcl_aprobado_por: Optional[str] = None
+    fcl_fundamento: Optional[str] = None
 
     @model_validator(mode="after")
     def _validar_novedad(self):
@@ -228,6 +237,7 @@ class NovedadMensualUpdate(BaseModel):
         datos = self.model_dump()
         datos["adicionales_convencionales"] = tuple(datos["adicionales_convencionales"])
         datos["cantidades_adicionales"] = tuple(datos["cantidades_adicionales"].items())
+        datos["feriados_uocra_detalle"] = tuple(datos["feriados_uocra_detalle"])
         return datos
 
     def datos_dominio(self):
@@ -261,6 +271,10 @@ class NovedadMensualOut(BaseModel):
     asistencia_perfecta_q2: Optional[bool] = None
     feriados_habilitados_q1: int = 0
     feriados_habilitados_q2: int = 0
+    feriados_uocra_detalle: List[dict] = Field(default_factory=list)
+    fcl_criterio_aniversario: Optional[str] = None
+    fcl_aprobado_por: Optional[str] = None
+    fcl_fundamento: Optional[str] = None
     bloqueada: bool = False
 
 

@@ -369,6 +369,10 @@ class NovedadMensual(TenantMixin, Base):
     asistencia_perfecta_q2: Mapped[Optional[bool]] = mapped_column(Boolean, nullable=True)
     feriados_habilitados_q1: Mapped[int] = mapped_column(Integer, default=0)
     feriados_habilitados_q2: Mapped[int] = mapped_column(Integer, default=0)
+    feriados_uocra_detalle: Mapped[list] = mapped_column(JSONB, default=list)
+    fcl_criterio_aniversario: Mapped[Optional[str]] = mapped_column(String(24), nullable=True)
+    fcl_aprobado_por: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
+    fcl_fundamento: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=now_utc, onupdate=now_utc

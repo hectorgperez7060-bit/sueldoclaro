@@ -21,6 +21,8 @@ def test_novedad_mensual_tiene_columnas_y_claves_esperadas():
         "horas_normales_q1", "horas_normales_q2",
         "asistencia_perfecta_q1", "asistencia_perfecta_q2",
         "feriados_habilitados_q1", "feriados_habilitados_q2",
+        "feriados_uocra_detalle", "fcl_criterio_aniversario",
+        "fcl_aprobado_por", "fcl_fundamento",
         "created_at", "updated_at",
     }
     assert esperadas == set(tabla.columns.keys())
