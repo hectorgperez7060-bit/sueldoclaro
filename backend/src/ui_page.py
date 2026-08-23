@@ -406,6 +406,12 @@ HTML = r"""<!DOCTYPE html>
             </div>
             <small style="color:#92400e">“Habilitado” significa que cumple el requisito legal previo; la app no lo presume.</small>
             <div style="margin-top:12px;border-top:1px solid var(--borde);padding-top:10px">
+              <div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><b>Detalle de horas extra</b><button type="button" class="chico secundario" onclick="agregarHoraExtraUocra()">+ Agregar tramo</button></div>
+              <div id="novHorasExtraUocraLista" style="display:grid;gap:8px;margin-top:8px"></div>
+              <div style="margin-top:8px"><label>Horas extra acumuladas en el año, antes de este mes</label><input id="novHorasExtraUocraAnio" type="number" min="0" max="200" step="0.01" value="0"></div>
+              <small style="color:#6b7280">La app separa 50%/100% por fecha y hora, divide automáticamente el sábado a las 13 y controla los topes 3/30/200.</small>
+            </div>
+            <div style="margin-top:12px;border-top:1px solid var(--borde);padding-top:10px">
               <div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><b>Detalle de feriados</b><button type="button" class="chico secundario" onclick="agregarFeriadoUocra()">+ Agregar feriado</button></div>
               <div id="novFeriadosUocraLista" style="display:grid;gap:8px;margin-top:8px"></div>
               <small style="color:#6b7280">Cada fecha guarda si fue trabajada, el requisito del art. 168, las horas de la jornada anterior y sus accesorios.</small>
@@ -923,6 +929,36 @@ function sincronizarFeriadosUocra(){
   $('novFeriadosHabQ1').value=detalles.filter(d=>!d.trabajado&&d.cumple_requisito_art168&&Number((d.fecha||'').slice(8,10))<=15).length;
   $('novFeriadosHabQ2').value=detalles.filter(d=>!d.trabajado&&d.cumple_requisito_art168&&Number((d.fecha||'').slice(8,10))>15).length;
 }
+function agregarHoraExtraUocra(datos={}){
+  const fila=document.createElement('div'); fila.className='hora-extra-uocra-fila fila';
+  fila.style.cssText='border:1px solid var(--borde);border-radius:8px;padding:8px';
+  fila.innerHTML='<div><label>Fecha</label><input class="heu-fecha" type="date"></div><div><label>Hora de inicio</label><input class="heu-inicio" type="number" min="0" max="23.99" step="0.25" placeholder="Ej. 14"></div><div><label>Cantidad de horas</label><input class="heu-horas" type="number" min="0.01" max="3" step="0.25"></div><label><input class="heu-feriado" type="checkbox"> Es feriado</label><div style="display:flex;align-items:end"><button type="button" class="chico secundario heu-quitar">Quitar</button></div>';
+  fila.querySelector('.heu-fecha').value=datos.fecha||'';
+  fila.querySelector('.heu-inicio').value=datos.hora_inicio??'';
+  fila.querySelector('.heu-horas').value=datos.horas??'';
+  fila.querySelector('.heu-feriado').checked=Boolean(datos.es_feriado);
+  fila.querySelectorAll('input').forEach(i=>i.addEventListener('change',sincronizarHorasExtraUocra));
+  fila.querySelector('.heu-quitar').onclick=()=>{fila.remove();sincronizarHorasExtraUocra();};
+  $('novHorasExtraUocraLista').appendChild(fila); sincronizarHorasExtraUocra();
+}
+function detalleHorasExtraUocra(){
+  return [...document.querySelectorAll('.hora-extra-uocra-fila')].map(f=>({
+    fecha:f.querySelector('.heu-fecha').value,
+    hora_inicio:Number(f.querySelector('.heu-inicio').value||0),
+    horas:Number(f.querySelector('.heu-horas').value||0),
+    es_feriado:f.querySelector('.heu-feriado').checked
+  }));
+}
+function sincronizarHorasExtraUocra(){
+  let h50=0,h100=0;
+  detalleHorasExtraUocra().forEach(d=>{
+    const dia=d.fecha?new Date(d.fecha+'T12:00:00').getDay():-1;
+    if(d.es_feriado||dia===0) h100+=d.horas;
+    else if(dia===6){const antes=Math.max(0,Math.min(d.hora_inicio+d.horas,13)-d.hora_inicio);h50+=antes;h100+=d.horas-antes;}
+    else h50+=d.horas;
+  });
+  $('novHE50').value=h50.toFixed(2); $('novHE100').value=h100.toFixed(2);
+}
 function actualizarNocturnidadSanidad(){
   $('novNocturnidadSanidadDatos').style.display=$('novNocturnidadSanidad').checked?'grid':'none';
 }
@@ -1000,6 +1036,8 @@ function limpiarNovedad(){
   ['novAsistenciaQ1','novAsistenciaQ2'].forEach(id=>$(id).value='');
   ['novFeriadosHabQ1','novFeriadosHabQ2'].forEach(id=>$(id).value='0');
   $('novFeriadosUocraLista').innerHTML='';
+  $('novHorasExtraUocraLista').innerHTML=''; $('novHorasExtraUocraAnio').value='0';
+  $('novBaseUocraAnterior').value='';
   $('novFclCriterio').value=''; $('novFclAprobado').value=''; $('novFclFundamento').value='';
   $('novObservaciones').value='';
   $('novTipoPremio').value='pendiente';
@@ -1112,6 +1150,8 @@ function cuerpoNovedad(incluirEmpleado=true){
     fcl_aprobado_por:$('novFclAprobado').value.trim()||null,
     fcl_fundamento:$('novFclFundamento').value.trim()||null
     ,base_contribucion_uocra_mes_anterior:numeroNovOpcional('novBaseUocraAnterior')
+    ,horas_extra_uocra_detalle:detalleHorasExtraUocra()
+    ,horas_extra_uocra_acumuladas_anio:numeroNov('novHorasExtraUocraAnio')
   });
   Object.assign(cuerpo,datosAdicionalesConvenio());
   if(incluirEmpleado) cuerpo.empleado_id=$('novEmpleado').value;
@@ -1152,6 +1192,9 @@ function editarNovedad(id){
   $('novFclAprobado').value=n.fcl_aprobado_por||'';
   $('novFclFundamento').value=n.fcl_fundamento||'';
   $('novBaseUocraAnterior').value=n.base_contribucion_uocra_mes_anterior??'';
+  $('novHorasExtraUocraLista').innerHTML='';
+  (n.horas_extra_uocra_detalle||[]).forEach(agregarHoraExtraUocra);
+  $('novHorasExtraUocraAnio').value=n.horas_extra_uocra_acumuladas_anio||0;
   $('novPremios').value=n.premios;
   $('novTipoPremio').value=n.tipo_premio||'pendiente';
   $('novDescuentos').value=n.descuentos_adicionales; $('novObservaciones').value=n.observaciones||'';

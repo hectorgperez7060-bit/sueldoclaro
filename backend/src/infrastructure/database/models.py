@@ -376,6 +376,10 @@ class NovedadMensual(TenantMixin, Base):
     base_contribucion_uocra_mes_anterior: Mapped[Optional[Decimal]] = mapped_column(
         MONEY, nullable=True
     )
+    horas_extra_uocra_detalle: Mapped[list] = mapped_column(JSONB, default=list)
+    horas_extra_uocra_acumuladas_anio: Mapped[Decimal] = mapped_column(
+        Numeric(8, 2), default=Decimal("0")
+    )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=now_utc, onupdate=now_utc

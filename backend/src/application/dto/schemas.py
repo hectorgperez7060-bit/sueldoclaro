@@ -172,6 +172,8 @@ class NovedadMensualIn(BaseModel):
     fcl_aprobado_por: Optional[str] = None
     fcl_fundamento: Optional[str] = None
     base_contribucion_uocra_mes_anterior: Optional[Decimal] = Field(default=None, ge=0)
+    horas_extra_uocra_detalle: List[dict] = Field(default_factory=list)
+    horas_extra_uocra_acumuladas_anio: Decimal = Field(default=Decimal("0"), ge=0, le=200)
 
     @model_validator(mode="after")
     def _validar_novedad(self):
@@ -191,6 +193,7 @@ class NovedadMensualIn(BaseModel):
         datos["adicionales_convencionales"] = tuple(datos["adicionales_convencionales"])
         datos["cantidades_adicionales"] = tuple(datos["cantidades_adicionales"].items())
         datos["feriados_uocra_detalle"] = tuple(datos["feriados_uocra_detalle"])
+        datos["horas_extra_uocra_detalle"] = tuple(datos["horas_extra_uocra_detalle"])
         return datos
 
     def datos_dominio(self):
@@ -227,6 +230,8 @@ class NovedadMensualUpdate(BaseModel):
     fcl_aprobado_por: Optional[str] = None
     fcl_fundamento: Optional[str] = None
     base_contribucion_uocra_mes_anterior: Optional[Decimal] = Field(default=None, ge=0)
+    horas_extra_uocra_detalle: List[dict] = Field(default_factory=list)
+    horas_extra_uocra_acumuladas_anio: Decimal = Field(default=Decimal("0"), ge=0, le=200)
 
     @model_validator(mode="after")
     def _validar_novedad(self):
@@ -240,6 +245,7 @@ class NovedadMensualUpdate(BaseModel):
         datos["adicionales_convencionales"] = tuple(datos["adicionales_convencionales"])
         datos["cantidades_adicionales"] = tuple(datos["cantidades_adicionales"].items())
         datos["feriados_uocra_detalle"] = tuple(datos["feriados_uocra_detalle"])
+        datos["horas_extra_uocra_detalle"] = tuple(datos["horas_extra_uocra_detalle"])
         return datos
 
     def datos_dominio(self):
@@ -278,6 +284,8 @@ class NovedadMensualOut(BaseModel):
     fcl_aprobado_por: Optional[str] = None
     fcl_fundamento: Optional[str] = None
     base_contribucion_uocra_mes_anterior: Optional[Decimal] = None
+    horas_extra_uocra_detalle: List[dict] = Field(default_factory=list)
+    horas_extra_uocra_acumuladas_anio: Decimal = Decimal("0")
     bloqueada: bool = False
 
 

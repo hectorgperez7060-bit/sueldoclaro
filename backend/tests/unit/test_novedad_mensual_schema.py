@@ -24,6 +24,7 @@ def test_novedad_mensual_tiene_columnas_y_claves_esperadas():
         "feriados_uocra_detalle", "fcl_criterio_aniversario",
         "fcl_aprobado_por", "fcl_fundamento",
         "base_contribucion_uocra_mes_anterior",
+        "horas_extra_uocra_detalle", "horas_extra_uocra_acumuladas_anio",
         "created_at", "updated_at",
     }
     assert esperadas == set(tabla.columns.keys())

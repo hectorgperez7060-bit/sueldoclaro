@@ -155,6 +155,70 @@ class ResultadoFeriadoUocra:
     motivo: str
 
 
+@dataclass(frozen=True)
+class HoraExtraDetalladaUocra:
+    fecha: date
+    hora_inicio: Decimal
+    horas: Decimal
+    es_feriado: bool = False
+
+
+@dataclass(frozen=True)
+class ResultadoHorasExtraUocra:
+    horas_50: Decimal
+    horas_100: Decimal
+    valor_normal: Dinero
+    recargo_legal: Dinero
+    total: Dinero
+
+
+def calcular_horas_extra_detalladas(
+    escala: EscalaSalarial,
+    detalles: tuple[HoraExtraDetalladaUocra, ...],
+    horas_acumuladas_anteriores_anio: Decimal = Decimal("0"),
+) -> ResultadoHorasExtraUocra:
+    """Clasifica por fecha/hora, controla 3/30/200 y separa normal de recargo."""
+    if escala.unidad_escala != "HORA":
+        raise ValueError("Las horas extra del Sereno requieren un divisor horario verificado")
+    acumulado = Decimal(str(horas_acumuladas_anteriores_anio))
+    if acumulado < 0:
+        raise ValueError("El acumulado anual anterior no puede ser negativo")
+    por_dia: dict[date, Decimal] = {}
+    h50 = Decimal("0")
+    h100 = Decimal("0")
+    for item in detalles:
+        inicio = Decimal(str(item.hora_inicio))
+        horas = Decimal(str(item.horas))
+        if not Decimal("0") <= inicio < Decimal("24") or horas <= 0:
+            raise ValueError("Cada hora extra debe tener inicio válido y duración positiva")
+        if inicio + horas > Decimal("24"):
+            raise ValueError("Una hora extra no puede atravesar la medianoche; dividila en dos")
+        por_dia[item.fecha] = por_dia.get(item.fecha, Decimal("0")) + horas
+        if item.es_feriado or item.fecha.weekday() == 6:
+            h100 += horas
+        elif item.fecha.weekday() == 5:
+            antes_13 = max(Decimal("0"), min(inicio + horas, Decimal("13")) - inicio)
+            h50 += antes_13
+            h100 += horas - antes_13
+        else:
+            h50 += horas
+    if any(total > Decimal("3") for total in por_dia.values()):
+        raise ValueError("Las horas extra superan el tope de 3 horas diarias")
+    total_horas = h50 + h100
+    if total_horas > Decimal("30"):
+        raise ValueError("Las horas extra superan el tope de 30 horas mensuales")
+    if acumulado + total_horas > Decimal("200"):
+        raise ValueError("Las horas extra superan el tope de 200 horas anuales")
+    normal = escala.basico.multiplicar(total_horas).redondear()
+    recargo = (
+        escala.basico.multiplicar(h50).porcentaje(Decimal("0.50"))
+        + escala.basico.multiplicar(h100)
+    ).redondear()
+    return ResultadoHorasExtraUocra(
+        h50, h100, normal, recargo, (normal + recargo).redondear()
+    )
+
+
 def calcular_feriados_detallados(
     escala: EscalaSalarial,
     feriados: tuple[FeriadoDetalladoUocra, ...],
@@ -279,6 +343,7 @@ def armar_recibo_prueba_uocra(
     fondo_cese: ResultadoFondoCese,
     aportes: ResultadoAportesUocra,
     feriados: tuple[ResultadoFeriadoUocra, ...] = (),
+    horas_extra: Optional[ResultadoHorasExtraUocra] = None,
 ) -> ResultadoLiquidacion:
     """Arma un resultado auditable de prueba; no habilita la confirmación productiva."""
     conceptos = [
@@ -312,6 +377,12 @@ def armar_recibo_prueba_uocra(
             )
             for feriado in feriados if feriado.adicional_a_pagar.monto > 0
         ],
+        *([] if horas_extra is None or horas_extra.total.monto == 0 else [
+            Concepto("HORAS_EXTRA_UOCRA", "Horas extra UOCRA", TipoConcepto.REMUNERATIVO,
+                     horas_extra.total, cantidad=horas_extra.horas_50 + horas_extra.horas_100,
+                     base_calculo=horas_extra.valor_normal,
+                     unidad=f"{horas_extra.horas_50} h al 50% · {horas_extra.horas_100} h al 100%"),
+        ]),
         Concepto("APORTE_JUBILACION", "Jubilación", TipoConcepto.DEDUCCION,
                  aportes.jubilacion, base_calculo=aportes.base_remunerativa_actual,
                  unidad="porcentaje versionado"),

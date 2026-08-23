@@ -39,6 +39,8 @@ class DatosNovedadMensual:
     fcl_aprobado_por: Optional[str] = None
     fcl_fundamento: Optional[str] = None
     base_contribucion_uocra_mes_anterior: Optional[Decimal] = None
+    horas_extra_uocra_detalle: tuple[dict, ...] = ()
+    horas_extra_uocra_acumuladas_anio: Decimal = Decimal("0")
 
     def __post_init__(self) -> None:
         try:
@@ -147,6 +149,28 @@ class DatosNovedadMensual:
             and Decimal(str(self.base_contribucion_uocra_mes_anterior)) < 0
         ):
             raise ValueError("La base UOCRA del mes anterior no puede ser negativa")
+        if not Decimal("0") <= Decimal(str(self.horas_extra_uocra_acumuladas_anio)) <= Decimal("200"):
+            raise ValueError("El acumulado anual UOCRA debe estar entre 0 y 200 horas")
+        total_extra_detalle = Decimal("0")
+        for detalle in self.horas_extra_uocra_detalle:
+            try:
+                fecha_extra = date.fromisoformat(str(detalle["fecha"]))
+                inicio = Decimal(str(detalle["hora_inicio"]))
+                horas = Decimal(str(detalle["horas"]))
+                es_feriado = detalle.get("es_feriado", False)
+            except (KeyError, TypeError, ValueError) as exc:
+                raise ValueError("Cada hora extra UOCRA debe tener fecha, inicio y duración válidos") from exc
+            if fecha_extra.year != periodo.anio or fecha_extra.month != periodo.mes:
+                raise ValueError("La fecha de la hora extra UOCRA debe pertenecer al período")
+            if not Decimal("0") <= inicio < Decimal("24") or horas <= 0 or inicio + horas > 24:
+                raise ValueError("El horario extra UOCRA es inválido")
+            if not isinstance(es_feriado, bool):
+                raise ValueError("La condición de feriado debe informarse como sí o no")
+            total_extra_detalle += horas
+        if self.horas_extra_uocra_detalle and total_extra_detalle != (
+            Decimal(str(self.horas_extra_50)) + Decimal(str(self.horas_extra_100))
+        ):
+            raise ValueError("El detalle UOCRA debe coincidir con el total de horas extra")
 
         for nombre, valor in {
             "horas extra al 50%": self.horas_extra_50,
@@ -212,4 +236,6 @@ class DatosNovedadMensual:
             "fcl_aprobado_por": (self.fcl_aprobado_por or "").strip() or None,
             "fcl_fundamento": (self.fcl_fundamento or "").strip() or None,
             "base_contribucion_uocra_mes_anterior": self.base_contribucion_uocra_mes_anterior,
+            "horas_extra_uocra_detalle": list(self.horas_extra_uocra_detalle),
+            "horas_extra_uocra_acumuladas_anio": Decimal(str(self.horas_extra_uocra_acumuladas_anio)),
         }
