@@ -6,13 +6,17 @@ import pytest
 from domain.entities.parametros import EscalaSalarial
 from domain.payroll_engine.uocra import (
     ComponentesFondoCese,
+    DecisionProfesionalFcl,
+    FeriadoDetalladoUocra,
     HechosQuincenalesUocra,
     TasasAportesUocra,
     armar_recibo_prueba_uocra,
     calcular_aportes_y_contribuciones,
     calcular_base_quincenal,
     calcular_fondo_cese,
+    calcular_feriados_detallados,
     evaluar_feriados_no_trabajados,
+    resolver_alicuota_fcl,
 )
 from domain.value_objects.dinero import Dinero
 from domain.value_objects.periodo import Periodo
@@ -188,3 +192,71 @@ def test_recibo_prueba_cierra_bruto_neto_y_costo_sin_habilitar_produccion():
     assert recibo.neto.monto == Decimal("1041498.00")
     assert recibo.total_contribuciones.monto == Decimal("480888.00")
     assert recibo.concepto("CONTRIB_EMPRESARIA_UOCRA").base_calculo.monto == Decimal("900000.00")
+
+
+def test_feriado_no_trabajado_habilitado_paga_jornada_anterior_y_accesorios():
+    resultado = calcular_feriados_detallados(escala(), (
+        FeriadoDetalladoUocra(
+            date(2026, 8, 17), False, True, Decimal("8"), Dinero.de("10000")
+        ),
+    ))[0]
+    assert resultado.valor_dia.monto == Decimal("66392.00")
+    assert resultado.adicional_a_pagar.monto == Decimal("66392.00")
+
+
+def test_feriado_no_trabajado_sin_requisito_no_se_paga():
+    resultado = calcular_feriados_detallados(escala(), (
+        FeriadoDetalladoUocra(date(2026, 8, 17), False, False, Decimal("8")),
+    ))[0]
+    assert resultado.adicional_a_pagar.monto == 0
+    assert "art. 168" in resultado.motivo
+
+
+def test_feriado_trabajado_agrega_otra_cantidad_igual():
+    resultado = calcular_feriados_detallados(escala(), (
+        FeriadoDetalladoUocra(date(2026, 8, 17), True, False, Decimal("8")),
+    ))[0]
+    assert resultado.valor_dia.monto == Decimal("56392.00")
+    assert resultado.adicional_a_pagar.monto == Decimal("56392.00")
+
+
+def test_feriado_exige_fecha_unica_y_jornada_valida():
+    repetido = FeriadoDetalladoUocra(date(2026, 8, 17), False, True, Decimal("8"))
+    with pytest.raises(ValueError, match="dos veces"):
+        calcular_feriados_detallados(escala(), (repetido, repetido))
+    with pytest.raises(ValueError, match="no superar 9"):
+        calcular_feriados_detallados(escala(), (
+            FeriadoDetalladoUocra(date(2026, 8, 17), False, True, Decimal("10")),
+        ))
+
+
+def test_fondo_cese_resuelve_automatico_fuera_del_mes_aniversario():
+    assert resolver_alicuota_fcl(date(2026, 1, 15), Periodo(2026, 8)) == Decimal("0.12")
+    assert resolver_alicuota_fcl(date(2025, 1, 15), Periodo(2026, 8)) == Decimal("0.08")
+
+
+def test_mes_aniversario_exige_decision_profesional_documentada():
+    ingreso = date(2025, 8, 15)
+    with pytest.raises(ValueError, match="falta criterio profesional"):
+        resolver_alicuota_fcl(ingreso, Periodo(2026, 8))
+    with pytest.raises(ValueError, match="profesional y fundamento"):
+        resolver_alicuota_fcl(
+            ingreso, Periodo(2026, 8),
+            DecisionProfesionalFcl("MES_COMPLETO_12", "", ""),
+        )
+    assert resolver_alicuota_fcl(
+        ingreso, Periodo(2026, 8),
+        DecisionProfesionalFcl("MES_COMPLETO_12", "CPN Ana", "Criterio documentado"),
+    ) == Decimal("0.12")
+    assert resolver_alicuota_fcl(
+        ingreso, Periodo(2026, 8),
+        DecisionProfesionalFcl("MES_COMPLETO_8", "CPN Ana", "Criterio documentado"),
+    ) == Decimal("0.08")
+
+
+def test_prorrateo_aniversario_bloquea_hasta_tener_bases_separadas():
+    with pytest.raises(ValueError, match="bases devengadas separadas"):
+        resolver_alicuota_fcl(
+            date(2025, 8, 15), Periodo(2026, 8),
+            DecisionProfesionalFcl("PRORRATEO_DIAS", "CPN Ana", "Prorratear"),
+        )

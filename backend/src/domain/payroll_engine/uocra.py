@@ -6,6 +6,8 @@ cada quincena. El jornal usa el total de zona; la asistencia, el básico puro.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import date
+import calendar
 from decimal import Decimal
 from typing import Optional
 
@@ -17,6 +19,7 @@ from domain.value_objects.periodo import Periodo
 
 
 PORCENTAJE_ASISTENCIA = Decimal("0.20")
+CRITERIOS_ANIVERSARIO_FCL = {"MES_COMPLETO_12", "MES_COMPLETO_8", "PRORRATEO_DIAS"}
 
 
 @dataclass(frozen=True)
@@ -88,12 +91,102 @@ class ResultadoFondoCese:
 
 
 @dataclass(frozen=True)
+class DecisionProfesionalFcl:
+    criterio: str
+    aprobado_por: str
+    fundamento: str
+
+
+def resolver_alicuota_fcl(
+    fecha_ingreso: date,
+    periodo: Periodo,
+    decision_aniversario: Optional[DecisionProfesionalFcl] = None,
+) -> Decimal:
+    """Resuelve tramos claros y bloquea el mes aniversario ambiguo."""
+    aniversario = fecha_ingreso.replace(year=fecha_ingreso.year + 1)
+    inicio = date(periodo.anio, periodo.mes, 1)
+    fin = date(periodo.anio, periodo.mes, calendar.monthrange(periodo.anio, periodo.mes)[1])
+    if fin < aniversario:
+        return Decimal("0.12")
+    if inicio >= aniversario:
+        return Decimal("0.08")
+    if decision_aniversario is None:
+        raise ValueError(
+            "El trabajador cumple un año durante el período: falta criterio profesional del Fondo de Cese"
+        )
+    if decision_aniversario.criterio not in CRITERIOS_ANIVERSARIO_FCL:
+        raise ValueError("Criterio profesional inválido para el mes aniversario")
+    if not decision_aniversario.aprobado_por.strip() or not decision_aniversario.fundamento.strip():
+        raise ValueError("El criterio del mes aniversario requiere profesional y fundamento")
+    if decision_aniversario.criterio == "PRORRATEO_DIAS":
+        raise ValueError(
+            "El prorrateo exige bases devengadas separadas antes y después del aniversario"
+        )
+    return (
+        Decimal("0.12")
+        if decision_aniversario.criterio == "MES_COMPLETO_12" else Decimal("0.08")
+    )
+
+
+@dataclass(frozen=True)
 class EvaluacionFeriadosUocra:
     informados_no_trabajados: int
     habilitados_q1: int
     habilitados_q2: int
     pendientes_requisito: int
     importe_automatico_habilitado: bool = False
+
+
+@dataclass(frozen=True)
+class FeriadoDetalladoUocra:
+    fecha: date
+    trabajado: bool
+    cumple_requisito_art168: bool
+    horas_jornada_anterior: Decimal
+    remuneraciones_accesorias_jornada: Dinero = Dinero(Decimal("0"))
+
+
+@dataclass(frozen=True)
+class ResultadoFeriadoUocra:
+    fecha: date
+    trabajado: bool
+    valor_dia: Dinero
+    adicional_a_pagar: Dinero
+    motivo: str
+
+
+def calcular_feriados_detallados(
+    escala: EscalaSalarial,
+    feriados: tuple[FeriadoDetalladoUocra, ...],
+) -> tuple[ResultadoFeriadoUocra, ...]:
+    """LCT 166/168/169 y 155: valor de la jornada anterior por cada feriado."""
+    if escala.unidad_escala != "HORA":
+        raise ValueError("Este cálculo detallado corresponde a personal jornalizado por hora")
+    resultados = []
+    fechas = set()
+    for feriado in feriados:
+        if feriado.fecha in fechas:
+            raise ValueError("No se puede informar dos veces el mismo feriado")
+        fechas.add(feriado.fecha)
+        horas = Decimal(str(feriado.horas_jornada_anterior))
+        if not Decimal("0") < horas <= Decimal("9"):
+            raise ValueError("Las horas de la jornada anterior deben ser mayores que 0 y no superar 9")
+        valor_dia = (
+            escala.basico.multiplicar(horas) + feriado.remuneraciones_accesorias_jornada
+        ).redondear()
+        if not feriado.trabajado and not feriado.cumple_requisito_art168:
+            adicional = Dinero.cero()
+            motivo = "No cumple el requisito del art. 168 LCT"
+        elif feriado.trabajado:
+            adicional = valor_dia
+            motivo = "Feriado trabajado: adicional igual al salario normal"
+        else:
+            adicional = valor_dia
+            motivo = "Feriado no trabajado habilitado por art. 168 LCT"
+        resultados.append(ResultadoFeriadoUocra(
+            feriado.fecha, feriado.trabajado, valor_dia, adicional, motivo
+        ))
+    return tuple(resultados)
 
 
 @dataclass(frozen=True)
