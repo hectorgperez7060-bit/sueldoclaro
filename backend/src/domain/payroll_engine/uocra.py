@@ -10,7 +10,10 @@ from decimal import Decimal
 from typing import Optional
 
 from domain.entities.parametros import EscalaSalarial
+from domain.entities.concepto import Concepto, TipoConcepto
+from domain.entities.liquidacion import ResultadoLiquidacion
 from domain.value_objects.dinero import Dinero
+from domain.value_objects.periodo import Periodo
 
 
 PORCENTAJE_ASISTENCIA = Decimal("0.20")
@@ -29,6 +32,7 @@ class ResultadoQuincenaUocra:
     numero: int
     horas: Optional[Decimal]
     basico: Dinero
+    base_asistencia: Dinero
     asistencia: Dinero
 
     @property
@@ -90,6 +94,151 @@ class EvaluacionFeriadosUocra:
     habilitados_q2: int
     pendientes_requisito: int
     importe_automatico_habilitado: bool = False
+
+
+@dataclass(frozen=True)
+class TasasAportesUocra:
+    jubilacion: Decimal
+    inssjp: Decimal
+    obra_social_trabajador: Decimal
+    seguridad_social_empleador: Decimal
+    obra_social_empleador: Decimal
+    aporte_solidario_no_afiliado: Decimal
+    contribucion_empresaria_uocra: Decimal
+
+
+@dataclass(frozen=True)
+class ResultadoAportesUocra:
+    jubilacion: Dinero
+    inssjp: Dinero
+    obra_social_trabajador: Dinero
+    aporte_sindical_trabajador: Dinero
+    concepto_sindical: str
+    seguridad_social_empleador: Dinero
+    obra_social_empleador: Dinero
+    contribucion_empresaria_uocra: Dinero
+    base_remunerativa_actual: Dinero
+    base_contribucion_uocra_mes_anterior: Dinero
+
+
+def _validar_tasa(nombre: str, valor: Decimal) -> Decimal:
+    tasa = Decimal(str(valor))
+    if not Decimal("0") <= tasa <= Decimal("1"):
+        raise ValueError(f"La tasa {nombre} debe estar entre 0 y 1")
+    return tasa
+
+
+def calcular_aportes_y_contribuciones(
+    base_remunerativa_actual: Dinero,
+    base_obra_social_actual: Dinero,
+    base_contribucion_uocra_mes_anterior: Optional[Dinero],
+    tasas: TasasAportesUocra,
+    afiliado_sindicato: Optional[bool],
+    cuota_sindical_verificada: Optional[Decimal] = None,
+) -> ResultadoAportesUocra:
+    """Calcula conceptos separados; nunca usa el mes actual como base patronal UOCRA."""
+    if afiliado_sindicato is None:
+        raise ValueError("Debe informarse la condición de afiliación sindical")
+    if base_contribucion_uocra_mes_anterior is None:
+        raise ValueError("Falta la base remunerativa del plantel del mes anterior")
+
+    valores = {
+        nombre: _validar_tasa(nombre, getattr(tasas, nombre))
+        for nombre in tasas.__dataclass_fields__
+    }
+    if afiliado_sindicato:
+        if cuota_sindical_verificada is None:
+            raise ValueError("Falta una cuota sindical UOCRA verificada para el afiliado")
+        tasa_sindical = _validar_tasa("cuota_sindical_verificada", cuota_sindical_verificada)
+        concepto_sindical = "CUOTA_SINDICAL_UOCRA"
+    else:
+        tasa_sindical = valores["aporte_solidario_no_afiliado"]
+        concepto_sindical = "APORTE_SOLIDARIO_UOCRA"
+
+    return ResultadoAportesUocra(
+        jubilacion=base_remunerativa_actual.porcentaje(valores["jubilacion"]).redondear(),
+        inssjp=base_remunerativa_actual.porcentaje(valores["inssjp"]).redondear(),
+        obra_social_trabajador=base_obra_social_actual.porcentaje(
+            valores["obra_social_trabajador"]
+        ).redondear(),
+        aporte_sindical_trabajador=base_remunerativa_actual.porcentaje(
+            tasa_sindical
+        ).redondear(),
+        concepto_sindical=concepto_sindical,
+        seguridad_social_empleador=base_remunerativa_actual.porcentaje(
+            valores["seguridad_social_empleador"]
+        ).redondear(),
+        obra_social_empleador=base_obra_social_actual.porcentaje(
+            valores["obra_social_empleador"]
+        ).redondear(),
+        contribucion_empresaria_uocra=base_contribucion_uocra_mes_anterior.porcentaje(
+            valores["contribucion_empresaria_uocra"]
+        ).redondear(),
+        base_remunerativa_actual=base_remunerativa_actual.redondear(),
+        base_contribucion_uocra_mes_anterior=base_contribucion_uocra_mes_anterior.redondear(),
+    )
+
+
+def armar_recibo_prueba_uocra(
+    empleado_cuil: str,
+    periodo: Periodo,
+    base: ResultadoBaseUocra,
+    fondo_cese: ResultadoFondoCese,
+    aportes: ResultadoAportesUocra,
+) -> ResultadoLiquidacion:
+    """Arma un resultado auditable; no habilita por sí mismo el flujo productivo."""
+    conceptos = [
+        Concepto(
+            "BASICO_Q1", "Jornal básico · 1.ª quincena", TipoConcepto.REMUNERATIVO,
+            base.primera.basico, cantidad=base.primera.horas or Decimal("1"),
+            unidad="hora" if base.primera.horas is not None else "media mensualidad",
+        ),
+        Concepto(
+            "ASISTENCIA_Q1", "Asistencia perfecta · 1.ª quincena",
+            TipoConcepto.REMUNERATIVO, base.primera.asistencia,
+            base_calculo=base.primera.base_asistencia, unidad="20% sobre básico puro",
+        ),
+        Concepto(
+            "BASICO_Q2", "Jornal básico · 2.ª quincena", TipoConcepto.REMUNERATIVO,
+            base.segunda.basico, cantidad=base.segunda.horas or Decimal("1"),
+            unidad="hora" if base.segunda.horas is not None else "media mensualidad",
+        ),
+        Concepto(
+            "ASISTENCIA_Q2", "Asistencia perfecta · 2.ª quincena",
+            TipoConcepto.REMUNERATIVO, base.segunda.asistencia,
+            base_calculo=base.segunda.base_asistencia, unidad="20% sobre básico puro",
+        ),
+        Concepto("APORTE_JUBILACION", "Jubilación", TipoConcepto.DEDUCCION,
+                 aportes.jubilacion, base_calculo=aportes.base_remunerativa_actual,
+                 unidad="porcentaje versionado"),
+        Concepto("APORTE_LEY19032", "Ley 19.032 - INSSJP", TipoConcepto.DEDUCCION,
+                 aportes.inssjp, base_calculo=aportes.base_remunerativa_actual,
+                 unidad="porcentaje versionado"),
+        Concepto("APORTE_OBRA_SOCIAL", "Obra social", TipoConcepto.DEDUCCION,
+                 aportes.obra_social_trabajador,
+                 base_calculo=aportes.base_remunerativa_actual,
+                 unidad="porcentaje versionado"),
+        Concepto(aportes.concepto_sindical, "Aporte sindical UOCRA",
+                 TipoConcepto.DEDUCCION, aportes.aporte_sindical_trabajador,
+                 base_calculo=aportes.base_remunerativa_actual,
+                 unidad="porcentaje versionado", destino_pago="UOCRA"),
+        Concepto("CONTRIB_SEGURIDAD_SOCIAL", "Contribuciones patronales seguridad social",
+                 TipoConcepto.CONTRIBUCION, aportes.seguridad_social_empleador,
+                 base_calculo=aportes.base_remunerativa_actual,
+                 unidad="porcentaje versionado"),
+        Concepto("CONTRIB_OBRA_SOCIAL", "Contribución patronal obra social",
+                 TipoConcepto.CONTRIBUCION, aportes.obra_social_empleador,
+                 base_calculo=aportes.base_remunerativa_actual,
+                 unidad="porcentaje versionado"),
+        Concepto("FONDO_CESE_LABORAL", "Fondo de Cese Laboral",
+                 TipoConcepto.CONTRIBUCION, fondo_cese.importe,
+                 base_calculo=fondo_cese.base, unidad=f"{fondo_cese.porcentaje * 100}%"),
+        Concepto("CONTRIB_EMPRESARIA_UOCRA", "Contribución empresaria UOCRA",
+                 TipoConcepto.CONTRIBUCION, aportes.contribucion_empresaria_uocra,
+                 base_calculo=aportes.base_contribucion_uocra_mes_anterior,
+                 unidad="2% · plantel del mes anterior", destino_pago="UOCRA"),
+    ]
+    return ResultadoLiquidacion(empleado_cuil, periodo, "mensual_uocra_prueba", conceptos)
 
 
 def calcular_fondo_cese(
@@ -171,5 +320,7 @@ def calcular_base_quincenal(
             base_asistencia.porcentaje(PORCENTAJE_ASISTENCIA).redondear()
             if asistencia else Dinero.cero()
         )
-        resultados.append(ResultadoQuincenaUocra(numero, horas, basico, premio))
+        resultados.append(ResultadoQuincenaUocra(
+            numero, horas, basico, base_asistencia.redondear(), premio
+        ))
     return ResultadoBaseUocra(resultados[0], resultados[1])
