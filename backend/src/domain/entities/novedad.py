@@ -41,6 +41,9 @@ class DatosNovedadMensual:
     base_contribucion_uocra_mes_anterior: Optional[Decimal] = None
     horas_extra_uocra_detalle: tuple[dict, ...] = ()
     horas_extra_uocra_acumuladas_anio: Decimal = Decimal("0")
+    horas_hormigon_manual_uocra: Decimal = Decimal("0")
+    horas_altura_uocra: Decimal = Decimal("0")
+    altura_metros_uocra: Optional[Decimal] = None
 
     def __post_init__(self) -> None:
         try:
@@ -151,6 +154,12 @@ class DatosNovedadMensual:
             raise ValueError("La base UOCRA del mes anterior no puede ser negativa")
         if not Decimal("0") <= Decimal(str(self.horas_extra_uocra_acumuladas_anio)) <= Decimal("200"):
             raise ValueError("El acumulado anual UOCRA debe estar entre 0 y 200 horas")
+        if Decimal(str(self.horas_hormigon_manual_uocra)) < 0 or Decimal(str(self.horas_altura_uocra)) < 0:
+            raise ValueError("Las horas de adicionales UOCRA no pueden ser negativas")
+        if self.altura_metros_uocra is not None and Decimal(str(self.altura_metros_uocra)) < 0:
+            raise ValueError("La altura UOCRA no puede ser negativa")
+        if Decimal(str(self.horas_altura_uocra)) > 0 and self.altura_metros_uocra is None:
+            raise ValueError("Las horas en altura requieren informar metros")
         total_extra_detalle = Decimal("0")
         for detalle in self.horas_extra_uocra_detalle:
             try:
@@ -238,4 +247,7 @@ class DatosNovedadMensual:
             "base_contribucion_uocra_mes_anterior": self.base_contribucion_uocra_mes_anterior,
             "horas_extra_uocra_detalle": list(self.horas_extra_uocra_detalle),
             "horas_extra_uocra_acumuladas_anio": Decimal(str(self.horas_extra_uocra_acumuladas_anio)),
+            "horas_hormigon_manual_uocra": Decimal(str(self.horas_hormigon_manual_uocra)),
+            "horas_altura_uocra": Decimal(str(self.horas_altura_uocra)),
+            "altura_metros_uocra": self.altura_metros_uocra,
         }

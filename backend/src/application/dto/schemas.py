@@ -174,6 +174,9 @@ class NovedadMensualIn(BaseModel):
     base_contribucion_uocra_mes_anterior: Optional[Decimal] = Field(default=None, ge=0)
     horas_extra_uocra_detalle: List[dict] = Field(default_factory=list)
     horas_extra_uocra_acumuladas_anio: Decimal = Field(default=Decimal("0"), ge=0, le=200)
+    horas_hormigon_manual_uocra: Decimal = Field(default=Decimal("0"), ge=0)
+    horas_altura_uocra: Decimal = Field(default=Decimal("0"), ge=0)
+    altura_metros_uocra: Optional[Decimal] = Field(default=None, ge=0)
 
     @model_validator(mode="after")
     def _validar_novedad(self):
@@ -232,6 +235,9 @@ class NovedadMensualUpdate(BaseModel):
     base_contribucion_uocra_mes_anterior: Optional[Decimal] = Field(default=None, ge=0)
     horas_extra_uocra_detalle: List[dict] = Field(default_factory=list)
     horas_extra_uocra_acumuladas_anio: Decimal = Field(default=Decimal("0"), ge=0, le=200)
+    horas_hormigon_manual_uocra: Decimal = Field(default=Decimal("0"), ge=0)
+    horas_altura_uocra: Decimal = Field(default=Decimal("0"), ge=0)
+    altura_metros_uocra: Optional[Decimal] = Field(default=None, ge=0)
 
     @model_validator(mode="after")
     def _validar_novedad(self):
@@ -286,6 +292,9 @@ class NovedadMensualOut(BaseModel):
     base_contribucion_uocra_mes_anterior: Optional[Decimal] = None
     horas_extra_uocra_detalle: List[dict] = Field(default_factory=list)
     horas_extra_uocra_acumuladas_anio: Decimal = Decimal("0")
+    horas_hormigon_manual_uocra: Decimal = Decimal("0")
+    horas_altura_uocra: Decimal = Decimal("0")
+    altura_metros_uocra: Optional[Decimal] = None
     bloqueada: bool = False
 
 

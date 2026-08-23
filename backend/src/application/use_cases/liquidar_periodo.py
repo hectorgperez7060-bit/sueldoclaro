@@ -21,6 +21,7 @@ from domain.payroll_engine.uocra import (
     HoraExtraDetalladaUocra,
     HechosQuincenalesUocra, TasasAportesUocra, armar_recibo_prueba_uocra,
     calcular_aportes_y_contribuciones, calcular_base_quincenal,
+    calcular_adicionales_tarea_uocra,
     calcular_feriados_detallados, calcular_fondo_cese,
     calcular_horas_extra_detalladas, resolver_alicuota_fcl,
 )
@@ -97,6 +98,9 @@ def resolver_horas_extra(
             "horas_extra_uocra_acumuladas_anio": getattr(
                 novedad, "horas_extra_uocra_acumuladas_anio", 0
             ),
+            "horas_hormigon_manual_uocra": getattr(novedad, "horas_hormigon_manual_uocra", 0),
+            "horas_altura_uocra": getattr(novedad, "horas_altura_uocra", 0),
+            "altura_metros_uocra": getattr(novedad, "altura_metros_uocra", None),
         }
     return res
 
@@ -273,6 +277,14 @@ class LiquidarPeriodo:
                                 Decimal(str(item["horas"])), bool(item.get("es_feriado", False)),
                             ) for item in nv.get("horas_extra_uocra_detalle", ())
                         ), Decimal(str(nv.get("horas_extra_uocra_acumuladas_anio", 0))))
+                        adicionales_tarea = calcular_adicionales_tarea_uocra(
+                            escala,
+                            Decimal(str(nv.get("horas_hormigon_manual_uocra", 0))),
+                            Decimal(str(nv.get("horas_altura_uocra", 0))),
+                            (Decimal(str(nv["altura_metros_uocra"]))
+                             if nv.get("altura_metros_uocra") is not None else None),
+                        )
+                        total_adicionales = sum((a.importe.monto for a in adicionales_tarea), Decimal("0"))
                         decision = None
                         if nv.get("fcl_criterio_aniversario"):
                             decision = DecisionProfesionalFcl(
@@ -282,12 +294,13 @@ class LiquidarPeriodo:
                         alicuota = resolver_alicuota_fcl(emp.fecha_ingreso, periodo, decision)
                         fondo = calcular_fondo_cese(ComponentesFondoCese(
                             basico=base.basico_total, asistencia=base.asistencia_total,
-                            adicionales_remunerativos=Dinero(total_feriados),
+                            adicionales_remunerativos=Dinero(total_feriados + total_adicionales),
                             horas_extra_valor_normal=extras.valor_normal,
                             recargos_legales_horas_extra=extras.recargo_legal,
                         ), alicuota)
                         base_rem = Dinero(
-                            base.remunerativo_total.monto + total_feriados + extras.total.monto
+                            base.remunerativo_total.monto + total_feriados
+                            + extras.total.monto + total_adicionales
                         )
                         base_anterior = nv.get("base_contribucion_uocra_mes_anterior")
                         tasas = TasasAportesUocra(
@@ -305,7 +318,8 @@ class LiquidarPeriodo:
                             tasas, emp.afiliado_sindicato, cuota_sindical_verificada,
                         )
                         res = armar_recibo_prueba_uocra(
-                            emp.cuil, periodo, base, fondo, aportes, feriados, extras
+                            emp.cuil, periodo, base, fondo, aportes, feriados, extras,
+                            adicionales_tarea,
                         )
                     except (KeyError, TypeError, ValueError) as exc:
                         bloqueos.append({

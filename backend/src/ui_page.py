@@ -412,6 +412,15 @@ HTML = r"""<!DOCTYPE html>
               <small style="color:#6b7280">La app separa 50%/100% por fecha y hora, divide automáticamente el sábado a las 13 y controla los topes 3/30/200.</small>
             </div>
             <div style="margin-top:12px;border-top:1px solid var(--borde);padding-top:10px">
+              <b>Adicionales por tarea verificados</b>
+              <div class="fila" style="margin-top:8px">
+                <div><label>Horas de colada manual directa de hormigón</label><input id="novHorasHormigonUocra" type="number" min="0" step="0.25" value="0"><small>Art. 56: 15% sobre básico puro. Solo sin medios mecánicos/automáticos.</small></div>
+                <div><label>Horas efectivas de trabajo en altura</label><input id="novHorasAlturaUocra" type="number" min="0" step="0.25" value="0"></div>
+                <div><label>Altura medida según art. 57 (metros)</label><input id="novAlturaMetrosUocra" type="number" min="0" step="0.01" placeholder="Obligatoria si hay horas"><small>15% / 20% / 25%. Exactamente 26 m requiere criterio profesional.</small></div>
+              </div>
+              <small style="color:#92400e">Túneles y martillo neumático: visibles como pendientes, sin tarifa independiente verificada; no se calculan.</small>
+            </div>
+            <div style="margin-top:12px;border-top:1px solid var(--borde);padding-top:10px">
               <div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><b>Detalle de feriados</b><button type="button" class="chico secundario" onclick="agregarFeriadoUocra()">+ Agregar feriado</button></div>
               <div id="novFeriadosUocraLista" style="display:grid;gap:8px;margin-top:8px"></div>
               <small style="color:#6b7280">Cada fecha guarda si fue trabajada, el requisito del art. 168, las horas de la jornada anterior y sus accesorios.</small>
@@ -1038,6 +1047,7 @@ function limpiarNovedad(){
   $('novFeriadosUocraLista').innerHTML='';
   $('novHorasExtraUocraLista').innerHTML=''; $('novHorasExtraUocraAnio').value='0';
   $('novBaseUocraAnterior').value='';
+  $('novHorasHormigonUocra').value='0'; $('novHorasAlturaUocra').value='0'; $('novAlturaMetrosUocra').value='';
   $('novFclCriterio').value=''; $('novFclAprobado').value=''; $('novFclFundamento').value='';
   $('novObservaciones').value='';
   $('novTipoPremio').value='pendiente';
@@ -1152,6 +1162,9 @@ function cuerpoNovedad(incluirEmpleado=true){
     ,base_contribucion_uocra_mes_anterior:numeroNovOpcional('novBaseUocraAnterior')
     ,horas_extra_uocra_detalle:detalleHorasExtraUocra()
     ,horas_extra_uocra_acumuladas_anio:numeroNov('novHorasExtraUocraAnio')
+    ,horas_hormigon_manual_uocra:numeroNov('novHorasHormigonUocra')
+    ,horas_altura_uocra:numeroNov('novHorasAlturaUocra')
+    ,altura_metros_uocra:numeroNovOpcional('novAlturaMetrosUocra')
   });
   Object.assign(cuerpo,datosAdicionalesConvenio());
   if(incluirEmpleado) cuerpo.empleado_id=$('novEmpleado').value;
@@ -1195,6 +1208,9 @@ function editarNovedad(id){
   $('novHorasExtraUocraLista').innerHTML='';
   (n.horas_extra_uocra_detalle||[]).forEach(agregarHoraExtraUocra);
   $('novHorasExtraUocraAnio').value=n.horas_extra_uocra_acumuladas_anio||0;
+  $('novHorasHormigonUocra').value=n.horas_hormigon_manual_uocra||0;
+  $('novHorasAlturaUocra').value=n.horas_altura_uocra||0;
+  $('novAlturaMetrosUocra').value=n.altura_metros_uocra??'';
   $('novPremios').value=n.premios;
   $('novTipoPremio').value=n.tipo_premio||'pendiente';
   $('novDescuentos').value=n.descuentos_adicionales; $('novObservaciones').value=n.observaciones||'';

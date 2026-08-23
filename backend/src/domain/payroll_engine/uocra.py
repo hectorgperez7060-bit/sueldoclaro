@@ -172,6 +172,57 @@ class ResultadoHorasExtraUocra:
     total: Dinero
 
 
+@dataclass(frozen=True)
+class ResultadoAdicionalUocra:
+    codigo: str
+    descripcion: str
+    horas: Decimal
+    porcentaje: Decimal
+    base_horaria: Dinero
+    importe: Dinero
+
+
+def calcular_adicionales_tarea_uocra(
+    escala: EscalaSalarial,
+    horas_hormigon_manual: Decimal = Decimal("0"),
+    horas_altura: Decimal = Decimal("0"),
+    altura_metros: Optional[Decimal] = None,
+) -> tuple[ResultadoAdicionalUocra, ...]:
+    """Arts. 56/57: solo horas efectivas y básico puro, sin adicional de zona."""
+    if escala.unidad_escala != "HORA" or escala.basico_puro is None:
+        if Decimal(str(horas_hormigon_manual)) or Decimal(str(horas_altura)):
+            raise ValueError("Los adicionales por tarea exigen básico horario puro verificado")
+        return ()
+    resultados = []
+    hormigon = Decimal(str(horas_hormigon_manual))
+    altura_horas = Decimal(str(horas_altura))
+    if hormigon < 0 or altura_horas < 0:
+        raise ValueError("Las horas de adicionales UOCRA no pueden ser negativas")
+    if hormigon:
+        importe = escala.basico_puro.multiplicar(hormigon).porcentaje(Decimal("0.15")).redondear()
+        resultados.append(ResultadoAdicionalUocra(
+            "ADIC_HORMIGON_ART56", "Colada manual de hormigón · art. 56",
+            hormigon, Decimal("0.15"), escala.basico_puro, importe,
+        ))
+    if altura_horas:
+        if altura_metros is None:
+            raise ValueError("Debe informarse la altura en metros")
+        metros = Decimal(str(altura_metros))
+        if metros < 4:
+            raise ValueError("El adicional por altura comienza a los 4 metros")
+        if metros == 26:
+            raise ValueError("El texto convencional superpone los tramos en 26 metros; requiere criterio profesional")
+        porcentaje = Decimal("0.15") if metros < 26 else (
+            Decimal("0.20") if metros <= 40 else Decimal("0.25")
+        )
+        importe = escala.basico_puro.multiplicar(altura_horas).porcentaje(porcentaje).redondear()
+        resultados.append(ResultadoAdicionalUocra(
+            "ADIC_ALTURA_ART57", f"Trabajo en altura ({metros} m) · art. 57",
+            altura_horas, porcentaje, escala.basico_puro, importe,
+        ))
+    return tuple(resultados)
+
+
 def calcular_horas_extra_detalladas(
     escala: EscalaSalarial,
     detalles: tuple[HoraExtraDetalladaUocra, ...],
@@ -344,6 +395,7 @@ def armar_recibo_prueba_uocra(
     aportes: ResultadoAportesUocra,
     feriados: tuple[ResultadoFeriadoUocra, ...] = (),
     horas_extra: Optional[ResultadoHorasExtraUocra] = None,
+    adicionales_tarea: tuple[ResultadoAdicionalUocra, ...] = (),
 ) -> ResultadoLiquidacion:
     """Arma un resultado auditable de prueba; no habilita la confirmación productiva."""
     conceptos = [
@@ -383,6 +435,12 @@ def armar_recibo_prueba_uocra(
                      base_calculo=horas_extra.valor_normal,
                      unidad=f"{horas_extra.horas_50} h al 50% · {horas_extra.horas_100} h al 100%"),
         ]),
+        *[
+            Concepto(a.codigo, a.descripcion, TipoConcepto.REMUNERATIVO, a.importe,
+                     cantidad=a.horas, base_calculo=a.base_horaria,
+                     unidad=f"{a.porcentaje * 100}% por hora efectiva")
+            for a in adicionales_tarea
+        ],
         Concepto("APORTE_JUBILACION", "Jubilación", TipoConcepto.DEDUCCION,
                  aportes.jubilacion, base_calculo=aportes.base_remunerativa_actual,
                  unidad="porcentaje versionado"),

@@ -61,6 +61,9 @@ def _to_out(novedad, bloqueada: bool = False) -> NovedadMensualOut:
         base_contribucion_uocra_mes_anterior=novedad.base_contribucion_uocra_mes_anterior,
         horas_extra_uocra_detalle=novedad.horas_extra_uocra_detalle or [],
         horas_extra_uocra_acumuladas_anio=novedad.horas_extra_uocra_acumuladas_anio or 0,
+        horas_hormigon_manual_uocra=novedad.horas_hormigon_manual_uocra or 0,
+        horas_altura_uocra=novedad.horas_altura_uocra or 0,
+        altura_metros_uocra=novedad.altura_metros_uocra,
         bloqueada=bloqueada,
     )
 
