@@ -65,6 +65,7 @@ def _to_out(novedad, bloqueada: bool = False) -> NovedadMensualOut:
         horas_altura_uocra=novedad.horas_altura_uocra or 0,
         altura_metros_uocra=novedad.altura_metros_uocra,
         camioneros_detalle=novedad.camioneros_detalle or {},
+        uom_detalle=novedad.uom_detalle or {},
         bloqueada=bloqueada,
     )
 

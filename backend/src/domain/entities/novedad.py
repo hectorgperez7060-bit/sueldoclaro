@@ -45,6 +45,7 @@ class DatosNovedadMensual:
     horas_altura_uocra: Decimal = Decimal("0")
     altura_metros_uocra: Optional[Decimal] = None
     camioneros_detalle: dict = field(default_factory=dict)
+    uom_detalle: dict = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         try:
@@ -165,6 +166,10 @@ class DatosNovedadMensual:
             from domain.payroll_engine.camioneros import novedades_camioneros_desde_dict
 
             novedades_camioneros_desde_dict(self.camioneros_detalle)
+        if self.uom_detalle:
+            from domain.payroll_engine.uom import validar_novedad_uom
+
+            validar_novedad_uom(self.uom_detalle)
         total_extra_detalle = Decimal("0")
         for detalle in self.horas_extra_uocra_detalle:
             try:
@@ -256,4 +261,5 @@ class DatosNovedadMensual:
             "horas_altura_uocra": Decimal(str(self.horas_altura_uocra)),
             "altura_metros_uocra": self.altura_metros_uocra,
             "camioneros_detalle": dict(self.camioneros_detalle),
+            "uom_detalle": dict(self.uom_detalle),
         }

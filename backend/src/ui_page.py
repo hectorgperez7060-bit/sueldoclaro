@@ -462,6 +462,18 @@ HTML = r"""<!DOCTYPE html>
             </div>
             <small style="color:#92400e">La carga queda auditada. El recibo se habilita únicamente cuando las bases e incidencias de cada rama estén verificadas; la app no presume ni prorratea reglas faltantes.</small>
           </div>
+          <div id="novUom" style="display:none;grid-column:1/-1;border:1px solid var(--borde);border-radius:8px;padding:12px">
+            <b>Novedades metalúrgicas — UOM CCT 260/75</b>
+            <p style="font-size:.82rem;color:#6b7280;margin:5px 0 10px">La categoría ya identifica rama y modalidad. Informá horas solamente si es jornalizada; para mensualizados dejalas vacías.</p>
+            <div class="fila">
+              <div><label>Horas normales del período</label><input id="uomHorasNormales" type="number" min="0" max="300" step="0.01" placeholder="Solo personal jornalizado"></div>
+              <div><label>Ingresos computables para IMGR ($)</label><input id="uomIngresosImgr" type="number" min="0" step="0.01" placeholder="Sin incluir horas extra"></div>
+              <div><label>Días trabajados entre 01/04 y 31/07</label><input id="uomDiasAbrJul" type="number" min="0" max="122" step="1" placeholder="Incluye licencias pagas"></div>
+              <label><input id="uomContratoJulio" type="checkbox"> Contrato vigente al 31/07/2026</label>
+              <div><label>Pagos a cuenta absorbibles ($)</label><input id="uomPagosCuenta" type="number" min="0" step="0.01" value="0"></div>
+            </div>
+            <small style="color:#92400e">El IMGR es una garantía, no un básico. Los adicionales se habilitan únicamente con su hecho generador y nunca se marcan solos.</small>
+          </div>
           <div style="grid-column:1/-1"><label>Observaciones</label><textarea id="novObservaciones" rows="3" placeholder="Detalle opcional"></textarea></div>
         </div>
         <div style="display:flex;gap:8px;margin-top:10px">
@@ -935,6 +947,7 @@ function actualizarAdicionalesConvenio(){
   const emp=empleadosCache[$('novEmpleado').value];
   $('novUocra').style.display=emp && emp.cct_numero==='76/75'?'block':'none';
   $('novCamioneros').style.display=emp && emp.cct_numero==='40/89'?'block':'none';
+  $('novUom').style.display=emp && emp.cct_numero==='260/75'?'block':'none';
 }
 const camposCamioneros={dias_comida:'camDiasComida',dias_viatico_especial:'camDiasViatico',pernoctadas:'camPernoctadas',kilometros_extra:'camKmExtra',kilometros_viatico:'camKmViatico',dias_en_viaje:'camDiasViaje',viajes_cordilleranos:'camCordillera',permanencias:'camPermanencias',simples_presencias:'camPresencias',permanencias_sur:'camPermanenciasSur',simples_presencias_sur:'camPresenciasSur',cruces_frontera:'camFrontera',ingresos_egresos_tdf:'camTdf',dias_plus_vacacional:'camVacaciones',unidades_bitrenes:'camBitrenes'};
 function datosCamioneros(){
@@ -952,6 +965,13 @@ function cargarCamioneros(datos={}){
   limpiarCamioneros(); $('camRama').value=datos.rama||'general'; $('camZona').value=datos.zona||'BASE'; $('camFrio').checked=Boolean(datos.camara_frio);
   Object.entries(camposCamioneros).forEach(([campo,id])=>$(id).value=datos[campo]??0);
 }
+function datosUom(){
+  const emp=empleadosCache[$('novEmpleado').value];
+  if(!emp || emp.cct_numero!=='260/75') return {};
+  return {horas_normales:numeroNovOpcional('uomHorasNormales'),ingresos_computables_imgr:numeroNovOpcional('uomIngresosImgr'),dias_trabajados_abril_julio:numeroNovOpcional('uomDiasAbrJul'),contrato_vigente_31_07:$('uomContratoJulio').checked,pagos_a_cuenta_absorbibles:numeroNovOpcional('uomPagosCuenta'),adicionales:{}};
+}
+function limpiarUom(){ $('uomHorasNormales').value=''; $('uomIngresosImgr').value=''; $('uomDiasAbrJul').value=''; $('uomContratoJulio').checked=false; $('uomPagosCuenta').value='0'; }
+function cargarUom(datos={}){ limpiarUom(); $('uomHorasNormales').value=datos.horas_normales??''; $('uomIngresosImgr').value=datos.ingresos_computables_imgr??''; $('uomDiasAbrJul').value=datos.dias_trabajados_abril_julio??''; $('uomContratoJulio').checked=Boolean(datos.contrato_vigente_31_07); $('uomPagosCuenta').value=datos.pagos_a_cuenta_absorbibles??0; }
 function agregarFeriadoUocra(datos={}){
   const fila=document.createElement('div'); fila.className='feriado-uocra-fila fila';
   fila.style.cssText='border:1px solid var(--borde);border-radius:8px;padding:8px';
@@ -1098,6 +1118,7 @@ function limpiarNovedad(){
   limpiarAdicionalesFarmacia();
   limpiarAdicionalesSanidad();
   limpiarCamioneros();
+  limpiarUom();
   $('tituloNovedad').textContent='Nueva novedad';
   $('btnGuardarNovedad').textContent='Guardar novedad';
   ocultar('novFormError');
@@ -1211,6 +1232,7 @@ function cuerpoNovedad(incluirEmpleado=true){
     ,horas_altura_uocra:numeroNov('novHorasAlturaUocra')
     ,altura_metros_uocra:numeroNovOpcional('novAlturaMetrosUocra')
     ,camioneros_detalle:datosCamioneros()
+    ,uom_detalle:datosUom()
   });
   Object.assign(cuerpo,datosAdicionalesConvenio());
   if(incluirEmpleado) cuerpo.empleado_id=$('novEmpleado').value;
@@ -1258,6 +1280,7 @@ function editarNovedad(id){
   $('novHorasAlturaUocra').value=n.horas_altura_uocra||0;
   $('novAlturaMetrosUocra').value=n.altura_metros_uocra??'';
   cargarCamioneros(n.camioneros_detalle||{});
+  cargarUom(n.uom_detalle||{});
   $('novPremios').value=n.premios;
   $('novTipoPremio').value=n.tipo_premio||'pendiente';
   $('novDescuentos').value=n.descuentos_adicionales; $('novObservaciones').value=n.observaciones||'';

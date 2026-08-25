@@ -15,6 +15,10 @@ from domain.entities.carpeta_mensual import construir_contenido_carpeta, huella_
 from domain.entities.escala_verificada import evaluar_escala
 from domain.entities.parametros import ParametroLegal as ParamDom
 from domain.payroll_engine.engine import MotorLiquidacion, Novedades
+from domain.payroll_engine.uom import (
+    armar_recibo_uom, calcular_base_uom, calcular_compensacion_abril_julio_uom,
+    calcular_complemento_imgr, calcular_gratificacion_uom,
+)
 from domain.payroll_engine.uocra import (
     ComponentesFondoCese, DecisionProfesionalFcl, FeriadoDetalladoUocra,
     HoraExtraDetalladaUocra,
@@ -101,6 +105,7 @@ def resolver_horas_extra(
             "horas_altura_uocra": getattr(novedad, "horas_altura_uocra", 0),
             "altura_metros_uocra": getattr(novedad, "altura_metros_uocra", None),
             "camioneros_detalle": dict(getattr(novedad, "camioneros_detalle", None) or {}),
+            "uom_detalle": dict(getattr(novedad, "uom_detalle", None) or {}),
         }
     return res
 
@@ -247,6 +252,7 @@ class LiquidarPeriodo:
                 )
                 nv = horas_extra.get(str(emp.id), {})
                 es_motor_uocra = emp.cct_numero == "76/75"
+                es_motor_uom = emp.cct_numero == "260/75"
                 if es_motor_uocra:
                     try:
                         base = calcular_base_quincenal(escala, HechosQuincenalesUocra(
@@ -319,6 +325,55 @@ class LiquidarPeriodo:
                             "categoria": emp.categoria, "provisorio": False,
                             "requiere_confirmacion": False,
                             "motivo": f"Liquidación UOCRA bloqueada: {exc}",
+                        })
+                        continue
+                elif es_motor_uom:
+                    try:
+                        detalle_uom = nv.get("uom_detalle") or {}
+                        base = calcular_base_uom(
+                            escala,
+                            (Decimal(str(detalle_uom["horas_normales"]))
+                             if detalle_uom.get("horas_normales") is not None else None),
+                            dom_emp.proporcion_jornada,
+                        )
+                        if detalle_uom.get("ingresos_computables_imgr") is None:
+                            raise ValueError("informá los ingresos computables para IMGR, sin horas extra")
+                        imgr = calcular_complemento_imgr(
+                            params_emp.valor_ars(next(
+                                p.codigo for p in params_emp.variables_convenio("260/75")
+                                if (p.incidencias or {}).get("tipo") == "garantia_ingreso"
+                                and (p.incidencias or {}).get("grupo") in escala.fuente
+                            )),
+                            Dinero(Decimal(str(detalle_uom["ingresos_computables_imgr"]))),
+                            dom_emp.proporcion_jornada,
+                        )
+                        gratificacion = calcular_gratificacion_uom(
+                            params_emp.valor_ars("GRATIFICACION_NR_UOM_2026_08"),
+                            dom_emp.proporcion_jornada,
+                        )
+                        compensacion = calcular_compensacion_abril_julio_uom(
+                            params_emp.valor_ars("COMPENSACION_ABR_JUL_UOM_CUOTA1"),
+                            int(detalle_uom.get("dias_trabajados_abril_julio") or 0),
+                            dom_emp.proporcion_jornada,
+                            bool(detalle_uom.get("contrato_vigente_31_07")),
+                            Dinero(Decimal(str(detalle_uom.get("pagos_a_cuenta_absorbibles") or 0))),
+                        )
+                        res = armar_recibo_uom(
+                            emp.cuil, periodo, base, gratificacion, compensacion, imgr,
+                            parametros.fraccion("APORTE_JUBILACION"),
+                            parametros.fraccion("APORTE_LEY19032"),
+                            parametros.fraccion("APORTE_OBRA_SOCIAL"),
+                            parametros.fraccion("CONTRIB_JUBILACION"),
+                            parametros.fraccion("CONTRIB_OBRA_SOCIAL"),
+                            params_emp.valor_ars("SEGURO_VIDA_SEPELIO_UOM_TRAB"),
+                            params_emp.valor_ars("SEGURO_VIDA_SEPELIO_UOM_EMP"),
+                        )
+                    except (KeyError, StopIteration, TypeError, ValueError) as exc:
+                        bloqueos.append({
+                            "empleado_id": str(emp.id), "cct_numero": emp.cct_numero,
+                            "categoria": emp.categoria, "provisorio": False,
+                            "requiere_confirmacion": False,
+                            "motivo": f"Liquidación UOM bloqueada: {exc}",
                         })
                         continue
                 else:

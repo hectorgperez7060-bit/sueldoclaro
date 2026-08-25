@@ -1,0 +1,24 @@
+{
+  "cct": "260/75",
+  "periodo": "2026-08",
+  "fuentes": [
+    {
+      "tipo": "acta_acuerdo",
+      "url": "https://www.adimra.org.ar/api/public/archivos/4303",
+      "expediente": "RE-2026-79537879-APN-CGDTEYS#MCH",
+      "sha256": "9f1974d9db849ce18c3b2f55745471679c4017cc8d51a8035837c4441db94936"
+    },
+    {
+      "tipo": "planillas_salariales",
+      "url": "https://www.adimra.org.ar/api/public/archivos/4304",
+      "expediente": "RE-2026-79536710-APN-CGDTEYS#MCH",
+      "sha256": "132ff1b0696593efcc136b27145dbc86edf76d4247d63875bde33c6d9bc44f45"
+    },
+    {
+      "tipo": "seguro_vida_sepelio",
+      "url": "https://www.adimra.org.ar/api/public/archivos/4305",
+      "expediente": "RE-2026-79536812-APN-CGDTEYS#MCH",
+      "sha256": "15cca670f5c9f03d663c8be12ca4c94a46fe101559494125cf3e344344ec9bfe"
+    }
+  ]
+}
