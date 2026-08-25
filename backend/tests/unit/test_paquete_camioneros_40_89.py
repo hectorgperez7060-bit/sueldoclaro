@@ -67,3 +67,9 @@ def test_migracion_es_transaccional_y_reemplaza_solo_agosto():
     assert "BEGIN;" in SQL and SQL.rstrip().endswith("COMMIT;")
     patron = r"DELETE FROM public\.escala_salarial\s+WHERE cct_numero='40/89' AND valid_from=DATE '2026-08-01'"
     assert re.search(patron, SQL)
+
+
+def test_alta_cct_completa_columnas_obligatorias_sin_inventar_cuota():
+    assert "cuota_sindical_pct,antiguedad_pct_por_anio" in SQL
+    assert "(gen_random_uuid(),'40/89','Camioneros','FedCam',0,0.01,12,200,false,false,true)" in SQL
+    assert "aplica_presentismo=false,aplica_cuota_sindical=false" in SQL

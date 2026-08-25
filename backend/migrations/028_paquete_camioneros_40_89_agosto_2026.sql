@@ -3,10 +3,15 @@
 -- El motor queda bloqueado hasta modelar la cartilla ampliatoria (hoja 2).
 BEGIN;
 
-INSERT INTO public.cct (id,numero,nombre,sindicato,activo)
-VALUES (gen_random_uuid(),'40/89','Camioneros','FedCam',true)
+INSERT INTO public.cct
+ (id,numero,nombre,sindicato,cuota_sindical_pct,antiguedad_pct_por_anio,
+  presentismo_divisor,divisor_horas,aplica_presentismo,aplica_cuota_sindical,activo)
+VALUES
+ (gen_random_uuid(),'40/89','Camioneros','FedCam',0,0.01,12,200,false,false,true)
 ON CONFLICT (numero) DO UPDATE SET
- nombre=EXCLUDED.nombre,sindicato=EXCLUDED.sindicato,activo=true;
+ nombre=EXCLUDED.nombre,sindicato=EXCLUDED.sindicato,
+ antiguedad_pct_por_anio=EXCLUDED.antiguedad_pct_por_anio,
+ aplica_presentismo=false,aplica_cuota_sindical=false,activo=true;
 
 WITH datos(codigo,nombre,orden,basico) AS (VALUES
  ('CONDUCTOR_1','Conductor de Primera Categoría',10,1047830.65),
