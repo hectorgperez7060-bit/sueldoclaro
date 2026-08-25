@@ -74,6 +74,8 @@ def test_migracion_carga_agosto_y_bloquea_hasta_homologacion():
     assert "ADD COLUMN IF NOT EXISTS uom_detalle" in sql
     assert "GRATIFICACION_NR_UOM_2026_08" in sql and "30000" in sql
     assert "COMPENSACION_ABR_JUL_UOM_CUOTA1" in sql and "70000" in sql
+    assert "'no_remunerativo'" not in sql
+    assert "30000,'ARS','empleado'" in sql
     assert sql.count("8045.65") == 2
 
 

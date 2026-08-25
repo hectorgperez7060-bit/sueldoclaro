@@ -81,9 +81,9 @@ def compile_sql(data: dict) -> str:
         inc = json.dumps({"tipo": "adicional_variable", "grupo": row["grupo_codigo"], "modalidad": row["modalidad"], "pagina": row["pagina"]}, ensure_ascii=False, separators=(",", ":"))
         param_values.append(f"(gen_random_uuid(),{q(c)},{row['valores']['2026-08-01']},'ARS','variable',DATE '2026-08-01',DATE '2026-08-31',{q(SOURCE)},'PUBLICADA_POR_PARTE_SIGNATARIA',true,1,'260/75',{q(inc)}::jsonb)")
     fixed = [
-        ("GRATIFICACION_NR_UOM_2026_08", "30000", "ARS", "no_remunerativo", AGREEMENT,
+        ("GRATIFICACION_NR_UOM_2026_08", "30000", "ARS", "empleado", AGREEMENT,
          {"tipo": "gratificacion_extraordinaria", "regla_jornada": "proporcional", "base_sac": True, "base_obra_social": True, "base_sindical": True}),
-        ("COMPENSACION_ABR_JUL_UOM_CUOTA1", "70000", "ARS", "no_remunerativo", AGREEMENT,
+        ("COMPENSACION_ABR_JUL_UOM_CUOTA1", "70000", "ARS", "empleado", AGREEMENT,
          {"tipo": "compensacion_extraordinaria", "requiere_contrato_31_07": True, "dias_periodo": 122, "absorbe_pagos_cuenta": True, "base_obra_social": True, "base_sindical": True}),
         ("SEGURO_VIDA_SEPELIO_UOM_TRAB", "8045.65", "ARS", "ded_todos", INSURANCE,
          {"tipo": "seguro_vida_sepelio", "parte": "trabajador"}),
