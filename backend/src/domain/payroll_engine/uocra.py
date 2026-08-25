@@ -1,4 +1,4 @@
-"""Núcleo quincenal UOCRA conectado en modo de vista previa segura.
+"""Núcleo quincenal UOCRA con entradas y bloqueos auditables.
 
 No contiene escalas ni fechas: recibe la escala versionada y los hechos de
 cada quincena. El jornal usa el total de zona; la asistencia, el básico puro.
@@ -387,7 +387,7 @@ def calcular_aportes_y_contribuciones(
     )
 
 
-def armar_recibo_prueba_uocra(
+def armar_recibo_uocra(
     empleado_cuil: str,
     periodo: Periodo,
     base: ResultadoBaseUocra,
@@ -397,7 +397,7 @@ def armar_recibo_prueba_uocra(
     horas_extra: Optional[ResultadoHorasExtraUocra] = None,
     adicionales_tarea: tuple[ResultadoAdicionalUocra, ...] = (),
 ) -> ResultadoLiquidacion:
-    """Arma un resultado auditable de prueba; no habilita la confirmación productiva."""
+    """Arma el resultado productivo; las entradas ambiguas ya fueron bloqueadas."""
     conceptos = [
         Concepto(
             "BASICO_Q1", "Jornal básico · 1.ª quincena", TipoConcepto.REMUNERATIVO,
@@ -471,7 +471,11 @@ def armar_recibo_prueba_uocra(
                  base_calculo=aportes.base_contribucion_uocra_mes_anterior,
                  unidad="2% · plantel del mes anterior", destino_pago="UOCRA"),
     ]
-    return ResultadoLiquidacion(empleado_cuil, periodo, "mensual_uocra_prueba", conceptos)
+    return ResultadoLiquidacion(empleado_cuil, periodo, "mensual_uocra", conceptos)
+
+
+# Compatibilidad de importación para pruebas y extensiones anteriores.
+armar_recibo_prueba_uocra = armar_recibo_uocra
 
 
 def calcular_fondo_cese(

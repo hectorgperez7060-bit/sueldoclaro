@@ -6,7 +6,6 @@ Persiste la liquidación con un snapshot inmutable de los parámetros usados
 from __future__ import annotations
 
 import uuid
-from dataclasses import replace
 from datetime import date
 from decimal import Decimal
 from typing import Dict
@@ -19,7 +18,7 @@ from domain.payroll_engine.engine import MotorLiquidacion, Novedades
 from domain.payroll_engine.uocra import (
     ComponentesFondoCese, DecisionProfesionalFcl, FeriadoDetalladoUocra,
     HoraExtraDetalladaUocra,
-    HechosQuincenalesUocra, TasasAportesUocra, armar_recibo_prueba_uocra,
+    HechosQuincenalesUocra, TasasAportesUocra, armar_recibo_uocra,
     calcular_aportes_y_contribuciones, calcular_base_quincenal,
     calcular_adicionales_tarea_uocra,
     calcular_feriados_detallados, calcular_fondo_cese,
@@ -108,8 +107,7 @@ def resolver_horas_extra(
 class LiquidarPeriodo:
     async def ejecutar(self, tenant_id: str, periodo_str: str, tipo: str,
                        novedades: Dict[str, dict], usuario_id: str,
-                       confirmar_provisorios: bool = False,
-                       vista_previa_uocra: bool = True) -> dict:
+                       confirmar_provisorios: bool = False) -> dict:
         periodo = Periodo.desde_texto(periodo_str)
         fecha_ref = date(periodo.anio, periodo.mes, 28)
 
@@ -150,16 +148,8 @@ class LiquidarPeriodo:
                 # una escala vigente verificada o una fila provisoria vigente
                 # confirmada expresamente. Nunca se estima ni se pone en cero.
                 escala_provisoria = None
-                es_vista_uocra = bool(
-                    vista_previa_uocra and emp.cct_numero == "76/75"
-                    and escala is not None and escala.is_verified
-                )
-                escala_a_evaluar = (
-                    replace(escala, habilitada_liquidacion=True)
-                    if es_vista_uocra else escala
-                )
                 evaluacion = evaluar_escala(
-                    escala_a_evaluar, confirmado=confirmar_provisorios
+                    escala, confirmado=confirmar_provisorios
                 )
                 if cct_cfg is None or not evaluacion.puede_liquidar:
                     bloqueos.append({
@@ -255,7 +245,8 @@ class LiquidarPeriodo:
                     filial_sindical=emp.filial_sindical,
                 )
                 nv = horas_extra.get(str(emp.id), {})
-                if es_vista_uocra:
+                es_motor_uocra = emp.cct_numero == "76/75"
+                if es_motor_uocra:
                     try:
                         base = calcular_base_quincenal(escala, HechosQuincenalesUocra(
                             nv.get("horas_normales_q1"), nv.get("horas_normales_q2"),
@@ -317,7 +308,7 @@ class LiquidarPeriodo:
                             Dinero(Decimal(base_anterior)) if base_anterior is not None else None,
                             tasas, emp.afiliado_sindicato, cuota_sindical_verificada,
                         )
-                        res = armar_recibo_prueba_uocra(
+                        res = armar_recibo_uocra(
                             emp.cuil, periodo, base, fondo, aportes, feriados, extras,
                             adicionales_tarea,
                         )
@@ -326,7 +317,7 @@ class LiquidarPeriodo:
                             "empleado_id": str(emp.id), "cct_numero": emp.cct_numero,
                             "categoria": emp.categoria, "provisorio": False,
                             "requiere_confirmacion": False,
-                            "motivo": f"Vista previa UOCRA bloqueada: {exc}",
+                            "motivo": f"Liquidación UOCRA bloqueada: {exc}",
                         })
                         continue
                 else:
@@ -405,7 +396,7 @@ class LiquidarPeriodo:
                     "aviso_cuota_afiliado": aviso_cuota_afiliado,
                     "aviso_art101": aviso_cuota_afiliado,
                     "escala_provisoria": escala_provisoria,
-                    "vista_previa": es_vista_uocra,
+                    "vista_previa": False,
                 })
 
             # Reasignar un objeto nuevo fuerza la detección de cambios de JSONB
@@ -418,16 +409,6 @@ class LiquidarPeriodo:
                     "cct_numero": p.cct_numero,
                     "verificado": p.is_verified,
                     "fuente": p.fuente,
-                })
-            if any(detalle.get("vista_previa") for detalle in detalles_out):
-                reglas_pendientes.append({
-                    "codigo": "VISTA_PREVIA_UOCRA_NO_CONFIRMABLE",
-                    "cct_numero": "76/75",
-                    "verificado": False,
-                    "fuente": (
-                        "Cálculo de prueba conectado al recibo; pendiente habilitación "
-                        "productiva y validación contra caso real"
-                    ),
                 })
             contenido_carpeta = construir_contenido_carpeta(
                 periodo=periodo_str, tipo=tipo, liquidacion_id=str(liq.id),

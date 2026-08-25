@@ -28,7 +28,7 @@ def test_sql_es_reejecutable_sin_acumular_escalas_ni_parametros():
     datos = paquete_valido()
     datos["periodos"][0]["parametros"] = [{
         "codigo": "ADICIONAL", "valor": "2", "unidad": "%", "ambito": "empleado",
-        "fuente": "Acta", "estado_fuente": "VERIFICADA", "verificado": True,
+        "fuente": "Acta", "estado_fuente": "VERIFICADA_OFICIAL", "verificado": True,
     }]
     sql, _ = compilar_paquete(datos)
     assert "DELETE FROM public.escala_salarial WHERE" in sql
@@ -99,6 +99,13 @@ def test_compilador_rechaza_paquete_invalido():
     datos["version_paquete"] = ""
     with pytest.raises(ValueError, match="Falta version_paquete"):
         compilar_paquete(datos)
+
+
+def test_estados_documentales_coinciden_con_restriccion_de_supabase():
+    datos = paquete_valido()
+    assert datos["estructura"]["categorias"][0]["estado_fuente"] == "VERIFICADA_OFICIAL"
+    datos["estructura"]["categorias"][0]["estado_fuente"] = "VERIFICADA"
+    assert any("Estado de fuente inválido" in e for e in validar_paquete(datos).errores)
 
 
 def test_migracion_registra_paquetes_sin_tenant_y_solo_lectura():

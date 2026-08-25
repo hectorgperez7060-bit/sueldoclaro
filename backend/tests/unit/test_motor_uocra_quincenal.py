@@ -186,7 +186,7 @@ def test_recibo_prueba_cierra_bruto_neto_y_costo_sin_habilitar_produccion():
     recibo = armar_recibo_prueba_uocra(
         "20-12345678-6", Periodo(2026, 8), base, fondo, aportes,
     )
-    assert recibo.tipo == "mensual_uocra_prueba"
+    assert recibo.tipo == "mensual_uocra"
     assert recibo.bruto.monto == Decimal("1285800.00")
     assert recibo.total_deducciones.monto == Decimal("244302.00")
     assert recibo.neto.monto == Decimal("1041498.00")

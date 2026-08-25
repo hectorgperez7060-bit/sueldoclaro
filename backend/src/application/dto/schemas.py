@@ -312,7 +312,6 @@ class LiquidarIn(BaseModel):
     # Confirmación expresa para liquidar reutilizando la última escala verificada
     # como provisoria (p.ej. agosto reutilizando julio).
     confirmar_provisorios: bool = False
-    vista_previa_uocra: bool = True
 
 
 class ConceptoOut(BaseModel):

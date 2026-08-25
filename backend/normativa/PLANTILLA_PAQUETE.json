@@ -14,7 +14,7 @@
         "nombre": "Categoría 1",
         "orden": 10,
         "fuente": "CCT artículo ...",
-        "estado_fuente": "VERIFICADA",
+        "estado_fuente": "VERIFICADA_OFICIAL",
         "verificado": true
       }
     ],
@@ -26,7 +26,7 @@
         "articulo": "1",
         "configuracion": {"horas_semanales": 48},
         "fuente": "CCT artículo 1",
-        "estado_fuente": "VERIFICADA",
+        "estado_fuente": "VERIFICADA_OFICIAL",
         "verificado": true
       }
     ]
@@ -42,7 +42,7 @@
           "basico": "100000.00",
           "unidad": "MENSUAL",
           "fuente": "Anexo salarial homologado",
-          "estado_fuente": "VERIFICADA",
+          "estado_fuente": "VERIFICADA_OFICIAL",
           "verificado": true,
           "habilitada": false
         }
