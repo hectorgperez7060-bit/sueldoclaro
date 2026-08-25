@@ -140,7 +140,12 @@ class ParametroSet:
         de qué convenio se trata."""
         return [p for p in self._todos
                 if p.cct_numero == cct_numero and p.unidad == "ARS"
-                and p.ambito != "contrib_emp"]
+                and p.ambito not in {"contrib_emp", "variable"}]
+
+    def variables_convenio(self, cct_numero: str) -> List[ParametroLegal]:
+        """Valores unitarios que exigen una cantidad/hecho; nunca se suman solos."""
+        return [p for p in self._todos
+                if p.cct_numero == cct_numero and p.ambito == "variable"]
 
     @staticmethod
     def categoria_coincide(requerida: Optional[str], categoria: str) -> bool:
