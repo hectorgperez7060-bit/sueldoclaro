@@ -11,6 +11,13 @@ ZONAS_CAMIONEROS = {
     "BASE": Decimal("1"), "COEF_1_20": Decimal("1.20"), "COEF_1_40": Decimal("1.40")
 }
 
+RAMAS_CAMIONEROS = {
+    "general", "materia_prima_lactea", "auxilio", "residuos", "taller",
+    "caudales", "diarios_revistas", "combustibles", "sustancias_peligrosas",
+    "pozos_petroliferos", "clearing", "expreso_mudanza", "aguas_gaseosas",
+    "logistica", "larga_distancia",
+}
+
 
 @dataclass(frozen=True)
 class ValoresVariablesCamioneros:
@@ -47,6 +54,36 @@ class NovedadesVariablesCamioneros:
     ingresos_egresos_tdf: Decimal = Decimal("0")
     dias_plus_vacacional: Decimal = Decimal("0")
     unidades_bitrenes: Decimal = Decimal("0")
+
+
+CAMPOS_CANTIDAD_CAMIONEROS = tuple(
+    nombre for nombre in NovedadesVariablesCamioneros.__dataclass_fields__ if nombre != "zona"
+)
+CLAVES_DETALLE_CAMIONEROS = {"rama", "camara_frio", "zona", *CAMPOS_CANTIDAD_CAMIONEROS}
+
+
+def novedades_camioneros_desde_dict(datos: dict) -> NovedadesVariablesCamioneros:
+    """Valida y convierte la novedad persistida sin aceptar claves silenciosas."""
+    if not isinstance(datos, dict):
+        raise ValueError("El detalle Camioneros debe ser un objeto")
+    desconocidas = set(datos) - CLAVES_DETALLE_CAMIONEROS
+    if desconocidas:
+        raise ValueError(f"Campos Camioneros desconocidos: {', '.join(sorted(desconocidas))}")
+    rama = str(datos.get("rama", "general"))
+    if rama not in RAMAS_CAMIONEROS:
+        raise ValueError("La rama Camioneros seleccionada no es válida")
+    camara_frio = datos.get("camara_frio", False)
+    if not isinstance(camara_frio, bool):
+        raise ValueError("Cámara de frío debe informarse como sí o no")
+    novedades = NovedadesVariablesCamioneros(
+        zona=str(datos.get("zona", "BASE")),
+        **{campo: Decimal(str(datos.get(campo, 0))) for campo in CAMPOS_CANTIDAD_CAMIONEROS},
+    )
+    if novedades.zona not in ZONAS_CAMIONEROS:
+        raise ValueError("La zona Camioneros debe ser BASE, COEF_1_20 o COEF_1_40")
+    if any(Decimal(str(getattr(novedades, campo))) < 0 for campo in CAMPOS_CANTIDAD_CAMIONEROS):
+        raise ValueError("Las novedades Camioneros no pueden ser negativas")
+    return novedades
 
 
 @dataclass(frozen=True)

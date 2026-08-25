@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import calendar
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date
 from decimal import Decimal
 from typing import Optional
@@ -44,6 +44,7 @@ class DatosNovedadMensual:
     horas_hormigon_manual_uocra: Decimal = Decimal("0")
     horas_altura_uocra: Decimal = Decimal("0")
     altura_metros_uocra: Optional[Decimal] = None
+    camioneros_detalle: dict = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         try:
@@ -160,6 +161,10 @@ class DatosNovedadMensual:
             raise ValueError("La altura UOCRA no puede ser negativa")
         if Decimal(str(self.horas_altura_uocra)) > 0 and self.altura_metros_uocra is None:
             raise ValueError("Las horas en altura requieren informar metros")
+        if self.camioneros_detalle:
+            from domain.payroll_engine.camioneros import novedades_camioneros_desde_dict
+
+            novedades_camioneros_desde_dict(self.camioneros_detalle)
         total_extra_detalle = Decimal("0")
         for detalle in self.horas_extra_uocra_detalle:
             try:
@@ -250,4 +255,5 @@ class DatosNovedadMensual:
             "horas_hormigon_manual_uocra": Decimal(str(self.horas_hormigon_manual_uocra)),
             "horas_altura_uocra": Decimal(str(self.horas_altura_uocra)),
             "altura_metros_uocra": self.altura_metros_uocra,
+            "camioneros_detalle": dict(self.camioneros_detalle),
         }

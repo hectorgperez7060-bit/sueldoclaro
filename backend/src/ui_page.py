@@ -435,6 +435,33 @@ HTML = r"""<!DOCTYPE html>
               </div>
             </div>
           </div>
+          <div id="novCamioneros" style="display:none;grid-column:1/-1;border:1px solid var(--borde);border-radius:8px;padding:12px">
+            <b>Variables de viaje y rama — Camioneros CCT 40/89</b>
+            <p style="font-size:.82rem;color:#6b7280;margin:5px 0 10px">Cargá solo hechos del período. Los ceros no generan conceptos y la app controla mínimos de 350 km por día y 700 km por viaje cordillerano.</p>
+            <div class="fila">
+              <div><label>Rama de actividad</label><select id="camRama"><option value="general">General</option><option value="larga_distancia">Larga distancia</option><option value="logistica">Logística</option><option value="combustibles">Combustibles</option><option value="sustancias_peligrosas">Sustancias peligrosas</option><option value="pozos_petroliferos">Pozos petrolíferos</option><option value="materia_prima_lactea">Materia prima láctea</option><option value="auxilio">Auxilio mecánico</option><option value="residuos">Residuos</option><option value="taller">Taller</option><option value="caudales">Caudales</option><option value="diarios_revistas">Diarios y revistas</option><option value="clearing">Clearing</option><option value="expreso_mudanza">Expreso y mudanza</option><option value="aguas_gaseosas">Aguas gaseosas</option></select></div>
+              <div><label>Zona salarial</label><select id="camZona"><option value="BASE">Base</option><option value="COEF_1_20">Coeficiente 1,20</option><option value="COEF_1_40">Coeficiente 1,40</option></select></div>
+              <label><input id="camFrio" type="checkbox"> Trabajo habitual en cámara de frío</label>
+            </div>
+            <div class="fila" style="margin-top:10px">
+              <div><label>Días con comida</label><input id="camDiasComida" type="number" min="0" step="1" value="0"></div>
+              <div><label>Días viático especial</label><input id="camDiasViatico" type="number" min="0" step="1" value="0"></div>
+              <div><label>Pernoctadas</label><input id="camPernoctadas" type="number" min="0" step="1" value="0"></div>
+              <div><label>Kilómetros extra</label><input id="camKmExtra" type="number" min="0" step="0.01" value="0"></div>
+              <div><label>Kilómetros viático</label><input id="camKmViatico" type="number" min="0" step="0.01" value="0"></div>
+              <div><label>Días en viaje</label><input id="camDiasViaje" type="number" min="0" step="1" value="0"></div>
+              <div><label>Viajes cordilleranos</label><input id="camCordillera" type="number" min="0" step="1" value="0"></div>
+              <div><label>Permanencias</label><input id="camPermanencias" type="number" min="0" step="1" value="0"></div>
+              <div><label>Simples presencias</label><input id="camPresencias" type="number" min="0" step="1" value="0"></div>
+              <div><label>Permanencias sur</label><input id="camPermanenciasSur" type="number" min="0" step="1" value="0"></div>
+              <div><label>Simples presencias sur</label><input id="camPresenciasSur" type="number" min="0" step="1" value="0"></div>
+              <div><label>Cruces de frontera</label><input id="camFrontera" type="number" min="0" step="1" value="0"></div>
+              <div><label>Ingresos/egresos T. del Fuego</label><input id="camTdf" type="number" min="0" step="1" value="0"></div>
+              <div><label>Días plus vacacional</label><input id="camVacaciones" type="number" min="0" step="1" value="0"></div>
+              <div><label>Unidades bitrenes</label><input id="camBitrenes" type="number" min="0" step="1" value="0"></div>
+            </div>
+            <small style="color:#92400e">La carga queda auditada. El recibo se habilita únicamente cuando las bases e incidencias de cada rama estén verificadas; la app no presume ni prorratea reglas faltantes.</small>
+          </div>
           <div style="grid-column:1/-1"><label>Observaciones</label><textarea id="novObservaciones" rows="3" placeholder="Detalle opcional"></textarea></div>
         </div>
         <div style="display:flex;gap:8px;margin-top:10px">
@@ -907,6 +934,23 @@ function actualizarAdicionalesConvenio(){
   actualizarAdicionalesSanidad();
   const emp=empleadosCache[$('novEmpleado').value];
   $('novUocra').style.display=emp && emp.cct_numero==='76/75'?'block':'none';
+  $('novCamioneros').style.display=emp && emp.cct_numero==='40/89'?'block':'none';
+}
+const camposCamioneros={dias_comida:'camDiasComida',dias_viatico_especial:'camDiasViatico',pernoctadas:'camPernoctadas',kilometros_extra:'camKmExtra',kilometros_viatico:'camKmViatico',dias_en_viaje:'camDiasViaje',viajes_cordilleranos:'camCordillera',permanencias:'camPermanencias',simples_presencias:'camPresencias',permanencias_sur:'camPermanenciasSur',simples_presencias_sur:'camPresenciasSur',cruces_frontera:'camFrontera',ingresos_egresos_tdf:'camTdf',dias_plus_vacacional:'camVacaciones',unidades_bitrenes:'camBitrenes'};
+function datosCamioneros(){
+  const emp=empleadosCache[$('novEmpleado').value];
+  if(!emp || emp.cct_numero!=='40/89') return {};
+  const datos={rama:$('camRama').value,zona:$('camZona').value,camara_frio:$('camFrio').checked};
+  Object.entries(camposCamioneros).forEach(([campo,id])=>datos[campo]=numeroNov(id));
+  return datos;
+}
+function limpiarCamioneros(){
+  $('camRama').value='general'; $('camZona').value='BASE'; $('camFrio').checked=false;
+  Object.values(camposCamioneros).forEach(id=>$(id).value='0');
+}
+function cargarCamioneros(datos={}){
+  limpiarCamioneros(); $('camRama').value=datos.rama||'general'; $('camZona').value=datos.zona||'BASE'; $('camFrio').checked=Boolean(datos.camara_frio);
+  Object.entries(camposCamioneros).forEach(([campo,id])=>$(id).value=datos[campo]??0);
 }
 function agregarFeriadoUocra(datos={}){
   const fila=document.createElement('div'); fila.className='feriado-uocra-fila fila';
@@ -1053,6 +1097,7 @@ function limpiarNovedad(){
   $('novTipoPremio').value='pendiente';
   limpiarAdicionalesFarmacia();
   limpiarAdicionalesSanidad();
+  limpiarCamioneros();
   $('tituloNovedad').textContent='Nueva novedad';
   $('btnGuardarNovedad').textContent='Guardar novedad';
   ocultar('novFormError');
@@ -1165,6 +1210,7 @@ function cuerpoNovedad(incluirEmpleado=true){
     ,horas_hormigon_manual_uocra:numeroNov('novHorasHormigonUocra')
     ,horas_altura_uocra:numeroNov('novHorasAlturaUocra')
     ,altura_metros_uocra:numeroNovOpcional('novAlturaMetrosUocra')
+    ,camioneros_detalle:datosCamioneros()
   });
   Object.assign(cuerpo,datosAdicionalesConvenio());
   if(incluirEmpleado) cuerpo.empleado_id=$('novEmpleado').value;
@@ -1211,6 +1257,7 @@ function editarNovedad(id){
   $('novHorasHormigonUocra').value=n.horas_hormigon_manual_uocra||0;
   $('novHorasAlturaUocra').value=n.horas_altura_uocra||0;
   $('novAlturaMetrosUocra').value=n.altura_metros_uocra??'';
+  cargarCamioneros(n.camioneros_detalle||{});
   $('novPremios').value=n.premios;
   $('novTipoPremio').value=n.tipo_premio||'pendiente';
   $('novDescuentos').value=n.descuentos_adicionales; $('novObservaciones').value=n.observaciones||'';
@@ -1239,6 +1286,7 @@ function editarNovedad(id){
   actualizarAdicionalesFarmacia();
   actualizarNocturnidadSanidad();
   actualizarAdicionalesSanidad();
+  actualizarAdicionalesConvenio();
   $('tituloNovedad').textContent='Editar novedad'; $('btnGuardarNovedad').textContent='Guardar cambios';
   $('formNovedad').style.display='block'; ocultar('novFormError');
 }

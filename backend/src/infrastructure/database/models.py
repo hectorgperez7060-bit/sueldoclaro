@@ -398,6 +398,7 @@ class NovedadMensual(TenantMixin, Base):
     horas_hormigon_manual_uocra: Mapped[Decimal] = mapped_column(Numeric(8, 2), default=Decimal("0"))
     horas_altura_uocra: Mapped[Decimal] = mapped_column(Numeric(8, 2), default=Decimal("0"))
     altura_metros_uocra: Mapped[Optional[Decimal]] = mapped_column(Numeric(8, 2), nullable=True)
+    camioneros_detalle: Mapped[dict] = mapped_column(JSONB, default=dict)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=now_utc, onupdate=now_utc

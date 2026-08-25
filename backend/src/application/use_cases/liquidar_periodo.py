@@ -100,6 +100,7 @@ def resolver_horas_extra(
             "horas_hormigon_manual_uocra": getattr(novedad, "horas_hormigon_manual_uocra", 0),
             "horas_altura_uocra": getattr(novedad, "horas_altura_uocra", 0),
             "altura_metros_uocra": getattr(novedad, "altura_metros_uocra", None),
+            "camioneros_detalle": dict(getattr(novedad, "camioneros_detalle", None) or {}),
         }
     return res
 
