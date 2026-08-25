@@ -17,7 +17,7 @@ from domain.entities.parametros import ParametroLegal as ParamDom
 from domain.payroll_engine.engine import MotorLiquidacion, Novedades
 from domain.payroll_engine.uom import (
     armar_recibo_uom, calcular_base_uom, calcular_compensacion_abril_julio_uom,
-    calcular_complemento_imgr, calcular_gratificacion_uom,
+    calcular_complemento_imgr, calcular_gratificacion_uom, habilitar_vista_previa_uom,
 )
 from domain.payroll_engine.uocra import (
     ComponentesFondoCese, DecisionProfesionalFcl, FeriadoDetalladoUocra,
@@ -149,13 +149,23 @@ class LiquidarPeriodo:
                     emp.cct_numero, emp.categoria, fecha_ref, zona_escala
                 )
                 amparos = await params_repo.amparos(emp.cct_numero)
+                vista_previa_contador = bool(
+                    emp.cct_numero == "260/75" and escala is not None
+                    and escala.is_verified
+                    and not getattr(escala, "habilitada_liquidacion", True)
+                )
+                escala_documentada = escala
+                vigente_uom = (
+                    habilitar_vista_previa_uom(escala_documentada)
+                    if vista_previa_contador else escala
+                )
 
                 # Regla GENERAL (cualquier CCT/categoría/período): solo se usa
                 # una escala vigente verificada o una fila provisoria vigente
                 # confirmada expresamente. Nunca se estima ni se pone en cero.
                 escala_provisoria = None
                 evaluacion = evaluar_escala(
-                    escala, confirmado=confirmar_provisorios
+                    vigente_uom, confirmado=confirmar_provisorios
                 )
                 if cct_cfg is None or not evaluacion.puede_liquidar:
                     bloqueos.append({
@@ -452,7 +462,8 @@ class LiquidarPeriodo:
                     "aviso_cuota_afiliado": aviso_cuota_afiliado,
                     "aviso_art101": aviso_cuota_afiliado,
                     "escala_provisoria": escala_provisoria,
-                    "vista_previa": False,
+                    "vista_previa": vista_previa_contador,
+                    "pendiente_aprobacion_contador": vista_previa_contador,
                 })
 
             # Reasignar un objeto nuevo fuerza la detección de cambios de JSONB
@@ -465,6 +476,13 @@ class LiquidarPeriodo:
                     "cct_numero": p.cct_numero,
                     "verificado": p.is_verified,
                     "fuente": p.fuente,
+                })
+            if any(d.get("pendiente_aprobacion_contador") for d in detalles_out):
+                reglas_pendientes.append({
+                    "codigo": "APROBACION_CONTADOR_UOM",
+                    "cct_numero": "260/75",
+                    "verificado": False,
+                    "fuente": "Pendiente de revisión y aprobación por contador público",
                 })
             contenido_carpeta = construir_contenido_carpeta(
                 periodo=periodo_str, tipo=tipo, liquidacion_id=str(liq.id),

@@ -1644,7 +1644,7 @@ function renderLiquidacion(){
         filas += `<tr><td>${c.descripcion} ${amparo}</td><td>${tipo}</td><td class="num">$ ${fmt(c.importe)}</td></tr>`;
       });
       html += `<div class="detalle">
-        <b>${emp.apellido}, ${emp.nombre}</b> <span class="etiqueta">CCT ${emp.cct_numero}</span> <span class="etiqueta">${d.periodo}</span> ${det.vista_previa?'<span class="etiqueta" style="background:#fff3cd;color:#7c5700">VISTA PREVIA UOCRA</span>':''}
+        <b>${emp.apellido}, ${emp.nombre}</b> <span class="etiqueta">CCT ${emp.cct_numero}</span> <span class="etiqueta">${d.periodo}</span> ${det.pendiente_aprobacion_contador?'<span class="etiqueta" style="background:#fff3cd;color:#7c5700">NÚMEROS REALES · PENDIENTE APROBACIÓN CONTADOR</span>':det.vista_previa?'<span class="etiqueta" style="background:#fff3cd;color:#7c5700">VISTA PREVIA</span>':''}
         <table><thead><tr><th>Concepto</th><th>Tipo</th><th class="num">Importe</th></tr></thead><tbody>${filas}</tbody></table>
         <div style="display:flex;justify-content:space-between;margin-top:10px;flex-wrap:wrap;gap:8px">
           <span>Bruto: <b>$ ${fmt(det.bruto)}</b> &nbsp;·&nbsp; Descuentos: <b>$ ${fmt(det.total_deducciones)}</b></span>
@@ -1788,7 +1788,7 @@ function verRecibo(empId){
    +'a[x-apple-data-detectors]{color:inherit!important;text-decoration:none!important;font:inherit!important}'
    +'.btn{background:#0f766e;color:#fff;border:0;padding:10px 18px;border-radius:6px;font-size:.9rem;cursor:pointer;margin:12px auto;display:block}'
    +'@page{size:A4 portrait;margin:5mm}@media print{html,body{width:200mm;margin:0!important;padding:0!important;background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact}'
-   +'.hoja{border:0;margin:0!important;padding:0!important;width:200mm;max-width:200mm;min-height:0}.btn,.aviso{display:none!important}'
+   +'.hoja{border:0;margin:0!important;padding:0!important;width:200mm;max-width:200mm;min-height:0}.btn{display:none!important}'
    +'.barra{padding:4px 8px;border-radius:3px}.barra h1{font-size:9pt}.barra small{font-size:7pt}.marca-recibo{gap:6px}.marca-recibo svg{width:26px;height:26px}'
    +'h2{font-size:7pt;margin:4px 0 2px;padding:2px 5px;border-left-width:3px}.grid2{gap:5px}.caja{padding:4px;font-size:7pt;border-radius:3px}.dato{padding:0;line-height:1.18}'
    +'table{font-size:7pt;line-height:1.12;page-break-inside:avoid}th,td{font-size:7pt;padding:1.5px 4px}.tot{page-break-inside:avoid}'
@@ -1797,7 +1797,7 @@ function verRecibo(empId){
    +'<button class="btn" onclick="window.print()">⬇ Descargar / Imprimir PDF</button>'
    +'<div class="hoja">'
    +'<div class="barra"><div class="marca-recibo"><svg viewBox="0 0 64 64" role="img" aria-label="Logo Sueldo Claro"><path d="M12 7h27l10 10v25H12z" fill="none" stroke="#fff" stroke-width="5" stroke-linejoin="round"/><path d="M39 7v11h10M20 24h19M20 33h12" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/><path d="m31 45 8 8 15-18" fill="none" stroke="#fbbf24" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg><div><b>Sueldo Claro</b><h1>RECIBO DE HABERES</h1></div></div><small>Anexo III · Dto. 407/2026 · Período '+per+'</small></div>'
-   +'<div class="aviso">Documento de PRUEBA — valores a verificar por contador matriculado.</div>'
+   +'<div class="aviso">'+(det.pendiente_aprobacion_contador?'NÚMEROS REALES DE FUENTES OFICIALES — PENDIENTE DE REVISIÓN Y APROBACIÓN POR CONTADOR PÚBLICO.':'Documento de prueba — valores a verificar por contador matriculado.')+'</div>'
    +'<h2>A · Cabecera</h2><div class="grid2">'
    +'<div class="caja"><b>EMPLEADOR</b>'
    +'<div class="dato"><span>Razón social</span><b>'+(empresaCache.razon_social||'—')+'</b></div>'
@@ -1861,7 +1861,8 @@ async function descargarReciboPdf(empId, reintento=true){
       codigo:c.codigo||'',descripcion:c.descripcion,tipo:c.tipo,importe:c.importe,
       base_calculo:c.base_calculo,unidad:c.unidad,cantidad:c.cantidad
     })),
-    bruto:det.bruto,total_deducciones:det.total_deducciones,neto:det.neto
+    bruto:det.bruto,total_deducciones:det.total_deducciones,neto:det.neto,
+    pendiente_aprobacion_contador:Boolean(det.pendiente_aprobacion_contador)
   };
   const r=await fetch('/recibos/pdf',{
     method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token()},

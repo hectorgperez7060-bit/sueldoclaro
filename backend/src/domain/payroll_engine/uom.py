@@ -1,7 +1,7 @@
 """Núcleo UOM CCT 260/75: jornal, mensual e IMGR sin importes incrustados."""
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from decimal import Decimal
 from typing import Optional
 
@@ -40,6 +40,11 @@ CLAVES_NOVEDAD_UOM = {
     "dias_trabajados_abril_julio", "contrato_vigente_31_07",
     "pagos_a_cuenta_absorbibles",
 }
+
+
+def habilitar_vista_previa_uom(escala: EscalaSalarial) -> EscalaSalarial:
+    """Habilita una copia solo para cálculo; nunca altera la fila normativa."""
+    return replace(escala, habilitada_liquidacion=True)
 
 
 def validar_novedad_uom(datos: dict) -> dict:

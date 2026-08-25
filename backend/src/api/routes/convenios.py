@@ -121,6 +121,8 @@ async def gestor_normativo(
         escala_completa = bool(nombres_categorias) and esc_ok == escalas_esperadas
         motor_periodo_habilitado = escala_completa and esc_habilitadas == escalas_esperadas
         vista_previa_habilitada = False
+        if cct.numero == "260/75" and estructura_completa and escala_completa:
+            vista_previa_habilitada = not motor_periodo_habilitado
         if estructura_completa and escala_completa and motor_periodo_habilitado:
             estado = "completo"
         elif esc or par:

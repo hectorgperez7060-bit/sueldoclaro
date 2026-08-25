@@ -278,7 +278,15 @@ def generar_recibo_pdf(data: dict[str, Any]) -> bytes:
     _text(c, 24, 818, "RECIBO DE HABERES", 10, True)
     _text(c, 571, 818, f"PERÍODO {data['periodo']}", 8.5, True, right=True)
 
-    y = _section(c, 800, "1. DATOS DEL EMPLEADOR, TRABAJADOR Y PAGO")
+    if data.get("pendiente_aprobacion_contador"):
+        c.setFillColor(Color(1, .96, .80)); c.setStrokeColor(Color(.85, .55, 0))
+        c.rect(24, 789, 547, 17, fill=1, stroke=1)
+        _text(c, 297, 795,
+              "NÚMEROS REALES · PENDIENTE DE REVISIÓN Y APROBACIÓN POR CONTADOR PÚBLICO",
+              6.7, True, Color(.50, .28, 0), right=True)
+
+    y = _section(c, 784 if data.get("pendiente_aprobacion_contador") else 800,
+                 "1. DATOS DEL EMPLEADOR, TRABAJADOR Y PAGO")
     e, w = data["empresa"], data["empleado"]
     left = (("Empleador", e["razon_social"]), ("CUIT", e["cuit"]), ("Domicilio", e["domicilio"]),
             ("Pago sueldo", f"{_date_display(data['pago']['fecha'])} - {data['pago']['lugar']} - {data['pago']['forma']}"),

@@ -107,6 +107,17 @@ def test_fuentes_oficiales_uom_quedan_identificadas_por_hash():
                for f in fuentes["fuentes"])
 
 
+def test_uom_calcula_como_borrador_pendiente_de_contador():
+    caso = (ROOT / "src/application/use_cases/liquidar_periodo.py").read_text(encoding="utf-8")
+    pdf = (ROOT / "src/infrastructure/pdf/recibo.py").read_text(encoding="utf-8")
+    convenios = (ROOT / "src/api/routes/convenios.py").read_text(encoding="utf-8")
+    assert 'emp.cct_numero == "260/75"' in caso
+    assert '"pendiente_aprobacion_contador": vista_previa_contador' in caso
+    assert '"APROBACION_CONTADOR_UOM"' in caso
+    assert "PENDIENTE DE REVISIÓN Y APROBACIÓN POR CONTADOR PÚBLICO" in pdf
+    assert 'cct.numero == "260/75"' in convenios
+
+
 def test_novedad_uom_valida_persiste_y_se_edita_desde_interfaz():
     novedad = DatosNovedadMensual(
         periodo="2026-08",

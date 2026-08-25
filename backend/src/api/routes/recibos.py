@@ -45,6 +45,7 @@ class ReciboPdfIn(BaseModel):
     bruto: Decimal
     total_deducciones: Decimal
     neto: Decimal
+    pendiente_aprobacion_contador: bool = False
 
 
 @router.post("/pdf")
