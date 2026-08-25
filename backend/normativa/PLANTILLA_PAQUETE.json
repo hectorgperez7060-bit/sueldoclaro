@@ -1,0 +1,58 @@
+{
+  "version_paquete": "1.0.0",
+  "fuente_manifest": "Expediente, resolución o acta verificada",
+  "identidad": {
+    "numero": "000/00",
+    "nombre": "Nombre del convenio",
+    "sindicato": "Sindicato"
+  },
+  "estructura": {
+    "zonas": [""],
+    "categorias": [
+      {
+        "codigo": "CATEGORIA_1",
+        "nombre": "Categoría 1",
+        "orden": 10,
+        "fuente": "CCT artículo ...",
+        "estado_fuente": "VERIFICADA",
+        "verificado": true
+      }
+    ],
+    "reglas": [
+      {
+        "codigo": "JORNADA",
+        "tipo": "jornada",
+        "descripcion": "Descripción de la regla estable",
+        "articulo": "1",
+        "configuracion": {"horas_semanales": 48},
+        "fuente": "CCT artículo 1",
+        "estado_fuente": "VERIFICADA",
+        "verificado": true
+      }
+    ]
+  },
+  "periodos": [
+    {
+      "periodo": "2026-08",
+      "matriz_completa": true,
+      "escalas": [
+        {
+          "categoria": "Categoría 1",
+          "zona": "",
+          "basico": "100000.00",
+          "unidad": "MENSUAL",
+          "fuente": "Anexo salarial homologado",
+          "estado_fuente": "VERIFICADA",
+          "verificado": true,
+          "habilitada": false
+        }
+      ],
+      "parametros": []
+    }
+  ],
+  "motor": {
+    "estado": "VISTA_PREVIA",
+    "entradas_requeridas": ["categoria", "periodo"],
+    "pruebas_regresion": []
+  }
+}

@@ -19,6 +19,27 @@ from infrastructure.excel.normativa_importer import (
 router = APIRouter(prefix="/convenios", tags=["convenios"])
 
 
+@router.get("/paquetes")
+async def paquetes_instalados(_: Principal = Depends(require_tenant)):
+    """Versiones instaladas por la fábrica, con huella auditable."""
+    async with plain_session() as s:
+        filas = (await s.execute(
+            select(m.CctPaqueteVersion).order_by(
+                m.CctPaqueteVersion.cct_numero,
+                m.CctPaqueteVersion.instalado_at.desc(),
+            )
+        )).scalars().all()
+    return [{
+        "cct_numero": x.cct_numero,
+        "version": x.paquete_version,
+        "hash_sha256": x.hash_sha256,
+        "estado": x.estado,
+        "resumen": x.resumen,
+        "fuente_manifest": x.fuente_manifest,
+        "instalado_at": x.instalado_at,
+    } for x in filas]
+
+
 @router.get("/plantilla-normativa")
 async def plantilla_normativa(_: Principal = Depends(require_tenant)):
     return Response(

@@ -134,6 +134,21 @@ class CctZonaVigencia(Base):
     )
 
 
+class CctPaqueteVersion(Base):
+    """Auditoría de paquetes declarativos instalados por convenio."""
+
+    __tablename__ = "cct_paquete_version"
+    id: Mapped[uuid.UUID] = UUIDPK()
+    cct_numero: Mapped[str] = mapped_column(String(20), index=True)
+    paquete_version: Mapped[str] = mapped_column(String(40))
+    hash_sha256: Mapped[str] = mapped_column(String(64))
+    estado: Mapped[str] = mapped_column(String(20), default="INSTALADO")
+    resumen: Mapped[dict] = mapped_column(JSONB, default=dict)
+    fuente_manifest: Mapped[str] = mapped_column(Text, default="")
+    instalado_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc)
+    __table_args__ = (UniqueConstraint("cct_numero", "paquete_version"),)
+
+
 class AmparoCct(Base):
     __tablename__ = "amparo_cct"
     id: Mapped[uuid.UUID] = UUIDPK()
