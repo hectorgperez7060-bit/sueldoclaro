@@ -35,7 +35,13 @@ CREATE POLICY obligacion_pago_mensual_tenant_isolation
   USING (tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid)
   WITH CHECK (tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid);
 
-GRANT SELECT, INSERT, UPDATE ON public.obligacion_pago_mensual TO app_role;
-REVOKE DELETE, TRUNCATE ON public.obligacion_pago_mensual FROM app_role;
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'app_role') THEN
+    GRANT SELECT, INSERT, UPDATE ON public.obligacion_pago_mensual TO app_role;
+    REVOKE DELETE, TRUNCATE ON public.obligacion_pago_mensual FROM app_role;
+  END IF;
+END
+$$;
 
 COMMIT;

@@ -66,6 +66,7 @@ def test_migracion_tiene_rls_y_no_permite_borrado():
     assert "FORCE ROW LEVEL SECURITY" in sql
     assert "app.tenant_id" in sql
     assert "REVOKE DELETE, TRUNCATE" in sql
+    assert "IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'app_role')" in sql
     assert "importe IS NULL" in sql
 
 
