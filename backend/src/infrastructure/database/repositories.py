@@ -615,6 +615,30 @@ class CarpetaMensualRepo:
         )
         return list(r.scalars().all())
 
+    async def crear_obligaciones(
+        self, tenant_id: uuid.UUID, carpeta_id: uuid.UUID, obligaciones: list[dict],
+    ) -> List[m.ObligacionPagoMensual]:
+        creadas = []
+        for datos in obligaciones:
+            fila = m.ObligacionPagoMensual(
+                tenant_id=tenant_id, carpeta_id=carpeta_id, **datos
+            )
+            self.s.add(fila)
+            creadas.append(fila)
+        await self.s.flush()
+        return creadas
+
+    async def listar_obligaciones(
+        self, tenant_id: uuid.UUID, carpeta_id: uuid.UUID,
+    ) -> List[m.ObligacionPagoMensual]:
+        r = await self.s.execute(
+            select(m.ObligacionPagoMensual).where(
+                m.ObligacionPagoMensual.tenant_id == tenant_id,
+                m.ObligacionPagoMensual.carpeta_id == carpeta_id,
+            ).order_by(m.ObligacionPagoMensual.tipo, m.ObligacionPagoMensual.destino_pago)
+        )
+        return list(r.scalars().all())
+
 
 # --------------------------------------------------------------------------- #
 # Auditoría (append-only)

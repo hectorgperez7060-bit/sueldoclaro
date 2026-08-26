@@ -11,7 +11,9 @@ from decimal import Decimal
 from typing import Dict
 
 from domain.entities.empleado import Empleado
-from domain.entities.carpeta_mensual import construir_contenido_carpeta, huella_carpeta
+from domain.entities.carpeta_mensual import (
+    construir_contenido_carpeta, huella_carpeta, obligaciones_desde_contenido,
+)
 from domain.entities.escala_verificada import evaluar_escala
 from domain.entities.parametros import ParametroLegal as ParamDom
 from domain.payroll_engine.engine import MotorLiquidacion, Novedades
@@ -493,6 +495,10 @@ class LiquidarPeriodo:
                 uuid.UUID(tenant_id), periodo_str, liq.id,
                 contenido_carpeta, huella_carpeta(contenido_carpeta),
             )
+            obligaciones = await CarpetaMensualRepo(s).crear_obligaciones(
+                uuid.UUID(tenant_id), carpeta.id,
+                obligaciones_desde_contenido(contenido_carpeta),
+            )
             await AuditRepo(s).registrar(
                 accion="liquidar", entidad="liquidacion", entidad_id=str(liq.id),
                 tenant_id=uuid.UUID(tenant_id), usuario_id=uuid.UUID(usuario_id),
@@ -514,5 +520,6 @@ class LiquidarPeriodo:
                     "id": str(carpeta.id), "version": carpeta.version,
                     "estado": carpeta.estado, "hash_sha256": carpeta.hash_sha256,
                     "apto_produccion": contenido_carpeta["control_normativo"]["apto_produccion"],
+                    "obligaciones_generadas": len(obligaciones),
                 },
             }

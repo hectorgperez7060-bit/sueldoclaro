@@ -507,8 +507,18 @@ HTML = r"""<!DOCTYPE html>
       </div>
       <p style="font-size:.85rem;color:#6b7280">Cada liquidación conserva una versión de sólo lectura. Las correcciones no borran las anteriores.</p>
       <div class="error" id="carpetasError"></div>
-      <table id="tablaCarpetas" class="tabla-movil" style="display:none"><thead><tr><th>Mes</th><th>Versión</th><th>Estado</th><th>Creada</th><th>Huella</th></tr></thead><tbody></tbody></table>
+      <table id="tablaCarpetas" class="tabla-movil" style="display:none"><thead><tr><th>Mes</th><th>Versión</th><th>Estado</th><th>Creada</th><th>Huella</th><th></th></tr></thead><tbody></tbody></table>
       <p id="sinCarpetas" style="margin-top:10px;color:#6b7280;font-size:.9rem">Todavía no hay carpetas generadas para este mes.</p>
+      <div id="panelCierre" style="display:none;margin-top:18px;border-top:1px solid #d1d5db;padding-top:16px">
+        <div class="cabecera-seccion"><h3>Cierre profesional del período</h3><button class="chico secundario" onclick="cerrarPanelCierre()">Cerrar</button></div>
+        <p id="cierreResumen" style="font-size:.9rem;color:#4b5563"></p>
+        <div class="error" id="cierreError"></div><div class="ok" id="cierreOk"></div>
+        <div id="cierreFaltantes" style="margin:10px 0"></div>
+        <table id="tablaObligaciones" class="tabla-movil"><thead><tr><th>Salida / boleta</th><th>Destino</th><th>Importe</th><th>Estado</th><th>Comprobante</th><th>Acción</th></tr></thead><tbody></tbody></table>
+        <div style="margin-top:14px"><label>Observaciones del contador</label><textarea id="cierreObservaciones" rows="2" placeholder="Control realizado, salvedades o referencia del papel de trabajo"></textarea></div>
+        <button class="chico" style="margin-top:10px" onclick="aprobarCierre()">Aprobar y firmar revisión profesional</button>
+        <div id="cierreRevisiones" style="margin-top:12px;font-size:.85rem"></div>
+      </div>
     </div>
       </main>
     </div>
@@ -581,6 +591,7 @@ async function api(ruta, metodo='GET', body=null, reintento=true){
         return 'Revisá la fecha: escribí los 8 números de día, mes y año';
       return x.msg;
     }).join('. ');
+    if(msg && typeof msg==='object') msg=(msg.mensaje||'No se pudo completar')+(msg.faltantes?' · '+msg.faltantes.join(' · '):'');
     throw new Error(msg || 'Error ' + r.status);
   }
   return data;
@@ -1187,12 +1198,72 @@ async function cargarCarpetas(){
     lista.forEach(c=>{
       const tr=document.createElement('tr');
       const huella=(c.hash_sha256||'').slice(0,12);
-      tr.innerHTML=`<td data-label="Mes">${c.periodo}</td><td data-label="Versión">v${c.version}</td><td data-label="Estado"><span class="etiqueta">${c.estado}</span></td><td data-label="Creada (Argentina)">${fechaHora(c.created_at)}</td><td data-label="Huella" title="${c.hash_sha256||''}"><code>${huella}${huella?'…':''}</code></td>`;
+      tr.innerHTML=`<td data-label="Mes">${esc(c.periodo)}</td><td data-label="Versión">v${c.version}</td><td data-label="Estado"><span class="etiqueta">${esc(c.estado)}</span></td><td data-label="Creada (Argentina)">${fechaHora(c.created_at)}</td><td data-label="Huella" title="${esc(c.hash_sha256||'')}"><code>${huella}${huella?'…':''}</code></td><td data-label="Acción"><button class="chico secundario" onclick="abrirCierre('${c.id}')">Revisar cierre</button></td>`;
       tb.appendChild(tr);
     });
     $('tablaCarpetas').style.display=lista.length?'table':'none';
     $('sinCarpetas').style.display=lista.length?'none':'block';
   }catch(e){ mostrarError('carpetasError',e.message); }
+}
+
+let cierreActualId=null;
+const siguienteEstadoObligacion={pendiente:'generada',generada:'pagada',pagada:'verificada'};
+const textoAccionObligacion={pendiente:'Confirmar importe',generada:'Registrar pago',pagada:'Verificar comprobante'};
+
+function cerrarPanelCierre(){ $('panelCierre').style.display='none'; cierreActualId=null; }
+function dineroCierre(v){ return v==null?'A completar':new Intl.NumberFormat('es-AR',{style:'currency',currency:'ARS'}).format(Number(v)); }
+
+async function abrirCierre(id){
+  cierreActualId=id; ocultar('cierreError'); ocultar('cierreOk');
+  try{
+    const d=await api('/carpetas-mensuales/'+id+'/cierre');
+    $('panelCierre').style.display='block';
+    $('cierreResumen').textContent=`${d.carpeta.periodo} · versión ${d.carpeta.version} · estado ${d.carpeta.estado} · huella ${(d.carpeta.hash_sha256||'').slice(0,12)}…`;
+    $('cierreFaltantes').innerHTML=d.faltantes.length
+      ? `<div style="background:#fef3c7;color:#92400e;padding:10px;border-radius:8px"><b>Falta para aprobar:</b> ${d.faltantes.map(esc).join(' · ')}</div>`
+      : '<div style="background:#d1fae5;color:#065f46;padding:10px;border-radius:8px"><b>Controles completos.</b> Ya puede firmar un contador habilitado.</div>';
+    const tb=$('tablaObligaciones').querySelector('tbody'); tb.innerHTML='';
+    d.obligaciones.forEach(o=>{
+      const siguiente=siguienteEstadoObligacion[o.estado];
+      const tr=document.createElement('tr');
+      tr.innerHTML=`<td data-label="Salida / boleta"><b>${esc(o.codigo_boleta)}</b><br><small>${esc(o.tipo)}${o.cct_numero?' · CCT '+esc(o.cct_numero):''}</small></td>
+        <td data-label="Destino">${esc(o.destino_pago)}${o.url_pago?`<br><a href="${esc(o.url_pago)}" target="_blank" rel="noopener">Abrir sitio de pago</a>`:''}</td>
+        <td data-label="Importe"><input id="imp-${o.id}" type="number" min="0" step="0.01" value="${o.importe==null?'':esc(o.importe)}" placeholder="Importe real" ${o.estado!=='pendiente'?'disabled':''}><small>${dineroCierre(o.importe)}</small></td>
+        <td data-label="Estado"><span class="etiqueta">${esc(o.estado)}</span></td>
+        <td data-label="Comprobante"><input id="comp-${o.id}" value="${esc(o.comprobante||'')}" placeholder="Nº, enlace o referencia" ${o.estado==='verificada'?'disabled':''}></td>
+        <td data-label="Acción">${siguiente?`<button class="chico" onclick="avanzarObligacion('${o.id}','${siguiente}')">${textoAccionObligacion[o.estado]}</button>`:'✅ Cerrada'}</td>`;
+      tb.appendChild(tr);
+    });
+    $('cierreRevisiones').innerHTML=d.revisiones.length
+      ? '<b>Revisiones firmadas:</b> '+d.revisiones.map(r=>`${esc(r.nombre_apellido)} · matrícula ${esc(r.matricula)} · ${fechaHora(r.firmado_at)}`).join('<br>')
+      : '<span style="color:#6b7280">Aún no hay revisión profesional firmada.</span>';
+    $('panelCierre').scrollIntoView({behavior:'smooth',block:'start'});
+  }catch(e){ mostrarError('carpetasError',e.message); }
+}
+
+async function avanzarObligacion(id,estado){
+  ocultar('cierreError'); ocultar('cierreOk');
+  const valor=$('imp-'+id).value;
+  try{
+    await api(`/carpetas-mensuales/${cierreActualId}/obligaciones/${id}`,'PATCH',{
+      estado, comprobante:$('comp-'+id).value.trim(), importe:valor===''?null:Number(valor)
+    });
+    await abrirCierre(cierreActualId);
+    $('cierreOk').textContent='Estado registrado con trazabilidad.'; $('cierreOk').style.display='block';
+  }catch(e){ mostrarError('cierreError',e.message); }
+}
+
+async function aprobarCierre(){
+  ocultar('cierreError'); ocultar('cierreOk');
+  if(!cierreActualId) return;
+  try{
+    const d=await api(`/carpetas-mensuales/${cierreActualId}/aprobar`,'POST',{
+      observaciones:$('cierreObservaciones').value.trim()
+    });
+    await abrirCierre(cierreActualId); await cargarCarpetas();
+    $('cierreOk').textContent=`Revisión firmada por ${d.contador} · matrícula ${d.matricula}.`;
+    $('cierreOk').style.display='block';
+  }catch(e){ mostrarError('cierreError',e.message); }
 }
 
 function cuerpoNovedad(incluirEmpleado=true){

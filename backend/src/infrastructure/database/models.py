@@ -482,6 +482,38 @@ class RevisionProfesional(TenantMixin, Base):
     firmado_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc)
 
 
+class ObligacionPagoMensual(TenantMixin, Base):
+    """Boleta, F.931 u otra obligación resultante de una carpeta mensual."""
+
+    __tablename__ = "obligacion_pago_mensual"
+    __table_args__ = (
+        UniqueConstraint(
+            "tenant_id", "carpeta_id", "tipo", "codigo_boleta", "destino_pago",
+            name="uq_obligacion_pago_carpeta_codigo_destino",
+        ),
+        CheckConstraint("importe IS NULL OR importe >= 0", name="ck_obligacion_importe_no_negativo"),
+    )
+    id: Mapped[uuid.UUID] = UUIDPK()
+    carpeta_id: Mapped[uuid.UUID] = mapped_column(
+        PGUUID(as_uuid=True), ForeignKey("carpeta_mensual.id"), index=True
+    )
+    tipo: Mapped[str] = mapped_column(String(30))
+    cct_numero: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
+    destino_pago: Mapped[str] = mapped_column(String(200))
+    codigo_boleta: Mapped[str] = mapped_column(String(120))
+    importe: Mapped[Optional[Decimal]] = mapped_column(MONEY, nullable=True)
+    vencimiento: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
+    canal_pago: Mapped[str] = mapped_column(Text, default="")
+    url_pago: Mapped[str] = mapped_column(Text, default="")
+    fuente_pago: Mapped[str] = mapped_column(Text, default="")
+    estado: Mapped[str] = mapped_column(String(20), default="pendiente")
+    comprobante: Mapped[str] = mapped_column(Text, default="")
+    pagada_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    verificada_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc, onupdate=now_utc)
+
+
 class Recibo(TenantMixin, Base):
     __tablename__ = "recibo"
     id: Mapped[uuid.UUID] = UUIDPK()
@@ -522,5 +554,6 @@ TABLAS_CON_RLS = (
     "liquidacion_detalle",
     "carpeta_mensual",
     "revision_profesional",
+    "obligacion_pago_mensual",
     "recibo",
 )
