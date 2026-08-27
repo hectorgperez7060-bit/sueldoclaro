@@ -1215,9 +1215,14 @@ function dineroCierre(v){ return v==null?'A completar':new Intl.NumberFormat('es
 
 async function abrirCierre(id){
   cierreActualId=id; ocultar('cierreError'); ocultar('cierreOk');
+  $('panelCierre').style.display='block';
+  $('cierreResumen').textContent='Cargando el detalle del cierre…';
+  $('cierreFaltantes').innerHTML='';
+  $('tablaObligaciones').querySelector('tbody').innerHTML='';
+  $('cierreRevisiones').innerHTML='';
+  $('panelCierre').scrollIntoView({behavior:'smooth',block:'start'});
   try{
     const d=await api('/carpetas-mensuales/'+id+'/cierre');
-    $('panelCierre').style.display='block';
     $('cierreResumen').textContent=`${d.carpeta.periodo} · versión ${d.carpeta.version} · estado ${d.carpeta.estado} · huella ${(d.carpeta.hash_sha256||'').slice(0,12)}…`;
     $('cierreFaltantes').innerHTML=d.faltantes.length
       ? `<div style="background:#fef3c7;color:#92400e;padding:10px;border-radius:8px"><b>Falta para aprobar:</b> ${d.faltantes.map(esc).join(' · ')}</div>`
@@ -1237,8 +1242,10 @@ async function abrirCierre(id){
     $('cierreRevisiones').innerHTML=d.revisiones.length
       ? '<b>Revisiones firmadas:</b> '+d.revisiones.map(r=>`${esc(r.nombre_apellido)} · matrícula ${esc(r.matricula)} · ${fechaHora(r.firmado_at)}`).join('<br>')
       : '<span style="color:#6b7280">Aún no hay revisión profesional firmada.</span>';
-    $('panelCierre').scrollIntoView({behavior:'smooth',block:'start'});
-  }catch(e){ mostrarError('carpetasError',e.message); }
+  }catch(e){
+    $('cierreResumen').textContent='No se pudo cargar el detalle del cierre.';
+    mostrarError('cierreError',e.message);
+  }
 }
 
 async function avanzarObligacion(id,estado){
