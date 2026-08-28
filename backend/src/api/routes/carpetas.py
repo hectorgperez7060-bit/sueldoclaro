@@ -11,8 +11,7 @@ from sqlalchemy import select
 
 from api.dependencies.auth import Principal, require_rol, require_tenant
 from domain.entities.carpeta_mensual import (
-    faltantes_para_revision, huella_carpeta, obligaciones_desde_contenido,
-    validar_transicion_obligacion,
+    faltantes_para_revision, huella_carpeta, validar_transicion_obligacion,
 )
 from domain.value_objects.periodo import Periodo
 from infrastructure.database import models as m
@@ -102,15 +101,7 @@ async def obtener_cierre(
         carpeta = await s.get(m.CarpetaMensual, cid)
         if carpeta is None:
             raise HTTPException(status.HTTP_404_NOT_FOUND, "Carpeta mensual no encontrada")
-        repo = CarpetaMensualRepo(s)
-        obligaciones = await repo.listar_obligaciones(tid, cid)
-        # Las carpetas creadas antes del cierre profesional no tienen filas en
-        # obligacion_pago_mensual. Las generamos desde su fotografia inmutable
-        # para que las versiones historicas tambien puedan revisarse.
-        if not obligaciones:
-            obligaciones = await repo.crear_obligaciones(
-                tid, cid, obligaciones_desde_contenido(carpeta.contenido or {})
-            )
+        obligaciones = await CarpetaMensualRepo(s).listar_obligaciones(tid, cid)
         revisiones = list((await s.execute(
             select(m.RevisionProfesional).where(
                 m.RevisionProfesional.tenant_id == tid,
