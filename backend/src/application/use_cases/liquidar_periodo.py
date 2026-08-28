@@ -472,7 +472,8 @@ class LiquidarPeriodo:
             # (sin MutableDict, las mutaciones in-place no se marcan dirty).
             liq.snapshot_parametros = dict(snapshot)
             reglas_pendientes = []
-            for p in parametros.pendientes_normativos():
+            cct_liquidados = {d["cct_numero"] for d in detalles_out}
+            for p in parametros.pendientes_normativos(cct_liquidados):
                 reglas_pendientes.append({
                     "codigo": p.codigo,
                     "cct_numero": p.cct_numero,

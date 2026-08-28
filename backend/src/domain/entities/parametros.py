@@ -212,11 +212,18 @@ class ParametroSet:
     def hay_no_verificados(self) -> bool:
         return any(not p.is_verified for p in self._por_codigo.values())
 
-    def pendientes_normativos(self) -> List[ParametroLegal]:
-        """Reglas no aprobadas o sin respaldo documental."""
+    def pendientes_normativos(
+        self, cct_numeros: set[str] | None = None,
+    ) -> List[ParametroLegal]:
+        """Reglas no aprobadas aplicables a los convenios liquidados.
+
+        Los parámetros generales se controlan siempre. Los propios de otros
+        convenios no deben bloquear una carpeta que no los utilizó.
+        """
         return [
             p for p in self._todos
             if not p.is_verified or not (p.fuente or "").strip()
+            if cct_numeros is None or p.cct_numero is None or p.cct_numero in cct_numeros
         ]
 
 
