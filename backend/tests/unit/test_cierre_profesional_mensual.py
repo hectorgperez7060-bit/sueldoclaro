@@ -64,7 +64,7 @@ def test_transicion_de_obligaciones_es_secuencial_y_exige_comprobante():
 def test_migracion_tiene_rls_y_no_permite_borrado():
     sql = (ROOT / "migrations/032_cierre_profesional_mensual.sql").read_text(encoding="utf-8")
     assert "FORCE ROW LEVEL SECURITY" in sql
-    assert "app.tenant_id" in sql
+    assert "app.current_tenant" in sql
     assert "REVOKE DELETE, TRUNCATE" in sql
     assert "IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'app_role')" in sql
     assert "importe IS NULL" in sql
