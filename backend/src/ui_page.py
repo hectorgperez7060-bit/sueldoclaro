@@ -2028,24 +2028,31 @@ async function descargarReciboPdf(empId, reintento=true){
   const formasPago={'1':'Efectivo','2':'Cheque','3':'Acreditación en cuenta','4':'Otra'};
   const formaPago=prompt('Forma real de pago:',formasPago[emp.forma_pago]||localStorage.getItem('sc_forma_pago')||'');
   if(!formaPago) return;
-  const fechaCargas=prompt('Fecha de pago de cargas sociales (AAAA-MM-DD):',localStorage.getItem('sc_fecha_cargas')||'');
-  if(!fechaCargas) return;
-  const lugarCargas=prompt('Lugar/canal de pago de cargas sociales:',localStorage.getItem('sc_lugar_cargas')||'ARCA');
-  if(!lugarCargas) return;
+  // Ley 17.250 art. 12: fecha, período y banco del último depósito. Si no se
+  // informan, el recibo los declara pendientes; nunca se completan solos.
+  const fechaCargas=prompt('Último depósito de aportes — fecha (AAAA-MM-DD, vacío si falta):',localStorage.getItem('sc_fecha_cargas')||'')||'';
+  const periodoCargas=prompt('Último depósito de aportes — período al que corresponde (vacío si falta):',localStorage.getItem('sc_periodo_cargas')||'')||'';
+  const bancoCargas=prompt('Último depósito de aportes — banco o entidad (vacío si falta):',localStorage.getItem('sc_banco_cargas')||'')||'';
+  localStorage.setItem('sc_periodo_cargas',periodoCargas);
+  localStorage.setItem('sc_banco_cargas',bancoCargas);
   localStorage.setItem('sc_empresa_domicilio',domicilioEmpresa);
   localStorage.setItem('sc_lugar_pago',lugarPago);
   localStorage.setItem('sc_forma_pago',formaPago);
   localStorage.setItem('sc_fecha_cargas',fechaCargas);
-  localStorage.setItem('sc_lugar_cargas',lugarCargas);
   const body={
     periodo:ultimaLiq.periodo,
     empresa:{...empresaCache,domicilio:domicilioEmpresa},
     empleado:{...emp,antiguedad:antigTexto(emp.fecha_ingreso,ultimaLiq.periodo)},
-    pago:{fecha:fechaPago,lugar:lugarPago,forma:formaPago},
-    cargas_sociales:{fecha:fechaCargas,lugar:lugarCargas},
+    pago:{
+      fecha:fechaPago,lugar:lugarPago,forma:formaPago,
+      establecimiento:emp.lugar_trabajo||'',
+      domicilio_trabajo:emp.domicilio_trabajo||emp.establecimiento_domicilio||''
+    },
+    cargas_sociales:{fecha:fechaCargas,periodo:periodoCargas,banco:bancoCargas},
     conceptos:det.conceptos.map(c=>({
       codigo:c.codigo||'',descripcion:c.descripcion,tipo:c.tipo,importe:c.importe,
-      base_calculo:c.base_calculo,unidad:c.unidad,cantidad:c.cantidad
+      base_calculo:c.base_calculo,unidad:c.unidad,cantidad:c.cantidad,
+      destino_pago:c.destino_pago||null,codigo_boleta:c.codigo_boleta||null
     })),
     bruto:det.bruto,total_deducciones:det.total_deducciones,neto:det.neto,
     pendiente_aprobacion_contador:Boolean(det.pendiente_aprobacion_contador)
