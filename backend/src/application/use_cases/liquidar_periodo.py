@@ -533,6 +533,23 @@ class LiquidarPeriodo:
                     "pendiente_aprobacion_contador": vista_previa_contador,
                 })
 
+            # Una ejecución de "liquidar todos" es atómica: si un empleado no
+            # puede calcularse, no se conserva una liquidación parcial ni se
+            # crea una versión vacía/engañosa de la carpeta mensual.
+            if bloqueos or not detalles_out:
+                liquidacion_id = str(liq.id)
+                estado = liq.estado
+                await liq_repo.descartar(liq)
+                return {
+                    "id": liquidacion_id,
+                    "periodo": periodo_str,
+                    "tipo": tipo,
+                    "estado": estado,
+                    "detalles": [],
+                    "bloqueos": bloqueos,
+                    "carpeta_mensual": None,
+                }
+
             # Reasignar un objeto nuevo fuerza la detección de cambios de JSONB
             # (sin MutableDict, las mutaciones in-place no se marcan dirty).
             liq.snapshot_parametros = dict(snapshot)
