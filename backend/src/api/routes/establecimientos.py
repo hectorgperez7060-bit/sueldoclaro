@@ -18,6 +18,12 @@ def _out(e) -> EstablecimientoOut:
         id=str(e.id), nombre=e.nombre, domicilio=e.domicilio,
         localidad=e.localidad or "", provincia=e.provincia or "",
         actividad=e.actividad or "", activo=e.activo,
+        art_nombre=e.art_nombre or "",
+        art_alicuota_pct=e.art_alicuota_pct,
+        art_suma_fija=e.art_suma_fija,
+        art_vigencia_desde=e.art_vigencia_desde,
+        art_vigencia_hasta=e.art_vigencia_hasta,
+        art_comprobante_ref=e.art_comprobante_ref or "",
     )
 
 
@@ -31,7 +37,10 @@ async def listar(incluir_inactivos: bool = False, principal: Principal = Depends
 async def crear(body: EstablecimientoIn, principal: Principal = Depends(require_rol("admin", "liquidador"))):
     tid = uuid.UUID(principal.tenant_id)
     async with tenant_session(principal.tenant_id) as s:
-        e = await EstablecimientoRepo(s).crear(tid, body.model_dump())
+        datos = body.model_dump()
+        if datos["art_vigencia_desde"] and datos["art_vigencia_hasta"] and datos["art_vigencia_hasta"] < datos["art_vigencia_desde"]:
+            raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "La vigencia final de ART no puede ser anterior a la inicial")
+        e = await EstablecimientoRepo(s).crear(tid, datos)
         await AuditRepo(s).registrar(
             accion="crear", entidad="establecimiento", entidad_id=str(e.id), tenant_id=tid,
             usuario_id=uuid.UUID(principal.usuario_id),
@@ -52,7 +61,10 @@ async def actualizar(establecimiento_id: str, body: EstablecimientoIn,
         e = await repo.obtener(tid, eid)
         if e is None:
             raise HTTPException(status.HTTP_404_NOT_FOUND, "Establecimiento no encontrado")
-        for campo, valor in body.model_dump().items():
+        datos = body.model_dump()
+        if datos["art_vigencia_desde"] and datos["art_vigencia_hasta"] and datos["art_vigencia_hasta"] < datos["art_vigencia_desde"]:
+            raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "La vigencia final de ART no puede ser anterior a la inicial")
+        for campo, valor in datos.items():
             setattr(e, campo, valor)
         await AuditRepo(s).registrar(
             accion="actualizar", entidad="establecimiento", entidad_id=str(e.id), tenant_id=tid,

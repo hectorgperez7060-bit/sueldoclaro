@@ -226,8 +226,8 @@ HTML = r"""<!DOCTYPE html>
     </div>
     <div class="tarjeta" id="seccionEstablecimientos">
       <div class="cabecera-seccion"><div><h2>Establecimientos y domicilios de trabajo</h2><p style="font-size:.85rem;color:#6b7280;margin:4px 0 0">Cada sociedad conserva sus propios lugares. Al cambiar a un empleado queda registrado desde qué fecha trabaja allí.</p></div><div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><label style="display:flex;align-items:center;gap:6px;font-size:.82rem;color:#6b7280;margin:0"><input type="checkbox" id="verInactivosEst" onchange="cargarEstablecimientos()" style="width:auto;margin:0"> Ver inactivos</label><button class="chico secundario" onclick="toggleEstablecimiento()">+ Agregar domicilio</button></div></div>
-      <div id="formEstablecimiento" style="display:none;border:1px dashed var(--borde);border-radius:10px;padding:14px;margin-top:12px"><div class="fila"><div><label>Nombre del lugar</label><input id="estNombre" placeholder="Casa central / Sucursal 1"></div><div><label>Domicilio</label><input id="estDomicilio" placeholder="Calle y número"></div><div><label>Localidad</label><input id="estLocalidad"></div><div><label>Provincia</label><input id="estProvincia"></div><div><label>Actividad del lugar</label><input id="estActividad" placeholder="Comercio, farmacia, depósito..."></div></div><input type="hidden" id="estEditId"><button class="chico" id="btnGuardarEst" onclick="guardarEstablecimiento()">Guardar establecimiento</button><button class="chico secundario" id="btnCancelarEst" style="display:none;margin-left:6px" onclick="cancelarEdicionEst()">Cancelar</button><div id="estError" class="error"></div><div id="estOk" class="ok"></div></div>
-      <table id="tablaEstablecimientos" class="tabla-movil" style="display:none"><thead><tr><th>Nombre</th><th>Domicilio</th><th>Localidad</th><th>Provincia</th><th>Actividad</th><th>Estado</th><th></th></tr></thead><tbody></tbody></table><p id="sinEstablecimientos" style="margin-top:10px;color:#6b7280;font-size:.9rem">Todavía no cargaste domicilios de trabajo.</p>
+      <div id="formEstablecimiento" style="display:none;border:1px dashed var(--borde);border-radius:10px;padding:14px;margin-top:12px"><div class="fila"><div><label>Nombre del lugar</label><input id="estNombre" placeholder="Casa central / Sucursal 1"></div><div><label>Domicilio</label><input id="estDomicilio" placeholder="Calle y número"></div><div><label>Localidad</label><input id="estLocalidad"></div><div><label>Provincia</label><input id="estProvincia"></div><div><label>Actividad del lugar</label><input id="estActividad" placeholder="Comercio, farmacia, depósito..."></div></div><h3 style="margin-top:14px">Cobertura ART</h3><p style="font-size:.82rem;color:#6b7280">Copiá estos datos del contrato o constancia de afiliación. No se completan automáticamente.</p><div class="fila"><div><label>ART contratada</label><input id="estArtNombre" placeholder="Nombre de la aseguradora"></div><div><label>Alícuota del contrato (%)</label><input id="estArtAlicuota" type="number" min="0" max="100" step="0.0001" placeholder="Ej.: 3,2500"></div><div><label>Suma fija por trabajador ($)</label><input id="estArtSumaFija" type="number" min="0" step="0.01"></div><div><label>Vigente desde</label><input id="estArtDesde" type="date"></div><div><label>Vigente hasta</label><input id="estArtHasta" type="date"></div><div><label>Comprobante / póliza</label><input id="estArtComprobante" placeholder="Número o referencia del contrato"></div></div><input type="hidden" id="estEditId"><button class="chico" id="btnGuardarEst" onclick="guardarEstablecimiento()">Guardar establecimiento</button><button class="chico secundario" id="btnCancelarEst" style="display:none;margin-left:6px" onclick="cancelarEdicionEst()">Cancelar</button><div id="estError" class="error"></div><div id="estOk" class="ok"></div></div>
+      <table id="tablaEstablecimientos" class="tabla-movil" style="display:none"><thead><tr><th>Nombre</th><th>Domicilio</th><th>Localidad</th><th>Provincia</th><th>Actividad</th><th>ART</th><th>Estado</th><th></th></tr></thead><tbody></tbody></table><p id="sinEstablecimientos" style="margin-top:10px;color:#6b7280;font-size:.9rem">Todavía no cargaste domicilios de trabajo.</p>
     </div>
     <div class="tarjeta" id="seccionEmpleados">
       <div class="cabecera-seccion">
@@ -746,7 +746,8 @@ async function cargarEstablecimientos(){
       const tr=document.createElement('tr'); if(!e.activo) tr.style.opacity='.55';
       const estado=e.activo?'<span class="etiqueta">Activo</span>':'<span style="display:inline-block;background:#fee2e2;color:#991b1b;border-radius:999px;padding:2px 10px;font-size:.75rem">Inactivo</span>';
       const acciones=`<div class="acciones-tabla"><button class="chico secundario" onclick="editarEstablecimiento('${e.id}')" title="Editar">✏️ Editar</button><button class="chico secundario" onclick="cambiarActivoEstablecimiento('${e.id}')" title="${e.activo?'Desactivar':'Activar'}">${e.activo?'🚫 Desactivar':'✅ Activar'}</button></div>`;
-      tr.innerHTML=`<td data-label="Nombre">${esc(e.nombre)}</td><td data-label="Domicilio">${esc(e.domicilio)}</td><td data-label="Localidad">${esc(e.localidad||'')}</td><td data-label="Provincia">${esc(e.provincia||'')}</td><td data-label="Actividad">${esc(e.actividad||'')}</td><td data-label="Estado">${estado}</td><td class="acciones-celda">${acciones}</td>`;
+      const art=e.art_nombre?`${esc(e.art_nombre)} · ${fmt(Number(e.art_alicuota_pct||0))}%`:'Pendiente';
+      tr.innerHTML=`<td data-label="Nombre">${esc(e.nombre)}</td><td data-label="Domicilio">${esc(e.domicilio)}</td><td data-label="Localidad">${esc(e.localidad||'')}</td><td data-label="Provincia">${esc(e.provincia||'')}</td><td data-label="Actividad">${esc(e.actividad||'')}</td><td data-label="ART">${art}</td><td data-label="Estado">${estado}</td><td class="acciones-celda">${acciones}</td>`;
       tb.appendChild(tr);
     }
     { const o=document.createElement('option'); o.value=e.id; o.textContent=`${e.nombre} — ${e.domicilio}${e.localidad?', '+e.localidad:''}`+(e.activo?'':' (Inactivo)'); if(!e.activo) o.disabled=true; sel.appendChild(o); }
@@ -755,7 +756,7 @@ async function cargarEstablecimientos(){
   $('tablaEstablecimientos').style.display=visibles?'table':'none'; $('sinEstablecimientos').style.display=visibles?'none':'block';
 }
 function limpiarFormEst(){
-  ['estNombre','estDomicilio','estLocalidad','estProvincia','estActividad','estEditId'].forEach(id=>$(id).value='');
+  ['estNombre','estDomicilio','estLocalidad','estProvincia','estActividad','estArtNombre','estArtAlicuota','estArtSumaFija','estArtDesde','estArtHasta','estArtComprobante','estEditId'].forEach(id=>$(id).value='');
   $('btnGuardarEst').textContent='Guardar establecimiento';
   $('btnCancelarEst').style.display='none';
 }
@@ -765,13 +766,15 @@ function editarEstablecimiento(id){
   ocultar('estError'); ocultar('estOk');
   $('estEditId').value=e.id; $('estNombre').value=e.nombre||''; $('estDomicilio').value=e.domicilio||'';
   $('estLocalidad').value=e.localidad||''; $('estProvincia').value=e.provincia||''; $('estActividad').value=e.actividad||'';
+  $('estArtNombre').value=e.art_nombre||''; $('estArtAlicuota').value=e.art_alicuota_pct??''; $('estArtSumaFija').value=e.art_suma_fija??'';
+  $('estArtDesde').value=e.art_vigencia_desde||''; $('estArtHasta').value=e.art_vigencia_hasta||''; $('estArtComprobante').value=e.art_comprobante_ref||'';
   $('btnGuardarEst').textContent='Guardar cambios'; $('btnCancelarEst').style.display='inline-block';
   $('formEstablecimiento').style.display='block'; $('estNombre').focus();
 }
 async function guardarEstablecimiento(){
   ocultar('estError'); ocultar('estOk');
   const id=$('estEditId').value;
-  const datos={nombre:$('estNombre').value.trim(),domicilio:$('estDomicilio').value.trim(),localidad:$('estLocalidad').value.trim(),provincia:$('estProvincia').value.trim(),actividad:$('estActividad').value.trim(),activo:true};
+  const datos={nombre:$('estNombre').value.trim(),domicilio:$('estDomicilio').value.trim(),localidad:$('estLocalidad').value.trim(),provincia:$('estProvincia').value.trim(),actividad:$('estActividad').value.trim(),art_nombre:$('estArtNombre').value.trim(),art_alicuota_pct:$('estArtAlicuota').value||null,art_suma_fija:$('estArtSumaFija').value||null,art_vigencia_desde:$('estArtDesde').value||null,art_vigencia_hasta:$('estArtHasta').value||null,art_comprobante_ref:$('estArtComprobante').value.trim(),activo:true};
   try{
     if(id){ const prev=establecimientosCache[id]; datos.activo=prev?prev.activo:true; await api('/establecimientos/'+id,'PUT',datos); }
     else{ await api('/establecimientos','POST',datos); }
@@ -784,7 +787,7 @@ async function cambiarActivoEstablecimiento(id){
   if(e.activo && !window.confirm(`¿Desactivar el establecimiento "${e.nombre}"? No se podrá asignar a nuevos empleados.`)) return;
   ocultar('estError'); ocultar('estOk');
   try{
-    await api('/establecimientos/'+id,'PUT',{nombre:e.nombre,domicilio:e.domicilio,localidad:e.localidad||'',provincia:e.provincia||'',actividad:e.actividad||'',activo:!e.activo});
+    await api('/establecimientos/'+id,'PUT',{nombre:e.nombre,domicilio:e.domicilio,localidad:e.localidad||'',provincia:e.provincia||'',actividad:e.actividad||'',art_nombre:e.art_nombre||'',art_alicuota_pct:e.art_alicuota_pct??null,art_suma_fija:e.art_suma_fija??null,art_vigencia_desde:e.art_vigencia_desde||null,art_vigencia_hasta:e.art_vigencia_hasta||null,art_comprobante_ref:e.art_comprobante_ref||'',activo:!e.activo});
     await cargarEstablecimientos(); await cargarInicio();
   }catch(err){mostrarError('estError',err.message);}
 }
