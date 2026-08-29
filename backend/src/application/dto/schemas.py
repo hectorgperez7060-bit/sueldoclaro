@@ -74,6 +74,12 @@ class EstablecimientoIn(BaseModel):
     localidad: str = Field(default="", max_length=120)
     provincia: str = Field(default="", max_length=120)
     actividad: str = Field(default="", max_length=120)
+    art_nombre: str = Field(default="", max_length=160)
+    art_alicuota_pct: Optional[Decimal] = Field(default=None, ge=0, le=100)
+    art_suma_fija: Optional[Decimal] = Field(default=None, ge=0)
+    art_vigencia_desde: Optional[date] = None
+    art_vigencia_hasta: Optional[date] = None
+    art_comprobante_ref: str = Field(default="", max_length=500)
     activo: bool = True
 
 
