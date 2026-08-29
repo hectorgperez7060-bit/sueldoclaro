@@ -478,10 +478,10 @@ class MotorLiquidacion:
 
         # ----- Contribuciones patronales (desglose Anexo III) -----
         conceptos.append(self._contribucion(
-            "CONTRIB_JUBILACION", "Contribuciones patronales seguridad social (18%)", base
+            "CONTRIB_JUBILACION", "Contribuciones patronales seguridad social", base
         ))
         conceptos.append(self._contribucion(
-            "CONTRIB_OBRA_SOCIAL", "Contribución patronal obra social (6%)", base_obra_social
+            "CONTRIB_OBRA_SOCIAL", "Contribución patronal obra social", base_obra_social
         ))
 
         # Obligaciones patronales propias del convenio. No afectan el neto y
@@ -542,8 +542,11 @@ class MotorLiquidacion:
     def _contribucion(self, codigo: str, descripcion: str, base: Dinero) -> Concepto:
         pct = self._p.fraccion(codigo)
         imp = base.porcentaje(pct).redondear()
+        porcentaje = pct * Decimal("100")
+        porcentaje_texto = format(porcentaje.normalize(), "f")
         return Concepto(
-            codigo, descripcion, TipoConcepto.CONTRIBUCION, imp,
+            codigo, f"{descripcion} ({porcentaje_texto}%)",
+            TipoConcepto.CONTRIBUCION, imp,
             base_calculo=base, unidad=f"{pct * 100}%",
         )
 
