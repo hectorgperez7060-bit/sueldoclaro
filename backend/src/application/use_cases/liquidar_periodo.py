@@ -173,6 +173,10 @@ class LiquidarPeriodo:
                 "periodo": periodo_str,
                 "generado": fecha_ref.isoformat(),
                 "empresa": {
+                    # Identificación documental del empleador: sin esto una carpeta
+                    # vieja no puede reconstruir el recibo sin volver a pedir datos.
+                    "razon_social": empresa.razon_social,
+                    "cuit": empresa.cuit,
                     "modo_liquidacion": empresa.modo_liquidacion,
                     "actividad_sector": empresa.actividad_sector,
                     "condicion_mipyme": empresa.condicion_mipyme,
@@ -495,6 +499,20 @@ class LiquidarPeriodo:
                     bruto=res.bruto.monto, deducciones=res.total_deducciones.monto, neto=res.neto.monto,
                 )
                 snapshot["empleados"][str(emp.id)] = {
+                    # Fotografía documental del trabajador. No interviene en el
+                    # cálculo: permite reimprimir el recibo años después sin
+                    # consultar la ficha actual, que pudo cambiar.
+                    "documental": {
+                        "nombre": emp.nombre,
+                        "apellido": emp.apellido,
+                        "cuil": emp.cuil.valor,
+                        "legajo": emp.legajo,
+                        "fecha_ingreso": emp.fecha_ingreso.isoformat(),
+                        "categoria": emp.categoria,
+                        "cct_numero": emp.cct_numero,
+                        "modalidad_contrato": getattr(emp, "modalidad_contrato", "") or "",
+                        "lugar_trabajo": getattr(emp, "lugar_trabajo", "") or "",
+                    },
                     "cct": emp.cct_numero, "categoria": emp.categoria,
                     "basico": str(escala.basico.monto), "zona_escala": escala.zona,
                     "amparos": [a[0] + ":" + (a[2] or "") for a in res.regimenes_aplicados()],
