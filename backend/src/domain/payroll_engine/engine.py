@@ -15,7 +15,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import date
 from decimal import Decimal
-from typing import List
+from typing import List, Optional
 
 from ..entities.concepto import Concepto, Regimen, TipoConcepto
 from ..entities.empleado import Empleado
@@ -473,8 +473,10 @@ class MotorLiquidacion:
                                           regla_vencimiento=(d.incidencias or {}).get("regla_vencimiento"),
                                           fuente_pago=(d.incidencias or {}).get("fuente_pago")))
 
-        # ----- Concepto con estrategia por amparo (Ley 27.802 art. 131) -----
-        conceptos.append(self._aporte_modernizacion(empleado, periodo, base))
+        # ----- Concepto versionado: sólo se aplica con una tasa vigente no nula -----
+        aporte_modernizacion = self._aporte_modernizacion(empleado, periodo, base)
+        if aporte_modernizacion is not None:
+            conceptos.append(aporte_modernizacion)
 
         # ----- Contribuciones patronales (desglose Anexo III) -----
         conceptos.append(self._contribucion(
@@ -552,12 +554,18 @@ class MotorLiquidacion:
 
     def _aporte_modernizacion(
         self, empleado: Empleado, periodo: Periodo, base: Dinero
-    ) -> Concepto:
-        """Aporte creado por el art. 131 de la Ley 27.802.
+    ) -> Optional[Concepto]:
+        """Regla histórica desactivable desde el padrón normativo.
 
-        - ``regla_ley_27802``: se retiene ``APORTE_MODERNIZACION`` % de la base.
-        - ``regla_previa``: no existía => 0 (reactivada por amparo FAECYS/Comercio).
+        El motor no atribuye una fuente legal: la regla sólo se calcula cuando
+        el parámetro vigente trae una tasa distinta de cero.
         """
+        porcentaje = self._p.fraccion(_CONCEPTO_MODERNIZACION)
+        # No se muestra ni retiene un concepto desactivado. Las liquidaciones
+        # históricas conservan su snapshot; las nuevas usan la regla vigente.
+        if porcentaje == Decimal("0"):
+            return None
+
         amparo = self._amparos.amparo_vigente(
             empleado.cct_numero, _CONCEPTO_MODERNIZACION, periodo
         )
@@ -574,14 +582,14 @@ class MotorLiquidacion:
                 articulo_amparo=amparo.articulo_suspendido,
             )
         # regla_ley_27802
-        imp = base.porcentaje(self._p.fraccion(_CONCEPTO_MODERNIZACION)).redondear()
+        imp = base.porcentaje(porcentaje).redondear()
         return Concepto(
             _CONCEPTO_MODERNIZACION,
             "Aporte modernización (Ley 27.802 art. 131)",
             TipoConcepto.DEDUCCION,
             imp,
             base_calculo=base,
-            unidad=f"{self._p.fraccion(_CONCEPTO_MODERNIZACION) * 100}%",
+            unidad=f"{porcentaje * 100}%",
             regimen=Regimen.LEY_27802,
         )
 
