@@ -12,6 +12,7 @@ from application.dto.schemas import (
     RegistroEstudio, SeleccionarEmpresa, TokenResponse,
 )
 from application.use_cases.registrar_estudio import RegistrarEstudio
+from domain.entities.perfil_empresa import resolver_regimen_contribucion
 from infrastructure.database.repositories import TenantRepo, UsuarioRepo
 from infrastructure.database.session import plain_session
 from infrastructure.security.passwords import verify_password
@@ -132,17 +133,12 @@ async def actualizar_perfil_laboral(
     if principal.rol != "admin":
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Solo un administrador puede cambiar este perfil")
     modos = {"PRUEBA", "PRODUCCION"}
-    sectores = {
-        "PENDIENTE", "COMERCIO", "SERVICIOS", "INDUSTRIA",
-        "CONSTRUCCION", "AGRO", "MINERIA", "OTRO",
-    }
-    condiciones = {"PENDIENTE", "CERTIFICADO_VIGENTE", "SUPERA_LIMITES"}
-    if body.modo_liquidacion not in modos:
-        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "Modo de liquidación inválido")
-    if body.actividad_sector not in sectores:
-        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "Actividad inválida")
-    if body.condicion_mipyme not in condiciones:
-        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "Condición MiPyME inválida")
+    try:
+        regimen, fundamento = resolver_regimen_contribucion(
+            body.actividad_sector, body.condicion_mipyme,
+        )
+    except ValueError as exc:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, str(exc)) from exc
 
     respaldo = body.respaldo_regimen_patronal.strip()
     if body.condicion_mipyme == "CERTIFICADO_VIGENTE":
@@ -151,20 +147,6 @@ async def actualizar_perfil_laboral(
                 status.HTTP_422_UNPROCESSABLE_ENTITY,
                 "Informá hasta cuándo está vigente el Certificado MiPyME",
             )
-        regimen = "PRIVADO_18"
-        fundamento = "Certificado MiPyME vigente informado por la empresa"
-    elif (
-        body.condicion_mipyme == "SUPERA_LIMITES"
-        and body.actividad_sector in {"COMERCIO", "SERVICIOS"}
-    ):
-        regimen = "SERVICIOS_COMERCIO_204"
-        fundamento = "Comercio/servicios por encima de los límites MiPyME"
-    elif body.condicion_mipyme == "SUPERA_LIMITES":
-        regimen = "PRIVADO_18"
-        fundamento = "Empleador privado no incluido en comercio/servicios 20,40%"
-    else:
-        regimen = "PENDIENTE"
-        fundamento = ""
 
     if body.modo_liquidacion == "PRODUCCION" and (
         regimen == "PENDIENTE" or not respaldo
