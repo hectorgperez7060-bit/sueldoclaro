@@ -1,6 +1,7 @@
 """Rutas de liquidaciones."""
 from __future__ import annotations
 
+import logging
 import uuid
 from decimal import Decimal, ROUND_HALF_UP
 
@@ -13,6 +14,26 @@ from infrastructure.database.repositories import AuditRepo, LiquidacionRepo
 from infrastructure.database.session import tenant_session
 
 router = APIRouter(prefix="/liquidaciones", tags=["liquidaciones"])
+logger = logging.getLogger("sueldoclaro.liquidaciones")
+
+
+def _diagnostico_seguro(exc: Exception) -> str:
+    """Clasifica el fallo sin devolver SQL, rutas ni credenciales."""
+    codigo = type(exc).__name__
+    mensajes = {
+        "MultipleResultsFound": "Hay registros normativos duplicados para el mismo período",
+        "NoResultFound": "Falta un registro relacionado requerido",
+        "IntegrityError": "No se pudo guardar por una inconsistencia entre registros",
+        "StatementError": "La base rechazó uno de los datos calculados",
+        "DBAPIError": "La base rechazó la operación de liquidación",
+        "ResponseValidationError": "El resultado calculado no coincide con el formato esperado",
+        "ValidationError": "El resultado calculado contiene un dato inválido",
+        "AttributeError": "Falta un dato esperado en la configuración laboral",
+        "KeyError": "Falta un parámetro requerido por el motor",
+        "TypeError": "Un parámetro tiene un formato incorrecto",
+    }
+    mensaje = mensajes.get(codigo, "La liquidación falló en una etapa posterior al cálculo")
+    return f"{mensaje} (diagnóstico: {codigo})"
 
 
 @router.post("", response_model=LiquidacionOut, status_code=201)
@@ -29,6 +50,11 @@ async def liquidar(body: LiquidarIn, principal: Principal = Depends(require_rol(
     except ValueError as exc:
         raise HTTPException(
             status.HTTP_422_UNPROCESSABLE_ENTITY, str(exc)
+        ) from exc
+    except Exception as exc:
+        logger.exception("Fallo al liquidar el período %s", body.periodo, exc_info=exc)
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY, _diagnostico_seguro(exc)
         ) from exc
     return LiquidacionOut(**res)
 
