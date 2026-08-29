@@ -208,6 +208,21 @@ HTML = r"""<!DOCTYPE html>
       <div class="cabecera-seccion"><div><h2>Empresas y clientes</h2><p style="font-size:.85rem;color:#6b7280;margin:4px 0 0">Cada sociedad (CUIT) es un espacio independiente. Elegí la activa o creá una nueva.</p></div><button class="chico secundario" onclick="mostrarNuevaEmpresa()">+ Nueva empresa</button></div>
       <table id="tablaEmpresas" class="tabla-movil" style="display:none;margin-top:12px"><thead><tr><th>Cliente / grupo</th><th>Razón social</th><th>Rol</th><th>Estado</th><th></th></tr></thead><tbody></tbody></table>
       <p id="sinEmpresas" style="margin-top:10px;color:#6b7280;font-size:.9rem">Cargando empresas…</p>
+      <div id="perfilLaboralEmpresa" style="border-top:1px solid var(--borde);margin-top:18px;padding-top:16px">
+        <h3>Configuración de la empresa para liquidar</h3>
+        <p style="font-size:.86rem;color:#6b7280">Cargá datos conocidos de la empresa; Sueldo Claro determina el porcentaje. El convenio continúa eligiéndose por empleado.</p>
+        <div class="fila">
+          <div><label>Uso de los datos</label><select id="empresaModoLiquidacion"><option value="PRUEBA">Prueba / simulación</option><option value="PRODUCCION">Producción real</option></select></div>
+          <div><label>Actividad principal</label><select id="empresaActividadSector"><option value="PENDIENTE">Todavía no informada</option><option value="COMERCIO">Comercio</option><option value="SERVICIOS">Servicios</option><option value="INDUSTRIA">Industria</option><option value="CONSTRUCCION">Construcción</option><option value="AGRO">Agropecuaria</option><option value="MINERIA">Minería</option><option value="OTRO">Otra actividad</option></select></div>
+          <div><label>Situación MiPyME</label><select id="empresaCondicionMipyme" onchange="mostrarVigenciaMipyme()"><option value="PENDIENTE">Todavía no comprobada</option><option value="CERTIFICADO_VIGENTE">Tiene Certificado MiPyME vigente</option><option value="SUPERA_LIMITES">Supera los límites MiPyME</option></select></div>
+          <div id="campoVigenciaMipyme" style="display:none"><label>Certificado vigente hasta</label><input type="date" id="empresaMipymeHasta"></div>
+          <div><label>Respaldo</label><input id="empresaRespaldoPatronal" placeholder="Constancia, enlace o referencia del documento"></div>
+        </div>
+        <p style="font-size:.8rem;color:#6b7280;margin-top:8px"><a href="https://pyme.produccion.gob.ar/condicionpyme/" target="_blank" rel="noopener">Consultar condición MiPyME por CUIT</a></p>
+        <button class="chico" onclick="guardarPerfilLaboral()">Guardar configuración</button>
+        <span id="perfilLaboralEstado" style="font-size:.82rem;color:#6b7280;margin-left:8px"></span>
+        <div id="perfilLaboralError" class="error"></div>
+      </div>
     </div>
     <div class="tarjeta" id="seccionEstablecimientos">
       <div class="cabecera-seccion"><div><h2>Establecimientos y domicilios de trabajo</h2><p style="font-size:.85rem;color:#6b7280;margin:4px 0 0">Cada sociedad conserva sus propios lugares. Al cambiar a un empleado queda registrado desde qué fecha trabaja allí.</p></div><div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><label style="display:flex;align-items:center;gap:6px;font-size:.82rem;color:#6b7280;margin:0"><input type="checkbox" id="verInactivosEst" onchange="cargarEstablecimientos()" style="width:auto;margin:0"> Ver inactivos</label><button class="chico secundario" onclick="toggleEstablecimiento()">+ Agregar domicilio</button></div></div>
@@ -335,7 +350,7 @@ HTML = r"""<!DOCTYPE html>
           <div><label>Feriados trabajados (días)</label><input id="novFeriados" type="number" min="0" step="1" value="0"></div>
           <div><label>Feriados no trabajados (días)</label><input id="novFeriadosNoTrab" type="number" min="0" step="1" value="0"><small style="color:#6b7280">Calcula automáticamente el plus feriado.</small></div>
           <div><label>Premios ($)</label><input id="novPremios" type="number" min="0" step="0.01" value="0"></div>
-          <div><label>Tratamiento del premio</label><select id="novTipoPremio"><option value="pendiente">Pendiente de definir (no calcular)</option><option value="remunerativo">Remunerativo (integra aportes)</option><option value="no_remunerativo">No remunerativo</option></select></div>
+          <div><label>Tratamiento del premio</label><select id="novTipoPremio"><option value="pendiente">Todavía no definido (no calcular)</option><option value="remunerativo">Remunerativo (integra aportes)</option><option value="no_remunerativo">No remunerativo</option></select></div>
           <div><label>Descuentos adicionales ($)</label><input id="novDescuentos" type="number" min="0" step="0.01" value="0"></div>
           <div id="novFarmacia" style="display:none;grid-column:1/-1;border:1px solid var(--borde);border-radius:8px;padding:12px">
             <b>Adicionales Farmacia — CCT 414/05</b>
@@ -783,8 +798,49 @@ async function cargarEmpresasSeccion(){
     $('tablaEmpresas').style.display=empresas.length?'table':'none';
     $('sinEmpresas').style.display=empresas.length?'none':'block';
     if(!empresas.length) $('sinEmpresas').textContent='Todavía no tenés empresas cargadas.';
+    const actual=empresas.find(e=>e.activa||e.id===activa);
+    if(actual){
+      $('empresaModoLiquidacion').value=actual.modo_liquidacion||'PRUEBA';
+      $('empresaActividadSector').value=actual.actividad_sector||'PENDIENTE';
+      $('empresaCondicionMipyme').value=actual.condicion_mipyme||'PENDIENTE';
+      $('empresaMipymeHasta').value=actual.certificado_mipyme_vigente_hasta||'';
+      $('empresaRespaldoPatronal').value=actual.respaldo_regimen_patronal||'';
+      mostrarVigenciaMipyme();
+      const tasa=actual.regimen_contribucion_patronal==='PRIVADO_18'?'18%':(actual.regimen_contribucion_patronal==='SERVICIOS_COMERCIO_204'?'20,40%':'pendiente');
+      $('perfilLaboralEstado').textContent=(actual.modo_liquidacion==='PRUEBA'?'Simulación':'Producción')+' · resultado '+tasa;
+    }
   }catch(e){ /* silencioso */ }
 }
+function mostrarVigenciaMipyme(){
+  $('campoVigenciaMipyme').style.display=$('empresaCondicionMipyme').value==='CERTIFICADO_VIGENTE'?'block':'none';
+}
+async function guardarPerfilLaboral(){
+  ocultar('perfilLaboralError');
+  const modo=$('empresaModoLiquidacion').value;
+  const actividad=$('empresaActividadSector').value;
+  const condicion=$('empresaCondicionMipyme').value;
+  const vigenteHasta=$('empresaMipymeHasta').value||null;
+  const respaldo=$('empresaRespaldoPatronal').value.trim();
+  if(condicion==='CERTIFICADO_VIGENTE'&&!vigenteHasta){
+    mostrarError('perfilLaboralError','Informá hasta cuándo está vigente el certificado.'); return;
+  }
+  if(modo==='PRODUCCION'&&!respaldo){
+    mostrarError('perfilLaboralError','Producción requiere una constancia o referencia.'); return;
+  }
+  try{
+    const actualizada=await api('/auth/empresas/activa/perfil-laboral','PUT',{
+      modo_liquidacion:modo,
+      actividad_sector:actividad,
+      condicion_mipyme:condicion,
+      certificado_mipyme_vigente_hasta:vigenteHasta,
+      respaldo_regimen_patronal:respaldo
+    });
+    const tasa=actualizada.regimen_contribucion_patronal==='PRIVADO_18'?'18%':(actualizada.regimen_contribucion_patronal==='SERVICIOS_COMERCIO_204'?'20,40%':'pendiente');
+    $('perfilLaboralEstado').textContent='Guardado · resultado '+tasa;
+    await cargarEmpresasSeccion();
+  }catch(e){mostrarError('perfilLaboralError',e.message);}
+}
+
 async function cargarGestorNormativo(){
   const periodo=$('periodoGestor').value||$('periodo').value||new Date().toISOString().slice(0,7);
   $('periodoGestor').value=periodo; ocultar('gestorNormativoError');

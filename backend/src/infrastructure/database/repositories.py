@@ -90,6 +90,30 @@ class TenantRepo:
         self.s.add(m.UsuarioTenant(tenant_id=tenant_id, usuario_id=usuario_id, rol=rol))
         await self.s.flush()
 
+    async def obtener(self, tenant_id: uuid.UUID) -> Optional[m.Tenant]:
+        return await self.s.get(m.Tenant, tenant_id)
+
+    async def actualizar_perfil_laboral(
+        self,
+        tenant: m.Tenant,
+        modo_liquidacion: str,
+        actividad_sector: str,
+        condicion_mipyme: str,
+        certificado_mipyme_vigente_hasta: Optional[date],
+        respaldo_regimen_patronal: str,
+        regimen_contribucion_patronal: str,
+        fundamento_regimen_patronal: str,
+    ) -> m.Tenant:
+        tenant.modo_liquidacion = modo_liquidacion
+        tenant.actividad_sector = actividad_sector
+        tenant.condicion_mipyme = condicion_mipyme
+        tenant.certificado_mipyme_vigente_hasta = certificado_mipyme_vigente_hasta
+        tenant.respaldo_regimen_patronal = respaldo_regimen_patronal
+        tenant.regimen_contribucion_patronal = regimen_contribucion_patronal
+        tenant.fundamento_regimen_patronal = fundamento_regimen_patronal
+        await self.s.flush()
+        return tenant
+
     async def listar_del_usuario(self, usuario_id: uuid.UUID) -> list[tuple[m.Tenant, str]]:
         r = await self.s.execute(
             select(m.Tenant, m.UsuarioTenant.rol)

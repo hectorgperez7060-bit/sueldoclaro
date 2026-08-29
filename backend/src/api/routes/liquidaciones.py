@@ -21,10 +21,15 @@ async def liquidar(body: LiquidarIn, principal: Principal = Depends(require_rol(
         n.empleado_id: {"horas_extra_50": n.horas_extra_50, "horas_extra_100": n.horas_extra_100}
         for n in body.novedades
     }
-    res = await LiquidarPeriodo().ejecutar(
-        principal.tenant_id, body.periodo, body.tipo, novedades, principal.usuario_id,
-        confirmar_provisorios=body.confirmar_provisorios,
-    )
+    try:
+        res = await LiquidarPeriodo().ejecutar(
+            principal.tenant_id, body.periodo, body.tipo, novedades, principal.usuario_id,
+            confirmar_provisorios=body.confirmar_provisorios,
+        )
+    except ValueError as exc:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY, str(exc)
+        ) from exc
     return LiquidacionOut(**res)
 
 

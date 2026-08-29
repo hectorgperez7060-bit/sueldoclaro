@@ -8,10 +8,11 @@ from fastapi import APIRouter, Depends, HTTPException, status
 
 from api.dependencies.auth import Principal, get_principal
 from application.dto.schemas import (
-    EmpresaIn, EmpresaOut, Login, RefreshRequest, RegistroEstudio,
-    SeleccionarEmpresa, TokenResponse,
+    EmpresaIn, EmpresaOut, Login, PerfilLaboralEmpresa, RefreshRequest,
+    RegistroEstudio, SeleccionarEmpresa, TokenResponse,
 )
 from application.use_cases.registrar_estudio import RegistrarEstudio
+from domain.entities.perfil_empresa import resolver_regimen_contribucion
 from infrastructure.database.repositories import TenantRepo, UsuarioRepo
 from infrastructure.database.session import plain_session
 from infrastructure.security.passwords import verify_password
@@ -87,8 +88,15 @@ async def listar_empresas(principal: Principal = Depends(get_principal)):
         return [
             EmpresaOut(
                 id=str(empresa.id), razon_social=empresa.razon_social,
-                cuit=empresa.cuit, grupo_cliente=empresa.grupo_cliente or "", rol=rol,
-                activa=str(empresa.id) == principal.tenant_id,
+                cuit=empresa.cuit, grupo_cliente=empresa.grupo_cliente or "",
+                modo_liquidacion=empresa.modo_liquidacion,
+                actividad_sector=empresa.actividad_sector,
+                condicion_mipyme=empresa.condicion_mipyme,
+                certificado_mipyme_vigente_hasta=empresa.certificado_mipyme_vigente_hasta,
+                respaldo_regimen_patronal=empresa.respaldo_regimen_patronal or "",
+                regimen_contribucion_patronal=empresa.regimen_contribucion_patronal,
+                fundamento_regimen_patronal=empresa.fundamento_regimen_patronal or "",
+                rol=rol, activa=str(empresa.id) == principal.tenant_id,
             )
             for empresa, rol in filas
         ]
@@ -115,6 +123,64 @@ async def crear_empresa(body: EmpresaIn, principal: Principal = Depends(get_prin
         )
         await repo.agregar_miembro(tenant_id, uuid.UUID(principal.usuario_id), "admin")
     return _emitir_par(principal.usuario_id, str(tenant_id), "admin")
+
+
+@router.put("/empresas/activa/perfil-laboral", response_model=EmpresaOut)
+async def actualizar_perfil_laboral(
+    body: PerfilLaboralEmpresa,
+    principal: Principal = Depends(get_principal),
+):
+    if principal.rol != "admin":
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Solo un administrador puede cambiar este perfil")
+    modos = {"PRUEBA", "PRODUCCION"}
+    if body.modo_liquidacion not in modos:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "Modo de liquidación inválido")
+    try:
+        regimen, fundamento = resolver_regimen_contribucion(
+            body.actividad_sector, body.condicion_mipyme,
+        )
+    except ValueError as exc:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, str(exc)) from exc
+
+    respaldo = body.respaldo_regimen_patronal.strip()
+    if body.condicion_mipyme == "CERTIFICADO_VIGENTE":
+        if body.certificado_mipyme_vigente_hasta is None:
+            raise HTTPException(
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+                "Informá hasta cuándo está vigente el Certificado MiPyME",
+            )
+
+    if body.modo_liquidacion == "PRODUCCION" and (
+        regimen == "PENDIENTE" or not respaldo
+    ):
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            "Producción requiere situación MiPyME resuelta y respaldo",
+        )
+
+    tenant_id = uuid.UUID(principal.tenant_id)
+    async with plain_session() as s:
+        repo = TenantRepo(s)
+        empresa = await repo.obtener(tenant_id)
+        if empresa is None:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "Empresa no encontrada")
+        empresa = await repo.actualizar_perfil_laboral(
+            empresa, body.modo_liquidacion, body.actividad_sector,
+            body.condicion_mipyme, body.certificado_mipyme_vigente_hasta,
+            respaldo, regimen, fundamento,
+        )
+        return EmpresaOut(
+            id=str(empresa.id), razon_social=empresa.razon_social, cuit=empresa.cuit,
+            grupo_cliente=empresa.grupo_cliente or "",
+            modo_liquidacion=empresa.modo_liquidacion,
+            actividad_sector=empresa.actividad_sector,
+            condicion_mipyme=empresa.condicion_mipyme,
+            certificado_mipyme_vigente_hasta=empresa.certificado_mipyme_vigente_hasta,
+            respaldo_regimen_patronal=empresa.respaldo_regimen_patronal or "",
+            regimen_contribucion_patronal=empresa.regimen_contribucion_patronal,
+            fundamento_regimen_patronal=empresa.fundamento_regimen_patronal or "",
+            rol=principal.rol or "", activa=True,
+        )
 
 
 @router.post("/seleccionar-empresa", response_model=TokenResponse)

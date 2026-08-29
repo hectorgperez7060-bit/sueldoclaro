@@ -45,8 +45,23 @@ class EmpresaOut(BaseModel):
     razon_social: str
     cuit: str
     grupo_cliente: str = ""
+    modo_liquidacion: str = "PRUEBA"
+    actividad_sector: str = "PENDIENTE"
+    condicion_mipyme: str = "PENDIENTE"
+    certificado_mipyme_vigente_hasta: Optional[date] = None
+    respaldo_regimen_patronal: str = ""
+    regimen_contribucion_patronal: str = "PENDIENTE"
+    fundamento_regimen_patronal: str = ""
     rol: str
     activa: bool = False
+
+
+class PerfilLaboralEmpresa(BaseModel):
+    modo_liquidacion: str
+    actividad_sector: str
+    condicion_mipyme: str
+    certificado_mipyme_vigente_hasta: Optional[date] = None
+    respaldo_regimen_patronal: str = Field(default="", max_length=1000)
 
 
 class SeleccionarEmpresa(BaseModel):
