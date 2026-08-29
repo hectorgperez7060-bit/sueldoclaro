@@ -97,10 +97,18 @@ class TenantRepo:
         self,
         tenant: m.Tenant,
         modo_liquidacion: str,
+        actividad_sector: str,
+        condicion_mipyme: str,
+        certificado_mipyme_vigente_hasta: Optional[date],
+        respaldo_regimen_patronal: str,
         regimen_contribucion_patronal: str,
         fundamento_regimen_patronal: str,
     ) -> m.Tenant:
         tenant.modo_liquidacion = modo_liquidacion
+        tenant.actividad_sector = actividad_sector
+        tenant.condicion_mipyme = condicion_mipyme
+        tenant.certificado_mipyme_vigente_hasta = certificado_mipyme_vigente_hasta
+        tenant.respaldo_regimen_patronal = respaldo_regimen_patronal
         tenant.regimen_contribucion_patronal = regimen_contribucion_patronal
         tenant.fundamento_regimen_patronal = fundamento_regimen_patronal
         await self.s.flush()
