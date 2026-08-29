@@ -46,6 +46,15 @@ HTML = r"""<!DOCTYPE html>
   #app{display:none}
   .sesion-activa>header{display:none}
   .app-layout{display:grid;grid-template-columns:240px minmax(0,1fr);gap:22px;align-items:start}
+  .boton-menu{display:none;margin:0 0 12px;width:100%}
+  .seccion-app{display:none}
+  .seccion-app.visible{display:block}
+  @media(max-width:900px){
+    .boton-menu{display:block}
+    .app-layout{grid-template-columns:1fr}
+    .lateral{display:none}
+    .app-layout.menu-abierto .lateral{display:block}
+  }
   .lateral{position:sticky;top:16px;background:#fff;border:1px solid var(--borde);border-radius:14px;padding:16px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
   .marca-lateral{display:flex;align-items:center;gap:10px;color:var(--verde);margin-bottom:18px}
   .marca-lateral svg{width:40px;height:40px;flex:none;background:var(--verde);border-radius:10px;padding:6px}
@@ -157,6 +166,7 @@ HTML = r"""<!DOCTYPE html>
         <div class="lateral-pie"><button class="chico secundario" onclick="salir()">Cerrar sesión</button></div>
       </aside>
       <main class="contenido-app">
+        <button id="botonMenu" class="boton-menu secundario" onclick="alternarMenu()" aria-expanded="false">☰ Menú</button>
         <div class="contexto-empresa"><span><b id="empresaNombreActiva">Empresa</b><br><small>Los empleados y liquidaciones visibles pertenecen únicamente a esta empresa.</small></span><span id="empresaRol" class="etiqueta"></span></div>
         <div class="pasos" aria-label="Camino de trabajo"><div class="paso activo"><b>1</b>Cliente / grupo</div><div class="paso activo"><b>2</b>Sociedad / CUIT</div><div class="paso"><b>3</b>Establecimiento</div><div class="paso"><b>4</b>Empleado</div><div class="paso"><b>5</b>Novedades</div><div class="paso"><b>6</b>Liquidación</div><div class="paso"><b>7</b>Recibo</div></div>
         <div id="nuevaEmpresa" class="tarjeta" style="display:none">
@@ -165,7 +175,7 @@ HTML = r"""<!DOCTYPE html>
           <div class="fila"><div><label>Cliente o grupo (opcional)</label><input id="nuevaEmpresaGrupo" placeholder="Ej.: Familia Pérez"></div><div><label>Razón social</label><input id="nuevaEmpresaRazon" placeholder="Empresa cliente S.A."></div><div><label>CUIT</label><input id="nuevaEmpresaCuit" inputmode="numeric" maxlength="13" placeholder="30123456789"></div></div>
           <button onclick="crearEmpresa()">Crear y comenzar a trabajar</button><div id="empresaError" class="error"></div>
         </div>
-    <div class="tarjeta" id="seccionInicio">
+    <div class="tarjeta seccion-app" id="seccionInicio">
       <div class="cabecera-seccion"><div><h2>Inicio</h2><p style="font-size:.85rem;color:#6b7280;margin:4px 0 0">Resumen de la empresa activa y accesos rápidos.</p></div></div>
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-top:14px">
         <div style="border:1px solid var(--borde);border-radius:12px;padding:14px;background:#f8fafc">
@@ -198,13 +208,13 @@ HTML = r"""<!DOCTYPE html>
         <button class="chico secundario" onclick="irA('seccionHistorial')">📁 Recibos e historial</button>
       </div>
     </div>
-    <div class="tarjeta" id="seccionConvenios">
+    <div class="tarjeta seccion-app" id="seccionConvenios">
       <div class="cabecera-seccion"><div><h2>Convenios y escalas</h2><p style="font-size:.85rem;color:#6b7280;margin:4px 0 0">La estructura permanente se conserva; las paritarias se cargan por período sin modificar el historial.</p></div><div style="text-align:right"><button id="btnActualizarGestor" class="chico secundario" onclick="cargarGestorNormativo()">Actualizar estado</button><small id="gestorActualizado" style="display:block;color:#6b7280;margin-top:4px"></small></div></div>
       <div class="fila" style="margin-top:10px"><div><label>Período a revisar</label><input id="periodoGestor" type="month" onchange="cargarGestorNormativo()"></div><div style="display:flex;align-items:end"><p style="font-size:.82rem;color:#6b7280;padding-bottom:9px">🧱 Estructura estable · 📅 Valores del período · 🔒 El historial no se reemplaza</p></div></div>
       <div id="gestorNormativoError" class="error"></div>
       <div id="listaGestorNormativo" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;margin-top:14px"></div>
     </div>
-    <div class="tarjeta" id="seccionEmpresas">
+    <div class="tarjeta seccion-app" id="seccionEmpresas">
       <div class="cabecera-seccion"><div><h2>Empresas y clientes</h2><p style="font-size:.85rem;color:#6b7280;margin:4px 0 0">Cada sociedad (CUIT) es un espacio independiente. Elegí la activa o creá una nueva.</p></div><button class="chico secundario" onclick="mostrarNuevaEmpresa()">+ Nueva empresa</button></div>
       <table id="tablaEmpresas" class="tabla-movil" style="display:none;margin-top:12px"><thead><tr><th>Cliente / grupo</th><th>Razón social</th><th>Rol</th><th>Estado</th><th></th></tr></thead><tbody></tbody></table>
       <p id="sinEmpresas" style="margin-top:10px;color:#6b7280;font-size:.9rem">Cargando empresas…</p>
@@ -224,12 +234,12 @@ HTML = r"""<!DOCTYPE html>
         <div id="perfilLaboralError" class="error"></div>
       </div>
     </div>
-    <div class="tarjeta" id="seccionEstablecimientos">
+    <div class="tarjeta seccion-app" id="seccionEstablecimientos">
       <div class="cabecera-seccion"><div><h2>Establecimientos y domicilios de trabajo</h2><p style="font-size:.85rem;color:#6b7280;margin:4px 0 0">Cada sociedad conserva sus propios lugares. Al cambiar a un empleado queda registrado desde qué fecha trabaja allí.</p></div><div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><label style="display:flex;align-items:center;gap:6px;font-size:.82rem;color:#6b7280;margin:0"><input type="checkbox" id="verInactivosEst" onchange="cargarEstablecimientos()" style="width:auto;margin:0"> Ver inactivos</label><button class="chico secundario" onclick="toggleEstablecimiento()">+ Agregar domicilio</button></div></div>
       <div id="formEstablecimiento" style="display:none;border:1px dashed var(--borde);border-radius:10px;padding:14px;margin-top:12px"><div class="fila"><div><label>Nombre del lugar</label><input id="estNombre" placeholder="Casa central / Sucursal 1"></div><div><label>Domicilio</label><input id="estDomicilio" placeholder="Calle y número"></div><div><label>Localidad</label><input id="estLocalidad"></div><div><label>Provincia</label><input id="estProvincia"></div><div><label>Actividad del lugar</label><input id="estActividad" placeholder="Comercio, farmacia, depósito..."></div></div><h3 style="margin-top:14px">Cobertura ART</h3><p style="font-size:.82rem;color:#6b7280">Copiá estos datos del contrato o constancia de afiliación. No se completan automáticamente.</p><div class="fila"><div><label>ART contratada</label><input id="estArtNombre" placeholder="Nombre de la aseguradora"></div><div><label>Alícuota del contrato (%)</label><input id="estArtAlicuota" type="number" min="0" max="100" step="0.0001" placeholder="Ej.: 3,2500"></div><div><label>Suma fija por trabajador ($)</label><input id="estArtSumaFija" type="number" min="0" step="0.01"></div><div><label>Vigente desde</label><input id="estArtDesde" type="date"></div><div><label>Vigente hasta</label><input id="estArtHasta" type="date"></div><div><label>Comprobante / póliza</label><input id="estArtComprobante" placeholder="Número o referencia del contrato"></div></div><input type="hidden" id="estEditId"><button class="chico" id="btnGuardarEst" onclick="guardarEstablecimiento()">Guardar establecimiento</button><button class="chico secundario" id="btnCancelarEst" style="display:none;margin-left:6px" onclick="cancelarEdicionEst()">Cancelar</button><div id="estError" class="error"></div><div id="estOk" class="ok"></div></div>
       <table id="tablaEstablecimientos" class="tabla-movil" style="display:none"><thead><tr><th>Nombre</th><th>Domicilio</th><th>Localidad</th><th>Provincia</th><th>Actividad</th><th>ART</th><th>Estado</th><th></th></tr></thead><tbody></tbody></table><p id="sinEstablecimientos" style="margin-top:10px;color:#6b7280;font-size:.9rem">Todavía no cargaste domicilios de trabajo.</p>
     </div>
-    <div class="tarjeta" id="seccionEmpleados">
+    <div class="tarjeta seccion-app" id="seccionEmpleados">
       <div class="cabecera-seccion">
         <h2>Empleados</h2>
         <div style="display:flex;gap:6px;flex-wrap:wrap">
@@ -333,7 +343,7 @@ HTML = r"""<!DOCTYPE html>
       <p id="sinEmpleados" style="margin-top:10px;color:#6b7280;font-size:.9rem">Todavía no cargaste empleados.</p>
     </div>
 
-    <div class="tarjeta" id="seccionNovedades">
+    <div class="tarjeta seccion-app" id="seccionNovedades">
       <div class="cabecera-seccion">
         <h2>Novedades mensuales</h2>
         <button class="chico secundario" onclick="toggleNovedad()">+ Cargar novedad</button>
@@ -511,7 +521,7 @@ HTML = r"""<!DOCTYPE html>
       <p id="sinNovedades" style="margin-top:10px;color:#6b7280;font-size:.9rem">No hay novedades cargadas para este mes.</p>
     </div>
 
-    <div class="tarjeta" id="seccionLiquidar">
+    <div class="tarjeta seccion-app" id="seccionLiquidar">
       <h2>Liquidar sueldos</h2>
       <div class="fila">
         <div><label>Mes a liquidar</label><input id="periodo" type="month" onchange="cargarConvenios();cargarCarpetas();mostrarEstadoNormativo()"></div>
@@ -522,7 +532,7 @@ HTML = r"""<!DOCTYPE html>
       <div id="resultados"></div>
     </div>
 
-    <div class="tarjeta" id="seccionHistorial">
+    <div class="tarjeta seccion-app" id="seccionHistorial">
       <div class="cabecera-seccion">
         <h2>Carpeta mensual</h2>
         <button class="chico secundario" onclick="cargarCarpetas()">Actualizar historial</button>
@@ -531,6 +541,13 @@ HTML = r"""<!DOCTYPE html>
       <div class="error" id="carpetasError"></div>
       <table id="tablaCarpetas" class="tabla-movil" style="display:none"><thead><tr><th>Mes</th><th>Versión</th><th>Estado</th><th>Creada</th><th>Huella</th><th></th></tr></thead><tbody></tbody></table>
       <p id="sinCarpetas" style="margin-top:10px;color:#6b7280;font-size:.9rem">Todavía no hay carpetas generadas para este mes.</p>
+      <div id="panelVersion" style="display:none;margin-top:18px;border-top:1px solid #d1d5db;padding-top:16px">
+        <div class="cabecera-seccion"><h3 id="panelVersionTitulo">Versión</h3><button class="chico secundario" onclick="cerrarPanelVersion()">Cerrar</button></div>
+        <p id="panelVersionMeta" style="font-size:.85rem;color:#4b5563"></p>
+        <div class="aviso" id="panelVersionFaltantes" style="display:none"></div>
+        <div style="margin:10px 0"><button class="chico" onclick="descargarRecibosDeVersion()">Descargar todos los recibos</button></div>
+        <table id="tablaVersionDetalle" class="tabla-movil"><thead><tr><th>Empleado</th><th class="num">Bruto</th><th class="num">Descuentos</th><th class="num">Neto</th><th>Conceptos</th><th></th></tr></thead><tbody></tbody></table>
+      </div>
       <div id="panelCierre" style="display:none;margin-top:18px;border-top:1px solid #d1d5db;padding-top:16px">
         <div class="cabecera-seccion"><h3>Cierre profesional del período</h3><button class="chico secundario" onclick="cerrarPanelCierre()">Cerrar</button></div>
         <p id="cierreResumen" style="font-size:.9rem;color:#4b5563"></p>
@@ -649,12 +666,78 @@ function salir(){
   $('app').style.display='none'; $('auth').style.display='block'; $('quien').textContent='';
 }
 
-function irA(id,boton){
+// Navegación real: una sección visible por vez, con hash propio. No se
+// desmonta nada, así que los formularios y los datos ya cargados sobreviven
+// al cambio de sección.
+const SECCIONES = [
+  ['inicio','seccionInicio'],
+  ['empresas','seccionEmpresas'],
+  ['convenios','seccionConvenios'],
+  ['establecimientos','seccionEstablecimientos'],
+  ['empleados','seccionEmpleados'],
+  ['novedades','seccionNovedades'],
+  ['liquidar','seccionLiquidar'],
+  ['historial','seccionHistorial'],
+];
+const SECCION_POR_HASH = Object.fromEntries(SECCIONES);
+const HASH_POR_SECCION = Object.fromEntries(SECCIONES.map(([h,id])=>[id,h]));
+// Al entrar por primera vez a una sección se carga lo suyo. No se recalcula
+// nada: sólo se piden datos que ya existen en el servidor.
+const CARGA_SECCION = {
+  seccionConvenios: ()=>cargarGestorNormativo(),
+  seccionHistorial: ()=>cargarCarpetas(),
+};
+let seccionActual = 'seccionInicio';
+
+function irA(id,boton,actualizarHash=true){
+  if(!HASH_POR_SECCION[id]) id='seccionInicio';
+  seccionActual=id;
+  SECCIONES.forEach(([,secId])=>{
+    const el=$(secId);
+    if(el) el.classList.toggle('visible', secId===id);
+  });
   document.querySelectorAll('.navegacion button').forEach(b=>b.classList.remove('activo'));
   if(!boton){ boton=[...document.querySelectorAll('.navegacion button')].find(b=>(b.getAttribute('onclick')||'').includes("irA('"+id+"'")); }
   if(boton) boton.classList.add('activo');
-  const destino=$(id); if(destino) destino.scrollIntoView({behavior:'smooth',block:'start'});
+  if(actualizarHash){
+    const hash='#'+HASH_POR_SECCION[id];
+    if(location.hash!==hash) history.replaceState(null,'',hash);
+  }
+  cerrarMenu();
+  window.scrollTo({top:0,behavior:'auto'});
+  const carga=CARGA_SECCION[id];
+  if(carga){ try{ carga(); }catch(e){} }
 }
+
+function seccionDelHash(){
+  const clave=(location.hash||'').replace('#','').trim().toLowerCase();
+  return SECCION_POR_HASH[clave] || 'seccionInicio';
+}
+
+function aplicarHash(){
+  // Si no hay hash, se deja el de Inicio: la URL siempre identifica la sección.
+  irA(seccionDelHash(), null, !location.hash);
+}
+
+function alternarMenu(){
+  const layout=document.querySelector('.app-layout');
+  if(!layout) return;
+  const abierto=layout.classList.toggle('menu-abierto');
+  const boton=$('botonMenu');
+  if(boton) boton.setAttribute('aria-expanded', abierto?'true':'false');
+}
+
+function cerrarMenu(){
+  const layout=document.querySelector('.app-layout');
+  if(layout) layout.classList.remove('menu-abierto');
+  const boton=$('botonMenu');
+  if(boton) boton.setAttribute('aria-expanded','false');
+}
+
+window.addEventListener('hashchange', ()=>{
+  const destino=seccionDelHash();
+  if(destino!==seccionActual) irA(destino, null, false);
+});
 function mostrarNuevaEmpresa(forzar=true){
   const panel=$('nuevaEmpresa');
   panel.style.display=forzar===false?'none':(panel.style.display==='none'?'block':'none');
@@ -728,7 +811,9 @@ async function entrar(){
   $('periodoGestor').value = $('periodo').value;
   $('novPeriodo').value = $('periodo').value;
   try{ await recargarEmpresaActiva(); }
-  catch(e){ salir(); mostrarError('authError',e.message); }
+  catch(e){ salir(); mostrarError('authError',e.message); return; }
+  // Al entrar (o al recargar la página) se abre la sección que indica el hash.
+  aplicarHash();
 }
 function toggleAlta(){ const a=$('alta'); a.style.display = a.style.display==='none'?'block':'none'; }
 function toggleEstablecimiento(){ const a=$('formEstablecimiento'); a.style.display=a.style.display==='none'?'block':'none'; }
@@ -1288,22 +1373,244 @@ function fechaHora(valor){
   }).format(d);
 }
 
+let carpetasCache = {};
+let versionAbierta = null;
+
 async function cargarCarpetas(){
   ocultar('carpetasError');
   const periodo=$('periodo').value;
   if(!periodo) return;
   try{
     const lista=await api('/carpetas-mensuales?periodo='+encodeURIComponent(periodo));
+    carpetasCache={};
+    // La versión más alta del período es la vigente; el resto son históricas y
+    // se conservan tal cual fueron calculadas.
+    const ultima=lista.reduce((max,c)=>Math.max(max,Number(c.version)||0),0);
     const tb=$('tablaCarpetas').querySelector('tbody'); tb.innerHTML='';
     lista.forEach(c=>{
+      carpetasCache[c.id]=c;
       const tr=document.createElement('tr');
       const huella=(c.hash_sha256||'').slice(0,12);
-      tr.innerHTML=`<td data-label="Mes">${esc(c.periodo)}</td><td data-label="Versión">v${c.version}</td><td data-label="Estado"><span class="etiqueta">${esc(c.estado)}</span></td><td data-label="Creada (Argentina)">${fechaHora(c.created_at)}</td><td data-label="Huella" title="${esc(c.hash_sha256||'')}"><code>${huella}${huella?'…':''}</code></td><td data-label="Acción"><button class="chico secundario" onclick="abrirCierre('${c.id}')">Revisar cierre</button></td>`;
+      const vigente=Number(c.version)===ultima;
+      tr.innerHTML=`<td data-label="Mes">${esc(c.periodo)}</td>`
+        +`<td data-label="Versión">v${c.version}${vigente?' <span class="etiqueta">más reciente</span>':''}</td>`
+        +`<td data-label="Estado"><span class="etiqueta">${esc(c.estado)}</span></td>`
+        +`<td data-label="Creada (Argentina)">${fechaHora(c.created_at)}</td>`
+        +`<td data-label="Huella" title="${esc(c.hash_sha256||'')}"><code>${huella}${huella?'…':''}</code></td>`
+        +`<td data-label="Acción"><button class="chico secundario" onclick="verVersion('${c.id}')">Ver liquidación</button> `
+        +`<button class="chico secundario" onclick="abrirCierre('${c.id}')">Revisar cierre</button></td>`;
       tb.appendChild(tr);
     });
     $('tablaCarpetas').style.display=lista.length?'table':'none';
     $('sinCarpetas').style.display=lista.length?'none':'block';
+    if(versionAbierta && !carpetasCache[versionAbierta]) cerrarPanelVersion();
   }catch(e){ mostrarError('carpetasError',e.message); }
+}
+
+// ----- Lectura de una versión histórica -----
+// Todo sale de carpeta.contenido: no se vuelve a liquidar ni se consulta la
+// ficha actual del empleado, que pudo cambiar después del cierre.
+function nombreDesdeCarpeta(carpeta, empleadoId){
+  const doc=datosDocumentales(carpeta, empleadoId);
+  if(doc.nombre || doc.apellido) return `${doc.nombre||''} ${doc.apellido||''}`.trim();
+  const emp=empleadosCache[empleadoId];
+  if(emp) return `${emp.nombre||''} ${emp.apellido||''}`.trim()+' (ficha actual)';
+  return 'Empleado '+String(empleadoId).slice(0,8);
+}
+
+function datosDocumentales(carpeta, empleadoId){
+  const snap=(carpeta.contenido&&carpeta.contenido.snapshot_parametros)||{};
+  const emp=(snap.empleados&&snap.empleados[empleadoId])||{};
+  return emp.documental||{};
+}
+
+function faltantesDeCarpeta(carpeta){
+  const snap=(carpeta.contenido&&carpeta.contenido.snapshot_parametros)||{};
+  const empresa=snap.empresa||{};
+  const faltan=[];
+  if(!empresa.razon_social) faltan.push('razón social del empleador');
+  if(!empresa.cuit) faltan.push('CUIT del empleador');
+  faltan.push('domicilio legal del empleador');
+  const detalles=(carpeta.contenido&&carpeta.contenido.detalles)||[];
+  const sinDocumental=detalles.filter(d=>!Object.keys(datosDocumentales(carpeta,d.empleado_id)).length);
+  if(sinDocumental.length) faltan.push(`datos personales de ${sinDocumental.length} empleado(s): nombre, CUIL, ingreso, categoría`);
+  faltan.push('fecha, forma y lugar de pago');
+  return faltan;
+}
+
+async function verVersion(id){
+  const carpeta=carpetasCache[id]||await api('/carpetas-mensuales/'+id);
+  carpetasCache[id]=carpeta; versionAbierta=id;
+  const detalles=(carpeta.contenido&&carpeta.contenido.detalles)||[];
+  $('panelVersionTitulo').textContent=`Liquidación conservada — ${carpeta.periodo} v${carpeta.version}`;
+  $('panelVersionMeta').innerHTML=`Estado: <b>${esc(carpeta.estado)}</b> · Creada: ${fechaHora(carpeta.created_at)} · `
+    +`Empleados: <b>${detalles.length}</b><br>Huella SHA-256: <code style="font-size:.72rem">${esc(carpeta.hash_sha256||'—')}</code>`;
+  const faltan=faltantesDeCarpeta(carpeta);
+  const aviso=$('panelVersionFaltantes');
+  if(faltan.length){
+    aviso.style.display='block';
+    aviso.innerHTML='<b>Para imprimir el recibo de esta carpeta falta información documental:</b><br>'
+      +faltan.map(f=>'• '+esc(f)).join('<br>')
+      +'<br><small>Se pide al descargar cada recibo. Los importes y conceptos no se tocan.</small>';
+  } else { aviso.style.display='none'; }
+  const tb=$('tablaVersionDetalle').querySelector('tbody'); tb.innerHTML='';
+  detalles.forEach(d=>{
+    const tr=document.createElement('tr');
+    const conceptos=(d.conceptos||[]).length;
+    tr.innerHTML=`<td data-label="Empleado">${esc(nombreDesdeCarpeta(carpeta,d.empleado_id))}</td>`
+      +`<td data-label="Bruto" class="num">$ ${fmt(Number(d.bruto))}</td>`
+      +`<td data-label="Descuentos" class="num">$ ${fmt(Number(d.total_deducciones))}</td>`
+      +`<td data-label="Neto" class="num">$ ${fmt(Number(d.neto))}</td>`
+      +`<td data-label="Conceptos"><button class="chico secundario" onclick="verConceptosVersion('${d.empleado_id}')">${conceptos} conceptos</button></td>`
+      +`<td data-label="Recibo"><button class="chico secundario" onclick="descargarReciboHistorico('${d.empleado_id}')">PDF</button></td>`;
+    tb.appendChild(tr);
+  });
+  $('panelVersion').style.display='block';
+}
+
+function cerrarPanelVersion(){ $('panelVersion').style.display='none'; versionAbierta=null; }
+
+function verConceptosVersion(empleadoId){
+  const carpeta=carpetasCache[versionAbierta]; if(!carpeta) return;
+  const detalle=((carpeta.contenido||{}).detalles||[]).find(d=>d.empleado_id===empleadoId);
+  if(!detalle) return;
+  const filas=(detalle.conceptos||[]).map(c=>`<tr><td>${esc(c.descripcion)}</td><td>${esc(c.tipo)}</td>`
+    +`<td class="num">$ ${fmt(Number(c.base_calculo||0))}</td><td>${esc(c.unidad||'')}</td>`
+    +`<td class="num">$ ${fmt(Number(c.importe))}</td></tr>`).join('');
+  const w=window.open('','_blank');
+  if(!w){ alert('Permití las ventanas emergentes para ver el detalle.'); return; }
+  w.document.write(`<!doctype html><meta charset="utf-8"><title>Conceptos conservados</title>`
+    +`<style>body{font-family:system-ui;padding:18px}table{border-collapse:collapse;width:100%;font-size:.9rem}`
+    +`th,td{border-bottom:1px solid #ddd;padding:6px 8px;text-align:left}td.num{text-align:right}</style>`
+    +`<h2>${esc(nombreDesdeCarpeta(carpeta,empleadoId))}</h2>`
+    +`<p>${esc(carpeta.periodo)} · versión ${carpeta.version} · conceptos tal como fueron calculados</p>`
+    +`<table><thead><tr><th>Concepto</th><th>Tipo</th><th>Base</th><th>Unidad</th><th>Importe</th></tr></thead><tbody>${filas}</tbody></table>`);
+  w.document.close();
+}
+
+// ----- Recibo histórico: se arma sólo con el snapshot de la carpeta -----
+let metadatosRecibo = null;
+const metadatosEmpleadoHistorico = {};
+
+function pedirMetadatosRecibo(carpeta){
+  if(metadatosRecibo && metadatosRecibo.carpeta===carpeta.id) return metadatosRecibo;
+  const snap=(carpeta.contenido&&carpeta.contenido.snapshot_parametros)||{};
+  const empresa=snap.empresa||{};
+  const razon=empresa.razon_social||prompt('Razón social del empleador (no figura en esta carpeta):',empresaCache.razon_social||'');
+  if(!razon) return null;
+  const cuit=empresa.cuit||prompt('CUIT del empleador (no figura en esta carpeta):',empresaCache.cuit||'');
+  if(!cuit) return null;
+  const domicilio=prompt('Domicilio legal del empleador:',localStorage.getItem('sc_empresa_domicilio')||'');
+  if(!domicilio) return null;
+  const fechaPago=prompt('Fecha real de pago de este período (AAAA-MM-DD):',localStorage.getItem('sc_fecha_pago_hist')||'');
+  if(!fechaPago) return null;
+  const lugarPago=prompt('Lugar de pago:',localStorage.getItem('sc_lugar_pago')||'');
+  if(!lugarPago) return null;
+  const formaPago=prompt('Forma de pago:',localStorage.getItem('sc_forma_pago')||'');
+  if(!formaPago) return null;
+  localStorage.setItem('sc_empresa_domicilio',domicilio);
+  localStorage.setItem('sc_fecha_pago_hist',fechaPago);
+  metadatosRecibo={carpeta:carpeta.id,razon,cuit,domicilio,fechaPago,lugarPago,formaPago};
+  return metadatosRecibo;
+}
+
+function pedirDatosEmpleadoHistorico(carpeta, detalle){
+  const doc=datosDocumentales(carpeta, detalle.empleado_id);
+  const completos=['nombre','apellido','cuil','fecha_ingreso','categoria'].every(k=>String(doc[k]||'').trim());
+  if(completos) return doc;
+  const clave=carpeta.id+':'+detalle.empleado_id;
+  if(metadatosEmpleadoHistorico[clave]) return metadatosEmpleadoHistorico[clave];
+  const snap=(carpeta.contenido&&carpeta.contenido.snapshot_parametros)||{};
+  const empSnap=(snap.empleados&&snap.empleados[detalle.empleado_id])||{};
+  const actual=empleadosCache[detalle.empleado_id]||{};
+  const pedir=(rotulo,valor)=>prompt(rotulo+' (confirmá el dato histórico):',valor||'');
+  const confirmado={
+    nombre:pedir('Nombre',actual.nombre), apellido:pedir('Apellido',actual.apellido),
+    cuil:pedir('CUIL',actual.cuil), legajo:pedir('Legajo',actual.legajo),
+    fecha_ingreso:pedir('Fecha de ingreso (AAAA-MM-DD)',actual.fecha_ingreso),
+    categoria:pedir('Categoría',empSnap.categoria||detalle.categoria||actual.categoria),
+    cct_numero:pedir('Convenio',empSnap.cct||detalle.cct_numero||actual.cct_numero),
+    modalidad_contrato:pedir('Modalidad de contrato',actual.modalidad_contrato),
+    lugar_trabajo:pedir('Lugar de trabajo',actual.lugar_trabajo),
+  };
+  if(!confirmado.nombre || !confirmado.apellido || !confirmado.cuil
+      || !confirmado.fecha_ingreso || !confirmado.categoria) return null;
+  metadatosEmpleadoHistorico[clave]=confirmado;
+  return confirmado;
+}
+
+function cuerpoReciboHistorico(carpeta, detalle, meta, doc){
+  const snap=(carpeta.contenido&&carpeta.contenido.snapshot_parametros)||{};
+  const empSnap=(snap.empleados&&snap.empleados[detalle.empleado_id])||{};
+  const empleado={
+    nombre: doc.nombre||'', apellido: doc.apellido||'', cuil: doc.cuil||'',
+    legajo: doc.legajo||'', fecha_ingreso: doc.fecha_ingreso||'',
+    categoria: doc.categoria||empSnap.categoria||'',
+    cct_numero: doc.cct_numero||empSnap.cct||detalle.cct_numero||'',
+    modalidad_contrato: doc.modalidad_contrato||'',
+    antiguedad: antigTexto(doc.fecha_ingreso,carpeta.periodo),
+  };
+  return {
+    periodo: carpeta.periodo,
+    empresa:{razon_social:meta.razon,cuit:meta.cuit,domicilio:meta.domicilio},
+    empleado,
+    pago:{fecha:meta.fechaPago,lugar:meta.lugarPago,forma:meta.formaPago,
+          establecimiento:doc.lugar_trabajo||'',domicilio_trabajo:''},
+    cargas_sociales:{},
+    conceptos:(detalle.conceptos||[]).map(c=>({
+      codigo:c.codigo||'',descripcion:c.descripcion,tipo:c.tipo,importe:c.importe,
+      base_calculo:c.base_calculo,unidad:c.unidad,cantidad:c.cantidad,
+      destino_pago:c.destino_pago||null,codigo_boleta:c.codigo_boleta||null
+    })),
+    bruto:detalle.bruto,total_deducciones:detalle.total_deducciones,neto:detalle.neto,
+  };
+}
+
+async function pedirPdf(body, nombreArchivo, reintento=true){
+  const r=await fetch('/recibos/pdf',{
+    method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token()},
+    body:JSON.stringify(body)
+  });
+  if(r.status===401 && reintento && await renovarSesion()) return pedirPdf(body,nombreArchivo,false);
+  if(!r.ok){
+    const e=await r.json().catch(()=>({detail:'No se pudo generar el PDF'}));
+    throw new Error(e.detail||'No se pudo generar el PDF');
+  }
+  const blob=await r.blob(); const url=URL.createObjectURL(blob);
+  const a=document.createElement('a'); a.href=url; a.download=nombreArchivo;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),60000);
+}
+
+async function descargarReciboHistorico(empleadoId){
+  const carpeta=carpetasCache[versionAbierta]; if(!carpeta) return;
+  const detalle=((carpeta.contenido||{}).detalles||[]).find(d=>d.empleado_id===empleadoId);
+  if(!detalle){ alert('Esta carpeta no conserva el detalle de ese empleado.'); return; }
+  const meta=pedirMetadatosRecibo(carpeta); if(!meta) return;
+  const doc=pedirDatosEmpleadoHistorico(carpeta,detalle); if(!doc) return;
+  try{
+    const body=cuerpoReciboHistorico(carpeta,detalle,meta,doc);
+    const apellido=(body.empleado.apellido||'empleado').replace(/\s+/g,'-');
+    await pedirPdf(body,`recibo-${carpeta.periodo}-v${carpeta.version}-${apellido}.pdf`);
+  }catch(e){ alert(e.message); }
+}
+
+async function descargarRecibosDeVersion(){
+  const carpeta=carpetasCache[versionAbierta]; if(!carpeta) return;
+  const detalles=((carpeta.contenido||{}).detalles||[]);
+  if(!detalles.length){ alert('Esta carpeta no conserva detalles.'); return; }
+  const meta=pedirMetadatosRecibo(carpeta); if(!meta) return;
+  let errores=0;
+  for(const detalle of detalles){
+    try{
+      const doc=pedirDatosEmpleadoHistorico(carpeta,detalle);
+      if(!doc){ errores++; continue; }
+      const body=cuerpoReciboHistorico(carpeta,detalle,meta,doc);
+      const apellido=(body.empleado.apellido||'empleado').replace(/\s+/g,'-');
+      await pedirPdf(body,`recibo-${carpeta.periodo}-v${carpeta.version}-${apellido}.pdf`);
+    }catch(e){ errores++; }
+  }
+  if(errores) alert(`No se pudieron generar ${errores} recibo(s). Revisá los datos documentales faltantes.`);
 }
 
 let cierreActualId=null;
@@ -2019,42 +2326,33 @@ async function descargarReciboPdf(empId, reintento=true){
   const det=ultimaLiq.detalles.find(x=>x.empleado_id===empId);
   const emp=empleadosCache[empId]||{};
   if(!det) return;
-  // Los datos permanentes se reutilizan. No se vuelve a interrogar al usuario
-  // cada vez que descarga el mismo recibo.
-  let domicilioEmpresa=empresaCache.domicilio||localStorage.getItem('sc_empresa_domicilio')||'';
-  if(!domicilioEmpresa){
-    domicilioEmpresa=prompt('Ingresá una sola vez el domicilio legal del empleador:','')||'';
-    if(!domicilioEmpresa) return;
-    localStorage.setItem('sc_empresa_domicilio',domicilioEmpresa);
-  }
-  const claveFechaPago='sc_fecha_pago_'+ultimaLiq.periodo;
-  const fechaPago=localStorage.getItem(claveFechaPago)||new Date().toISOString().slice(0,10);
-  localStorage.setItem(claveFechaPago,fechaPago);
-  const lugarPago=emp.lugar_trabajo||localStorage.getItem('sc_lugar_pago')||domicilioEmpresa;
+  const domicilioEmpresa=prompt('Domicilio legal del empleador (obligatorio):',localStorage.getItem('sc_empresa_domicilio')||'');
+  if(!domicilioEmpresa) return;
+  const fechaPago=prompt('Fecha real de pago del sueldo (AAAA-MM-DD):',new Date().toISOString().slice(0,10));
+  if(!fechaPago) return;
+  const lugarPago=prompt('Lugar real de pago:',emp.lugar_trabajo||localStorage.getItem('sc_lugar_pago')||'');
+  if(!lugarPago) return;
   const formasPago={'1':'Efectivo','2':'Cheque','3':'Acreditación en cuenta','4':'Otra'};
-  const formaPago=formasPago[emp.forma_pago]||localStorage.getItem('sc_forma_pago')||'No informada';
-  // Ley 17.250 art. 12: fecha, período y banco del último depósito. Si no se
-  // informan, el recibo los declara pendientes; nunca se completan solos.
-  const fechaCargas=localStorage.getItem('sc_fecha_cargas')||'';
-  const periodoCargas=localStorage.getItem('sc_periodo_cargas')||'';
-  const bancoCargas=localStorage.getItem('sc_banco_cargas')||'';
+  const formaPago=prompt('Forma real de pago:',formasPago[emp.forma_pago]||localStorage.getItem('sc_forma_pago')||'');
+  if(!formaPago) return;
+  const fechaCargas=prompt('Fecha de pago de cargas sociales (AAAA-MM-DD):',localStorage.getItem('sc_fecha_cargas')||'');
+  if(!fechaCargas) return;
+  const lugarCargas=prompt('Lugar/canal de pago de cargas sociales:',localStorage.getItem('sc_lugar_cargas')||'ARCA');
+  if(!lugarCargas) return;
+  localStorage.setItem('sc_empresa_domicilio',domicilioEmpresa);
   localStorage.setItem('sc_lugar_pago',lugarPago);
   localStorage.setItem('sc_forma_pago',formaPago);
   localStorage.setItem('sc_fecha_cargas',fechaCargas);
+  localStorage.setItem('sc_lugar_cargas',lugarCargas);
   const body={
     periodo:ultimaLiq.periodo,
     empresa:{...empresaCache,domicilio:domicilioEmpresa},
     empleado:{...emp,antiguedad:antigTexto(emp.fecha_ingreso,ultimaLiq.periodo)},
-    pago:{
-      fecha:fechaPago,lugar:lugarPago,forma:formaPago,
-      establecimiento:emp.lugar_trabajo||'',
-      domicilio_trabajo:emp.domicilio_trabajo||emp.establecimiento_domicilio||''
-    },
-    cargas_sociales:{fecha:fechaCargas,periodo:periodoCargas,banco:bancoCargas},
+    pago:{fecha:fechaPago,lugar:lugarPago,forma:formaPago},
+    cargas_sociales:{fecha:fechaCargas,lugar:lugarCargas},
     conceptos:det.conceptos.map(c=>({
       codigo:c.codigo||'',descripcion:c.descripcion,tipo:c.tipo,importe:c.importe,
-      base_calculo:c.base_calculo,unidad:c.unidad,cantidad:c.cantidad,
-      destino_pago:c.destino_pago||null,codigo_boleta:c.codigo_boleta||null
+      base_calculo:c.base_calculo,unidad:c.unidad,cantidad:c.cantidad
     })),
     bruto:det.bruto,total_deducciones:det.total_deducciones,neto:det.neto,
     pendiente_aprobacion_contador:Boolean(det.pendiente_aprobacion_contador)
