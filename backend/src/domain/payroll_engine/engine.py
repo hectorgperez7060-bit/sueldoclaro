@@ -164,6 +164,7 @@ class MotorLiquidacion:
             # categoría. El motor no conoce convenios ni categorías concretas.
             if not self._p.categoria_coincide(inc.get("categoria"), empleado.categoria):
                 continue
+            self._p.marcar_usado(p.codigo)
             imp = Dinero(p.valor)
             if empleado.proporcion_jornada != Decimal("1"):
                 if inc.get("regla_jornada") == "solo_completa":
@@ -442,6 +443,7 @@ class MotorLiquidacion:
                       or (d.ambito == "ded_afil" and empleado.afiliado_sindicato)
                       or (d.ambito == "ded_noafil" and not empleado.afiliado_sindicato))
             if aplica:
+                self._p.marcar_usado(d.codigo)
                 selector_base = (d.incidencias or {}).get("base_deduccion", "sindical")
                 bases_deduccion = {
                     "sindical": base_sindical,
@@ -492,6 +494,7 @@ class MotorLiquidacion:
                 continue
             if periodo.mes in excluidos:
                 continue
+            self._p.marcar_usado(p.codigo)
             if p.unidad == "ARS":
                 importe = Dinero(p.valor)
                 if incidencias.get("prorratea_jornada"):
