@@ -208,6 +208,18 @@ HTML = r"""<!DOCTYPE html>
       <div class="cabecera-seccion"><div><h2>Empresas y clientes</h2><p style="font-size:.85rem;color:#6b7280;margin:4px 0 0">Cada sociedad (CUIT) es un espacio independiente. Elegí la activa o creá una nueva.</p></div><button class="chico secundario" onclick="mostrarNuevaEmpresa()">+ Nueva empresa</button></div>
       <table id="tablaEmpresas" class="tabla-movil" style="display:none;margin-top:12px"><thead><tr><th>Cliente / grupo</th><th>Razón social</th><th>Rol</th><th>Estado</th><th></th></tr></thead><tbody></tbody></table>
       <p id="sinEmpresas" style="margin-top:10px;color:#6b7280;font-size:.9rem">Cargando empresas…</p>
+      <div id="perfilLaboralEmpresa" style="border-top:1px solid var(--borde);margin-top:18px;padding-top:16px">
+        <h3>Escenario laboral de la empresa activa</h3>
+        <p style="font-size:.86rem;color:#6b7280">La app no presume el régimen patronal. En prueba elegís el caso que querés verificar; en producción debe quedar documentado.</p>
+        <div class="fila">
+          <div><label>Uso de los datos</label><select id="empresaModoLiquidacion"><option value="PRUEBA">Prueba / simulación</option><option value="PRODUCCION">Producción real</option></select></div>
+          <div><label>Contribuciones patronales</label><select id="empresaRegimenPatronal"><option value="PENDIENTE">Pendiente de definir</option><option value="PRIVADO_18">Caso 18%</option><option value="SERVICIOS_COMERCIO_204">Servicios/comercio 20,40%</option></select></div>
+          <div><label>Fundamento o constancia</label><input id="empresaFundamentoPatronal" placeholder="En prueba: caso ensayado. En producción: constancia o fundamento."></div>
+        </div>
+        <button class="chico" onclick="guardarPerfilLaboral()">Guardar escenario</button>
+        <span id="perfilLaboralEstado" style="font-size:.82rem;color:#6b7280;margin-left:8px"></span>
+        <div id="perfilLaboralError" class="error"></div>
+      </div>
     </div>
     <div class="tarjeta" id="seccionEstablecimientos">
       <div class="cabecera-seccion"><div><h2>Establecimientos y domicilios de trabajo</h2><p style="font-size:.85rem;color:#6b7280;margin:4px 0 0">Cada sociedad conserva sus propios lugares. Al cambiar a un empleado queda registrado desde qué fecha trabaja allí.</p></div><div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><label style="display:flex;align-items:center;gap:6px;font-size:.82rem;color:#6b7280;margin:0"><input type="checkbox" id="verInactivosEst" onchange="cargarEstablecimientos()" style="width:auto;margin:0"> Ver inactivos</label><button class="chico secundario" onclick="toggleEstablecimiento()">+ Agregar domicilio</button></div></div>
@@ -783,8 +795,34 @@ async function cargarEmpresasSeccion(){
     $('tablaEmpresas').style.display=empresas.length?'table':'none';
     $('sinEmpresas').style.display=empresas.length?'none':'block';
     if(!empresas.length) $('sinEmpresas').textContent='Todavía no tenés empresas cargadas.';
+    const actual=empresas.find(e=>e.activa||e.id===activa);
+    if(actual){
+      $('empresaModoLiquidacion').value=actual.modo_liquidacion||'PRUEBA';
+      $('empresaRegimenPatronal').value=actual.regimen_contribucion_patronal||'PENDIENTE';
+      $('empresaFundamentoPatronal').value=actual.fundamento_regimen_patronal||'';
+      $('perfilLaboralEstado').textContent=(actual.modo_liquidacion==='PRUEBA'?'Simulación':'Producción')+' · '+(actual.regimen_contribucion_patronal==='PENDIENTE'?'régimen pendiente':'régimen definido');
+    }
   }catch(e){ /* silencioso */ }
 }
+async function guardarPerfilLaboral(){
+  ocultar('perfilLaboralError');
+  const modo=$('empresaModoLiquidacion').value;
+  const regimen=$('empresaRegimenPatronal').value;
+  const fundamento=$('empresaFundamentoPatronal').value.trim();
+  if(modo==='PRODUCCION'&&!fundamento){
+    mostrarError('perfilLaboralError','Producción requiere fundamento o constancia.'); return;
+  }
+  try{
+    await api('/auth/empresas/activa/perfil-laboral','PUT',{
+      modo_liquidacion:modo,
+      regimen_contribucion_patronal:regimen,
+      fundamento_regimen_patronal:fundamento
+    });
+    $('perfilLaboralEstado').textContent='Guardado';
+    await cargarEmpresasSeccion();
+  }catch(e){mostrarError('perfilLaboralError',e.message);}
+}
+
 async function cargarGestorNormativo(){
   const periodo=$('periodoGestor').value||$('periodo').value||new Date().toISOString().slice(0,7);
   $('periodoGestor').value=periodo; ocultar('gestorNormativoError');
