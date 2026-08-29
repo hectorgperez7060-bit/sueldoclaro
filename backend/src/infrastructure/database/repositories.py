@@ -624,6 +624,17 @@ class CarpetaMensualRepo:
         )
         return int(r.scalar_one_or_none() or 0) + 1
 
+    async def ultima(
+        self, tenant_id: uuid.UUID, periodo: str,
+    ) -> Optional[m.CarpetaMensual]:
+        r = await self.s.execute(
+            select(m.CarpetaMensual).where(
+                m.CarpetaMensual.tenant_id == tenant_id,
+                m.CarpetaMensual.periodo == periodo,
+            ).order_by(m.CarpetaMensual.version.desc()).limit(1)
+        )
+        return r.scalar_one_or_none()
+
     async def crear_calculada(
         self, tenant_id: uuid.UUID, periodo: str, liquidacion_id: uuid.UUID,
         contenido: dict, hash_sha256: str,
