@@ -1742,8 +1742,8 @@ function resumenF931(d){
     <table style="margin-top:12px"><thead><tr><th>Contribuciones del empleador</th><th class="num">Importe</th></tr></thead>
       <tbody>${fCo}<tr><td><b>Total contribuciones</b></td><td class="num"><b>$ ${fmt(totCo)}</b></td></tr></tbody></table>
     <div style="display:flex;justify-content:space-between;margin-top:14px;flex-wrap:wrap;gap:8px">
-      <span style="font-size:.8rem;color:#6b7280">La cuota sindical va por boleta aparte (no es carga social de ley). ART y FNE se sumarán al cargar sus parámetros.</span>
-      <span class="neto">Total a depositar (F.931): $ ${fmt(totAp+totCo)}</span>
+      <span style="font-size:.8rem;color:#6b7280">La cuota sindical va por boleta aparte. Este subtotal todavía no incluye ART ni otros datos contractuales pendientes.</span>
+      <span class="neto" style="color:#b45309">Subtotal calculado — falta ART: $ ${fmt(totAp+totCo)}</span>
     </div>
   </div>`;
 }
