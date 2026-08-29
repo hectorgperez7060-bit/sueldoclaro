@@ -262,6 +262,12 @@ class Establecimiento(TenantMixin, Base):
     localidad: Mapped[str] = mapped_column(String(120), default="")
     provincia: Mapped[str] = mapped_column(String(120), default="")
     actividad: Mapped[str] = mapped_column(String(120), default="")
+    art_nombre: Mapped[str] = mapped_column(String(160), default="")
+    art_alicuota_pct: Mapped[Optional[Decimal]] = mapped_column(Numeric(8, 4), nullable=True)
+    art_suma_fija: Mapped[Optional[Decimal]] = mapped_column(MONEY, nullable=True)
+    art_vigencia_desde: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
+    art_vigencia_hasta: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
+    art_comprobante_ref: Mapped[str] = mapped_column(Text, default="")
     activo: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc)
 
