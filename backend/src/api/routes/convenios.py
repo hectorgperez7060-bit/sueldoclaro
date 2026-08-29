@@ -5,18 +5,48 @@ from datetime import date
 
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, status
 from fastapi.responses import Response
+from pydantic import BaseModel, Field
 from sqlalchemy import select
 
 from api.dependencies.auth import Principal, require_tenant
 from infrastructure.database import models as m
 from infrastructure.database.session import plain_session
 from domain.entities.farmacia_414_05 import CATEGORIAS_FARMACIA, CCT_FARMACIA
+from domain.entities.encuadramiento_asistido import sugerir_encuadramiento
 from infrastructure.excel.normativa_importer import (
     generar_plantilla_normativa,
     vista_previa_normativa,
 )
 
 router = APIRouter(prefix="/convenios", tags=["convenios"])
+
+
+class ConsultaEncuadramiento(BaseModel):
+    actividad: str = Field(default="", max_length=200)
+    localidad: str = Field(default="", max_length=120)
+    provincia: str = Field(default="", max_length=120)
+    tarea: str = Field(default="", max_length=500)
+
+
+@router.post("/asistente-encuadramiento")
+async def asistente_encuadramiento(
+    body: ConsultaEncuadramiento,
+    _: Principal = Depends(require_tenant),
+):
+    """Propone CCT explicables; nunca modifica el legajo por sí solo."""
+    resultado = sugerir_encuadramiento(
+        body.actividad, body.localidad, body.tarea, body.provincia
+    )
+    async with plain_session() as s:
+        categorias = (await s.execute(select(m.CctCategoria).where(
+            m.CctCategoria.activa.is_(True)
+        ))).scalars().all()
+    por_cct: dict[str, list[str]] = {}
+    for categoria in categorias:
+        por_cct.setdefault(categoria.cct_numero, []).append(categoria.nombre)
+    for candidato in resultado["candidatos"]:
+        candidato["categorias"] = sorted(por_cct.get(candidato["cct_numero"], []))
+    return resultado
 
 
 @router.get("/paquetes")
