@@ -23,3 +23,24 @@ def test_pendientes_no_mezclan_convenios_ajenos():
     }
 
     assert codigos == {"GENERAL", "COMERCIO"}
+
+
+def test_pendientes_usados_ignora_catalogo_no_consultado():
+    parametros = ParametroSet([
+        _p("APORTE_USADO", None),
+        _p("CONTRIB_NO_USADA", None),
+    ])
+
+    parametros.fraccion("APORTE_USADO")
+
+    assert [p.codigo for p in parametros.pendientes_usados()] == ["APORTE_USADO"]
+
+
+def test_con_extra_comparte_el_registro_de_uso():
+    parametros = ParametroSet([_p("GENERAL", None)])
+    parametro_extra = _p("CUOTA_RESUELTA", "130/75")
+    por_empleado = parametros.con_extra(parametro_extra)
+
+    por_empleado.fraccion("CUOTA_RESUELTA")
+
+    assert [p.codigo for p in parametros.pendientes_usados()] == ["CUOTA_RESUELTA"]
