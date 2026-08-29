@@ -133,6 +133,8 @@ async def actualizar_perfil_laboral(
     if principal.rol != "admin":
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Solo un administrador puede cambiar este perfil")
     modos = {"PRUEBA", "PRODUCCION"}
+    if body.modo_liquidacion not in modos:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "Modo de liquidación inválido")
     try:
         regimen, fundamento = resolver_regimen_contribucion(
             body.actividad_sector, body.condicion_mipyme,
