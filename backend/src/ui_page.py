@@ -285,6 +285,13 @@ HTML = r"""<!DOCTYPE html>
           <div><label>Legajo</label><input id="eLegajo" placeholder="0001"></div>
           <div><label>Actividad del establecimiento</label>
             <select id="eActividad" onchange="llenarConvenios()"></select></div>
+          <div style="grid-column:1/-1"><label>Tarea principal efectivamente realizada</label>
+            <input id="eTareaPrincipal" placeholder="Ej.: atención de mostrador y validación de recetas">
+            <small style="color:#6b7280">Se usa para orientar el convenio y la categoría; no alcanza por sí sola.</small></div>
+          <div style="grid-column:1/-1">
+            <button type="button" class="chico secundario" onclick="analizarEncuadramiento()">Analizar convenio aplicable</button>
+            <div id="resultadoEncuadramiento" style="display:none;margin-top:8px;padding:10px;border:1px solid #bfdbfe;background:#eff6ff;border-radius:8px"></div>
+          </div>
           <div><label>Convenio colectivo aplicable</label>
             <select id="eConvenio" onchange="llenarCategorias()"></select></div>
           <div><label>Sindicato / federación del convenio</label>
@@ -297,7 +304,7 @@ HTML = r"""<!DOCTYPE html>
             <input id="eHorasSemanales" type="number" min="1" max="48" step="0.5" value="48">
             <small style="color:#6b7280">En Comercio la jornada completa es 48. Para este empleado escribí 30.</small></div>
           <div><label>Obra social (independiente del sindicato)</label><input id="eObraSocial" list="obrasSociales" placeholder="Elegí o escribí la obra social"><datalist id="obrasSociales"><option value="OSADEF - Obra Social de las Asociaciones de Empleados de Farmacia"><option value="OSPSA - Obra Social del Personal de la Sanidad Argentina"><option value="OSECAC - Obra Social de Empleados de Comercio"><option value="OSPF - Obra Social del Personal de Farmacia"></datalist></div>
-          <div><label>Establecimiento / lugar de trabajo</label><select id="eEstablecimiento"><option value="">Sin establecimiento asignado</option></select></div>
+          <div><label>Establecimiento / lugar de trabajo</label><select id="eEstablecimiento" onchange="datosEstablecimientoParaEncuadramiento()"><option value="">Sin establecimiento asignado</option></select></div>
           <div><label>Trabaja allí desde</label><input id="eLugarDesde" type="text" inputmode="numeric" placeholder="DD/MM/AAAA" maxlength="10" oninput="formatearFecha(this)"><small style="color:#6b7280">Solo completalo al asignar o cambiar el lugar.</small></div>
           <div><label>Remuneración pactada (si supera el básico)</label><input id="eRemun" type="number" min="0" placeholder="opcional"></div>
         </div>
@@ -973,6 +980,40 @@ function llenarCategorias(){
   }
 }
 
+function datosEstablecimientoParaEncuadramiento(){
+  const est=establecimientosCache[$('eEstablecimiento').value];
+  if(!est) return;
+  if(!$('eLocalidad').value.trim()) $('eLocalidad').value=est.localidad||'';
+}
+
+function aplicarPropuestaEncuadramiento(numero){
+  const c=convenios.find(x=>x.numero===numero);
+  if(!c) return;
+  $('eActividad').value=actividadConvenio(c);
+  llenarConvenios(numero);
+  $('resultadoEncuadramiento').insertAdjacentHTML('beforeend','<div class="ok" style="display:block;margin-top:6px">Propuesta aplicada. Ahora elegí la categoría que describe la tarea real.</div>');
+}
+
+async function analizarEncuadramiento(){
+  const box=$('resultadoEncuadramiento');
+  box.style.display='block'; box.textContent='Analizando actividad, localidad y tarea…';
+  const est=establecimientosCache[$('eEstablecimiento').value]||{};
+  const actividad=(est.actividad||$('eActividad').value||'').trim();
+  const localidad=(est.localidad||$('eLocalidad').value||'').trim();
+  try{
+    const r=await api('/convenios/asistente-encuadramiento','POST',{
+      actividad, localidad, provincia:est.provincia||'', tarea:$('eTareaPrincipal').value.trim()
+    });
+    let html=`<b>Criterio:</b> ${esc(r.criterio)}<br><small>Actividad: ${esc(actividad||'sin informar')} · Localidad: ${esc(localidad||'sin informar')}</small>`;
+    if(r.faltantes.length) html+=`<div style="margin-top:7px;color:#92400e"><b>Falta revisar:</b> ${r.faltantes.map(esc).join(' · ')}</div>`;
+    (r.candidatos||[]).forEach(c=>{
+      html+=`<div style="margin-top:9px;padding-top:8px;border-top:1px solid #bfdbfe"><b>CCT ${esc(c.cct_numero)} — ${esc(c.nombre)}</b> <span class="etiqueta">Confianza ${esc(c.confianza)}</span><br><small>${c.motivos.map(esc).join(' · ')}</small>${c.advertencias.length?`<div style="color:#92400e;font-size:.8rem">${c.advertencias.map(esc).join(' · ')}</div>`:''}<button type="button" class="chico" style="margin-top:6px" onclick="aplicarPropuestaEncuadramiento('${esc(c.cct_numero)}')">Usar esta propuesta</button></div>`;
+    });
+    if(!(r.candidatos||[]).length) html+='<div style="margin-top:8px">No se eligió ningún convenio automáticamente. Completá los datos faltantes.</div>';
+    box.innerHTML=html;
+  }catch(e){box.innerHTML=`<span class="error" style="display:block">${esc(e.message)}</span>`;}
+}
+
 async function cargarEmpleados(){
   try{
     const lista = await api('/empleados');
@@ -1491,6 +1532,8 @@ function editarEmpleado(id){
   $('eLocalidad').value = e.localidad || '';
   $('eFilial').value = e.filial_sindical || '';
   $('eRemun').value = e.remuneracion_pactada || '';
+  $('eTareaPrincipal').value = '';
+  $('resultadoEncuadramiento').style.display='none';
 
   $('btnGuardarEmp').textContent = 'Guardar cambios';
   $('btnCancelarEmp').style.display = 'inline-block';
@@ -1501,7 +1544,8 @@ function editarEmpleado(id){
 function cancelarEdicion(){
   editandoEmpleadoId = null;
   obraSocialSugeridaAnterior = '';
-  ['eNombre','eApellido','eCuil','eFecha','eNacimiento','eDomicilio','eLegajo','eObraSocial','eLugarDesde','eCbu','eRemun','eFormaPago','eLocalidad','eFilial','eSindicato'].forEach(i=>$(i).value='');
+  ['eNombre','eApellido','eCuil','eFecha','eNacimiento','eDomicilio','eLegajo','eObraSocial','eLugarDesde','eCbu','eRemun','eFormaPago','eLocalidad','eFilial','eSindicato','eTareaPrincipal'].forEach(i=>$(i).value='');
+  $('resultadoEncuadramiento').style.display='none';
   $('eEstablecimiento').value='';
   $('eHijos').value='0';
   $('eHorasSemanales').value='48';
