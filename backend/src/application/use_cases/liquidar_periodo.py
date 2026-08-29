@@ -137,9 +137,19 @@ class LiquidarPeriodo:
                     "ARCA — Ley 27.541 art. 19 inc. a: alícuota patronal 20,40%",
                 ),
             }
+            if (
+                empresa.condicion_mipyme == "CERTIFICADO_VIGENTE"
+                and (
+                    empresa.certificado_mipyme_vigente_hasta is None
+                    or empresa.certificado_mipyme_vigente_hasta < fecha_ref
+                )
+            ):
+                raise ValueError(
+                    "El Certificado MiPyME no está vigente para el período liquidado"
+                )
             if regimen not in tasas_patronales:
                 raise ValueError(
-                    "Configurá el escenario patronal de la empresa antes de liquidar"
+                    "Completá actividad y situación MiPyME de la empresa antes de liquidar"
                 )
             tasa_patronal, fuente_patronal = tasas_patronales[regimen]
             parametros = parametros.con_extra(ParamDom(
@@ -164,6 +174,13 @@ class LiquidarPeriodo:
                 "generado": fecha_ref.isoformat(),
                 "empresa": {
                     "modo_liquidacion": empresa.modo_liquidacion,
+                    "actividad_sector": empresa.actividad_sector,
+                    "condicion_mipyme": empresa.condicion_mipyme,
+                    "certificado_mipyme_vigente_hasta": (
+                        empresa.certificado_mipyme_vigente_hasta.isoformat()
+                        if empresa.certificado_mipyme_vigente_hasta else None
+                    ),
+                    "respaldo_regimen_patronal": empresa.respaldo_regimen_patronal,
                     "regimen_contribucion_patronal": regimen,
                     "fundamento_regimen_patronal": empresa.fundamento_regimen_patronal,
                 },
