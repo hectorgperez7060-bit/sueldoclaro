@@ -1,11 +1,31 @@
-"""Recibo A4 conforme al Anexo III del Decreto 407/2026."""
+"""Recibo de haberes A4.
+
+Requisitos legales que el documento debe satisfacer:
+
+- LCT arts. 139 y 140 (texto vigente según Ley 27.802): doble ejemplar, constancia
+  de recepción de la copia y contenido mínimo del recibo — datos del empleador y
+  del trabajador, período, remuneración, deducciones, fecha y lugar de pago.
+- Ley 17.250 art. 12: el recibo debe informar el **último depósito** de aportes y
+  contribuciones, indicando **fecha, período y banco o entidad**. Tres datos, no uno.
+
+Reglas de construcción:
+
+- Nada se trunca. Si un texto no entra, se achica hasta un piso legible y, si aún
+  no entra, se parte en dos renglones. Un domicilio cortado con "..." no cumple.
+- Nada se inventa. Un dato ausente se muestra como "No informado" y los datos del
+  último depósito, si faltan, se declaran pendientes.
+- Un PDF sin firma acreditada es una VISTA PREVIA y lo dice en el encabezado.
+- Un importe pendiente nunca se muestra como $ 0,00: se muestra como pendiente.
+- Los porcentajes del gráfico se derivan de los mismos importes mostrados y su
+  redondeo visible suma exactamente 100,0 %.
+"""
 from __future__ import annotations
 
 import math
 import re
-from decimal import Decimal
+from decimal import Decimal, ROUND_FLOOR
 from io import BytesIO
-from typing import Any
+from typing import Any, Iterable
 
 from reportlab.lib.colors import Color, HexColor, white
 from reportlab.lib.pagesizes import A4
@@ -14,6 +34,17 @@ from reportlab.pdfgen.canvas import Canvas
 
 GREEN, PALE = HexColor("#087F73"), HexColor("#E5E7EB")
 DARK, GRAY, LINE = HexColor("#111827"), HexColor("#4B5563"), HexColor("#6B7280")
+AMBER_BG, AMBER_LINE, AMBER_INK = Color(1, .96, .80), Color(.85, .55, 0), Color(.50, .28, 0)
+
+NO_INFORMADO = "No informado"
+DEPOSITO_PENDIENTE = "Datos del último depósito pendientes de completar"
+VISTA_PREVIA = "VISTA PREVIA — SIN FIRMA NI CONSTANCIA DE ENTREGA"
+GRUPO_ART = "ART"
+ART_PENDIENTE = "ART pendiente de contrato/cálculo"
+SUBTOTAL_SIN_ART = "Subtotal conocido del costo laboral — ART pendiente"
+COSTO_CON_ART = "Costo laboral con ART incluida"
+GRUPO_SINDICAL = "Sindical"
+GRUPO_SINDICAL_RUBRO = "Sindical"
 
 
 def _decimal(value: Any) -> Decimal:
@@ -88,11 +119,24 @@ def _require(data: dict[str, Any], path: str) -> Any:
     return current
 
 
+def _dato(data: dict[str, Any], path: str, defecto: str = NO_INFORMADO) -> str:
+    """Valor declarado o "No informado". Nunca completa por su cuenta."""
+    current: Any = data
+    for key in path.split("."):
+        current = current.get(key) if isinstance(current, dict) else None
+    text = str(current or "").strip()
+    return text or defecto
+
+
 def validar_datos_legales(data: dict[str, Any]) -> None:
+    """Datos sin los cuales el recibo no puede emitirse (LCT arts. 139 y 140).
+
+    Los datos del último depósito (Ley 17.250 art. 12) no bloquean la emisión:
+    se declaran pendientes en el cuerpo del recibo para que quede a la vista.
+    """
     for path in ("periodo", "empresa.razon_social", "empresa.cuit", "empresa.domicilio",
                  "empleado.apellido", "empleado.nombre", "empleado.cuil", "empleado.fecha_ingreso",
-                 "empleado.categoria", "pago.fecha", "pago.lugar", "pago.forma",
-                 "cargas_sociales.fecha", "cargas_sociales.lugar"):
+                 "empleado.categoria", "pago.fecha", "pago.lugar", "pago.forma"):
         _require(data, path)
     if not data.get("conceptos"):
         raise ValueError("El recibo no contiene conceptos liquidados")
@@ -102,13 +146,52 @@ def validar_datos_legales(data: dict[str, Any]) -> None:
                 raise ValueError(f"Concepto {index}: falta {field}")
 
 
+# --------------------------------------------------------------------------- #
+# Texto que siempre entra: primero achica, después parte en dos renglones.
+# --------------------------------------------------------------------------- #
 def _fit(value: Any, width: float, size: float, bold: bool = False) -> str:
-    text, font = str(value or "-"), "Helvetica-Bold" if bold else "Helvetica"
-    if stringWidth(text, font, size) <= width:
-        return text
-    while text and stringWidth(text + "...", font, size) > width:
-        text = text[:-1]
-    return text + "..."
+    """Compatibilidad histórica: devuelve el texto sin recortar.
+
+    El ajuste real lo hace ``_draw_fit``; esta función ya no trunca con "...".
+    """
+    return str(value or "-")
+
+
+def _wrap(text: str, width: float, font: str, size: float, max_lines: int) -> list[str]:
+    palabras, lineas, actual = text.split(), [], ""
+    for palabra in palabras:
+        tentativa = f"{actual} {palabra}".strip()
+        if stringWidth(tentativa, font, size) <= width or not actual:
+            actual = tentativa
+        else:
+            lineas.append(actual)
+            actual = palabra
+            if len(lineas) == max_lines:
+                break
+    if actual and len(lineas) < max_lines:
+        lineas.append(actual)
+    return lineas or [text]
+
+
+def _draw_fit(c: Canvas, x: float, y: float, value: Any, width: float, size: float,
+              bold: bool = False, color: Color = DARK, min_size: float = 4.6,
+              max_lines: int = 2, leading: float | None = None) -> float:
+    """Dibuja ``value`` sin truncar. Devuelve el alto ocupado."""
+    text = str(value if value not in (None, "") else "-")
+    font = "Helvetica-Bold" if bold else "Helvetica"
+    actual = size
+    while stringWidth(text, font, actual) > width and actual > min_size:
+        actual -= .15
+    c.setFillColor(color)
+    if stringWidth(text, font, actual) <= width:
+        c.setFont(font, actual); c.drawString(x, y, text)
+        return actual
+    lineas = _wrap(text, width, font, actual, max_lines)
+    salto = leading or actual + .6
+    for indice, linea in enumerate(lineas):
+        c.setFont(font, actual)
+        c.drawString(x, y - indice * salto, linea)
+    return salto * len(lineas)
 
 
 def _text(c: Canvas, x: float, y: float, value: Any, size: float = 7, bold: bool = False,
@@ -144,9 +227,9 @@ def _row(c: Canvas, y: float, row: dict[str, Any], size: float, height: float, s
     bottom = y - height / 2
     if shaded:
         c.setFillColor(HexColor("#F3F4F6")); c.rect(28, bottom, 540, height, fill=1, stroke=0)
-    _text(c, 32, y, _fit(row["descripcion"], 250, size), size)
+    _draw_fit(c, 32, y, row["descripcion"], 256, size, max_lines=1, min_size=4.2)
     _text(c, 370, y, _money(row["base_calculo"]), size, right=True)
-    _text(c, 380, y, _fit(_unit(row["unidad"]), 86, size), size)
+    _draw_fit(c, 380, y, _unit(row["unidad"]), 84, size, max_lines=1, min_size=4.2)
     _text(c, 508, y, row["cantidad"], size, right=True)
     _text(c, 562, y, _money(row["importe"]), size, True, right=True)
     c.setStrokeColor(LINE); c.setLineWidth(.35)
@@ -170,95 +253,301 @@ def _table_header(c: Canvas, y: float) -> float:
     return y - 15
 
 
+# --------------------------------------------------------------------------- #
+# Clasificación del costo laboral. Se resuelve por metadatos del concepto,
+# nunca por el nombre de un gremio en particular.
+# --------------------------------------------------------------------------- #
 def _cost_group(row: dict[str, Any]) -> str:
-    code, desc = str(row.get("codigo", "")).lower(), str(row.get("descripcion", "")).lower()
-    if "sind" in code or "fatsa" in desc or "faecys" in desc: return "Sindical"
-    if "obra_social" in code or "obra social" in desc: return "Obra social"
-    if "inssjp" in code or "inssjp" in desc: return "INSSJP"
-    if "art" in code or "a.r.t" in desc: return "ART"
-    if "camara" in code or "cámara" in desc: return "Cámaras / entidades"
+    code = str(row.get("codigo", "")).lower()
+    desc = str(row.get("descripcion", "")).lower()
+    destino = str(row.get("destino_pago") or "").strip()
+    boleta = str(row.get("codigo_boleta") or "").strip()
+
+    if code.startswith(("cuota_art", "art_")) or "riesgos del trabajo" in desc or "a.r.t" in desc:
+        return GRUPO_ART
+    if "obra_social" in code or "obra social" in desc:
+        return "Obra social"
+    if "inssjp" in code or "inssjp" in desc:
+        return "INSSJP"
     if any(word in desc for word in (
         "jubil", "asignaciones", "fondo de empleo", "seguridad social",
         "contribuciones patronales", "contribución patronal",
-    )): return "Seguridad social"
+    )) or code.startswith(("contrib_jubilacion", "contrib_seg_social", "aporte_jubilacion")):
+        return "Seguridad social"
+    if "camara" in code or "cámara" in desc:
+        return "Cámaras / entidades"
+    # Metadatos de boleta: el concepto declara a quién y con qué boleta se paga.
+    # Sirve para cualquier gremio (ADEF, FATSA, UOCRA…) sin nombrarlo en el código.
+    if destino and boleta:
+        return GRUPO_SINDICAL
+    if any(word in code for word in ("sindical", "solidario", "faecys", "fatsa", "adef")):
+        return GRUPO_SINDICAL
     return "Otros rubros"
 
 
-_COMPOSITION_COLORS = (
+def _destinos_sindicales(filas: Iterable[dict[str, Any]]) -> list[str]:
+    """Entidades que cobran los aportes sindicales, tomadas de los metadatos."""
+    destinos: list[str] = []
+    for fila in filas:
+        if _cost_group(fila) != GRUPO_SINDICAL:
+            continue
+        destino = str(fila.get("destino_pago") or "").strip()
+        if destino and destino not in destinos:
+            destinos.append(destino)
+    return destinos
+
+
+def _etiqueta_sindical(destinos: list[str]) -> str:
+    """Rótulo del rubro sindical: el rubro del decreto más el destino real."""
+    if not destinos:
+        return "Aportes sindicales"
+    return "Aportes sindicales / " + ", ".join(destinos)
+
+
+# Rubros mínimos exigidos por el Anexo I, art. 5 del Decreto 407/2026. Se
+# muestran siempre, aunque el importe sea cero: la norma pide la discriminación,
+# no sólo los rubros con movimiento.
+RUBROS_MINIMOS = (
+    GRUPO_SINDICAL_RUBRO, "Seguridad social", "Obra social", "INSSJP",
+    GRUPO_ART, "Cámaras / entidades", "Otros rubros",
+)
+
+_COLORES_COMPOSICION = (
     HexColor("#087F73"), HexColor("#2563EB"), HexColor("#F59E0B"),
     HexColor("#7C3AED"), HexColor("#DC2626"), HexColor("#0891B2"),
     HexColor("#65A30D"), HexColor("#6B7280"),
 )
 
 
-def _pie_chart(
-    c: Canvas, cx: float, cy: float, radius: float,
-    items: list[tuple[str, Decimal]],
-) -> None:
+def _pie_chart(c: Canvas, cx: float, cy: float, radius: float,
+               items: list[tuple[str, Decimal]]) -> None:
+    """Torta de porciones. Sólo entran importes conocidos y ciertos.
+
+    Un rubro pendiente no se dibuja como porción cero: quedaría representado
+    como si no costara nada. Se informa aparte, debajo de la referencia.
+
+    El porcentaje de cada porción se escribe una sola vez, en la referencia:
+    repetirlo dentro de la porción duplica el dato y lo vuelve ilegible.
+    """
     total = sum((amount for _, amount in items), Decimal("0")) or Decimal("1")
     angle = 90.0
-    for index, (label, amount) in enumerate(items):
+    for index, (_, amount) in enumerate(items):
         fraction = float(amount / total)
         extent = fraction * 360
         if extent <= 0:
             continue
-        c.setFillColor(_COMPOSITION_COLORS[index % len(_COMPOSITION_COLORS)])
+        c.setFillColor(_COLORES_COMPOSICION[index % len(_COLORES_COMPOSICION)])
         c.setStrokeColor(white); c.setLineWidth(.5)
-        c.wedge(cx - radius, cy - radius, cx + radius, cy + radius, angle, extent, fill=1, stroke=1)
-        if fraction >= .045:
-            middle = math.radians(angle + extent / 2)
-            x = cx + math.cos(middle) * radius * .62
-            y = cy + math.sin(middle) * radius * .62 - 2
-            _text(c, x + 8, y, f"{fraction * 100:.1f}%".replace(".", ","), 5.2, True, white, True)
+        c.wedge(cx - radius, cy - radius, cx + radius, cy + radius, angle, extent,
+                fill=1, stroke=1)
         angle += extent
+
+
+def _porcentajes_visibles(items: list[tuple[str, Decimal]]) -> list[Decimal]:
+    """Redondea a un decimal conservando una suma visible de 100,0 %."""
+    total = sum((importe for _, importe in items), Decimal("0"))
+    if total <= 0:
+        return [Decimal("0.0") for _ in items]
+    exactos = [importe * Decimal("1000") / total for _, importe in items]
+    decimas = [valor.to_integral_value(rounding=ROUND_FLOOR) for valor in exactos]
+    faltantes = int(Decimal("1000") - sum(decimas))
+    orden = sorted(range(len(items)), key=lambda i: exactos[i] - decimas[i], reverse=True)
+    for indice in orden[:faltantes]:
+        decimas[indice] += 1
+    return [valor / Decimal("10") for valor in decimas]
 
 
 def _composition_block(
     c: Canvas, top: float, neto: Decimal,
     worker: list[dict[str, Any]], contributions: list[dict[str, Any]],
 ) -> float:
-    employee = {name: Decimal("0") for name in ("Sindical", "Seguridad social", "Obra social", "INSSJP", "ART", "Cámaras / entidades", "Otros rubros")}
-    employer = dict(employee)
-    for row in worker:
-        if row["tipo"] == "deduccion": employee[_cost_group(row)] += _decimal(row["importe"])
+    """Resumen de la composición del costo laboral (Decreto 407/2026, Anexo I art. 5).
+
+    Tabla con los siete rubros mínimos y gráfico de porciones al costado. Los
+    porcentajes salen de los mismos importes de la tabla: no se calculan aparte.
+    """
+    empleado = {rubro: Decimal("0") for rubro in RUBROS_MINIMOS}
+    empleador = dict(empleado)
+    deducciones = [r for r in worker if r["tipo"] == "deduccion"]
+    for row in deducciones:
+        empleado[_cost_group(row)] += _decimal(row["importe"])
     for row in contributions:
-        employer[_cost_group(row)] += _decimal(row["importe"])
+        empleador[_cost_group(row)] += _decimal(row["importe"])
 
-    x, width, row_h = 28, 326, 10.2
-    c.setStrokeColor(LINE); c.setLineWidth(.35)
-    c.setFillColor(PALE); c.rect(x, top - 12, width, 14, fill=1, stroke=1)
-    _text(c, x + 5, top - 8, "DETALLE DE LA COMPOSICIÓN SALARIAL", 6.5, True)
-    _text(c, x + 210, top - 8, "TRABAJADOR", 5.7, True)
-    _text(c, x + 278, top - 8, "EMPLEADOR", 5.7, True)
-    yy = top - 21
-    for index, name in enumerate(employee):
-        if index % 2:
-            c.setFillColor(HexColor("#F3F4F6")); c.rect(x, yy - 3, width, row_h, fill=1, stroke=0)
-        _text(c, x + 5, yy, name, 5.8, index == 6)
-        _text(c, x + 263, yy, _money(employee[name]), 5.8, right=True)
-        _text(c, x + 321, yy, _money(employer[name]), 5.8, right=True)
-        c.setStrokeColor(LINE); c.line(x, yy - 3, x + width, yy - 3)
+    destinos = _destinos_sindicales(deducciones + contributions)
+    art_calculada = (empleado[GRUPO_ART] + empleador[GRUPO_ART]) > 0
+
+    x, ancho_tabla, row_h = 28, 330, 10.4
+    c.setFillColor(PALE); c.setStrokeColor(LINE); c.setLineWidth(.35)
+    c.rect(x, top - 12, ancho_tabla, 14, fill=1, stroke=1)
+    _text(c, x + 5, top - 8, "COMPOSICIÓN DEL COSTO LABORAL", 6.3, True)
+    _text(c, x + 214, top - 8, "TRABAJADOR", 5.6, True, GRAY, True)
+    _text(c, x + 270, top - 8, "EMPLEADOR", 5.6, True, GRAY, True)
+    _text(c, x + 325, top - 8, "TOTAL", 5.6, True, GRAY, True)
+
+    yy = top - 22
+    subtotal = _decimal(neto)
+    porciones: list[tuple[str, Decimal]] = [("Sueldo neto", _decimal(neto))]
+
+    def fila(nombre: str, sombreada: bool, importe_emp: Decimal | None = None,
+             importe_pat: Decimal | None = None, nota: str = "") -> None:
+        nonlocal yy
+        if sombreada:
+            c.setFillColor(HexColor("#F3F4F6")); c.rect(x, yy - 3, ancho_tabla, row_h, fill=1, stroke=0)
+        _draw_fit(c, x + 5, yy, nombre, 150, 5.8, max_lines=1, min_size=4.4)
+        if nota:
+            _draw_fit(c, x + 158, yy, nota, 168, 5.8, bold=True, color=AMBER_INK,
+                      max_lines=1, min_size=4.6)
+        else:
+            _text(c, x + 214, yy, _money(importe_emp or 0), 5.8, right=True)
+            _text(c, x + 270, yy, _money(importe_pat or 0), 5.8, right=True)
+            _text(c, x + 325, yy, _money((importe_emp or 0) + (importe_pat or 0)), 5.8, True, right=True)
+        c.setStrokeColor(LINE); c.line(x, yy - 3, x + ancho_tabla, yy - 3)
         yy -= row_h
-    c.rect(x, yy + row_h - 3, width, 14 + row_h * 7, fill=0, stroke=1)
-    c.line(x + 202, yy + row_h - 3, x + 202, top + 2)
-    c.line(x + 267, yy + row_h - 3, x + 267, top + 2)
 
-    grouped = [("Sueldo neto", neto)] + [
-        (name, employee[name] + employer[name]) for name in employee
-        if employee[name] + employer[name] > 0
-    ]
-    total_cost = sum((amount for _, amount in grouped), Decimal("0")) or Decimal("1")
-    _pie_chart(c, 414, top - 41, 38, grouped)
-    legend_x, legend_y = 456, top - 8
-    for index, (name, amount) in enumerate(grouped):
-        c.setFillColor(_COMPOSITION_COLORS[index % len(_COMPOSITION_COLORS)])
-        c.rect(legend_x, legend_y - 4, 6, 6, fill=1, stroke=0)
-        pct = amount / total_cost * 100
-        _text(c, legend_x + 10, legend_y - 3, _fit(name, 72, 5.4), 5.4)
-        _text(c, 565, legend_y - 3, f"{pct:.1f}%".replace(".", ","), 5.4, True, right=True)
-        legend_y -= 9
-    _text(c, 565, top - 80, f"Costo total: {_money(total_cost)}", 6.3, True, GREEN, True)
-    return top - 92
+    fila("Sueldo neto de bolsillo", False, _decimal(neto), Decimal("0"))
+    for indice, rubro in enumerate(RUBROS_MINIMOS):
+        sombreada = indice % 2 == 0
+        if rubro == GRUPO_ART and not art_calculada:
+            fila("A.R.T.", sombreada, nota=ART_PENDIENTE)
+            continue
+        nombre = rubro
+        if rubro == GRUPO_SINDICAL_RUBRO:
+            nombre = _etiqueta_sindical(destinos)
+        elif rubro == GRUPO_ART:
+            nombre = "A.R.T."
+        importe_emp, importe_pat = empleado[rubro], empleador[rubro]
+        total = importe_emp + importe_pat
+        subtotal += total
+        if total > 0:
+            porciones.append((nombre, total))
+        fila(nombre, sombreada, importe_emp, importe_pat)
+
+    etiqueta = COSTO_CON_ART if art_calculada else SUBTOTAL_SIN_ART
+    yy -= 3
+    c.setFillColor(PALE); c.setStrokeColor(LINE)
+    c.rect(x, yy - 16, ancho_tabla, 16, fill=1, stroke=1)
+    _draw_fit(c, x + 5, yy - 11, etiqueta, 232, 6, bold=True, max_lines=1, min_size=4.8)
+    _text(c, x + 325, yy - 11, _money(subtotal), 7, True, GREEN, True)
+    c.setStrokeColor(LINE)
+    c.rect(x, yy - 16, ancho_tabla, (top + 2) - (yy - 16), fill=0, stroke=1)
+
+    # ----- Gráfico de porciones, a la derecha de la tabla -----
+    alto_bloque = (top + 2) - (yy - 16)
+    cx, cy = 410, top - alto_bloque / 2 + 4
+    radio = min(38.0, max(24.0, alto_bloque / 2 - 12))
+    _pie_chart(c, cx, cy, radio, porciones)
+    ly = top - 10
+    porcentajes = _porcentajes_visibles(porciones)
+    for indice, (nombre, importe) in enumerate(porciones):
+        c.setFillColor(_COLORES_COMPOSICION[indice % len(_COLORES_COMPOSICION)])
+        c.rect(456, ly - 4, 5.5, 5.5, fill=1, stroke=0)
+        _draw_fit(c, 465, ly - 3, nombre, 76, 5.2, max_lines=1, min_size=4.2)
+        porcentaje = porcentajes[indice]
+        _text(c, 566, ly - 3, f"{porcentaje:.1f}%".replace(".", ","), 5.2, True, right=True)
+        ly -= 8.4
+    if not art_calculada:
+        _draw_fit(c, 456, ly - 3, "A.R.T.: pendiente, no incluida en las porciones",
+                  110, 5, bold=True, color=AMBER_INK, max_lines=2, min_size=4.4)
+    c.setStrokeColor(LINE)
+    c.rect(x + ancho_tabla + 6, yy - 16, 540 - ancho_tabla - 6, alto_bloque, fill=0, stroke=1)
+    return yy - 22
+
+
+def _bloque_pago(c: Canvas, y: float, data: dict[str, Any]) -> float:
+    """Datos del pago, cada uno en su campo (LCT art. 140)."""
+    campos = (
+        ("Período liquidado", str(data["periodo"])),
+        ("Fecha efectiva de pago", _date_display(_dato(data, "pago.fecha"))),
+        ("Forma de pago", _dato(data, "pago.forma")),
+        ("Lugar o establecimiento de pago", _dato(data, "pago.lugar")),
+        ("Domicilio del lugar de trabajo", _dato(data, "pago.domicilio_trabajo")),
+        ("Establecimiento asignado", _dato(data, "pago.establecimiento")),
+    )
+    alto = 48
+    c.setFillColor(white); c.setStrokeColor(LINE); c.setLineWidth(.35)
+    c.rect(28, y + 6 - alto, 540, alto, fill=1, stroke=1)
+    _text(c, 34, y - 2, "PAGO DE ESTA REMUNERACIÓN", 6.2, True, GRAY)
+    ancho_col, x0 = 180, 34
+    for indice, (etiqueta, valor) in enumerate(campos):
+        columna, renglon = indice % 3, indice // 3
+        x = x0 + columna * ancho_col
+        yy = y - 12 - renglon * 17
+        _text(c, x, yy, etiqueta, 5.4, True, GRAY)
+        _draw_fit(c, x, yy - 7.4, valor, ancho_col - 8, 6.6, max_lines=1, min_size=4.6)
+    return y - alto - 4
+
+
+def _bloque_deposito(c: Canvas, y: float, data: dict[str, Any]) -> float:
+    """Último depósito de aportes y contribuciones (Ley 17.250 art. 12)."""
+    cargas = data.get("cargas_sociales") or {}
+    fecha = str(cargas.get("fecha") or "").strip()
+    periodo = str(cargas.get("periodo") or "").strip()
+    entidad = str(cargas.get("banco") or cargas.get("entidad") or cargas.get("lugar") or "").strip()
+    completo = bool(fecha and periodo and entidad)
+
+    alto = 32
+    c.setFillColor(white if completo else AMBER_BG)
+    c.setStrokeColor(LINE if completo else AMBER_LINE); c.setLineWidth(.35)
+    c.rect(28, y + 6 - alto, 540, alto, fill=1, stroke=1)
+    _text(c, 34, y - 2, "ÚLTIMO DEPÓSITO DE APORTES Y CONTRIBUCIONES · Ley 17.250 art. 12",
+          6.2, True, GRAY if completo else AMBER_INK)
+    if not completo:
+        _draw_fit(c, 34, y - 14, DEPOSITO_PENDIENTE, 520, 7, bold=True,
+                  color=AMBER_INK, max_lines=1, min_size=6)
+        return y - alto - 4
+    campos = (
+        ("Fecha del último depósito", _date_display(fecha)),
+        ("Período al que corresponde", periodo),
+        ("Banco o entidad donde se depositó", entidad),
+    )
+    for indice, (etiqueta, valor) in enumerate(campos):
+        x = 34 + indice * 180
+        _text(c, x, y - 13, etiqueta, 5.4, True, GRAY)
+        _draw_fit(c, x, y - 20.4, valor, 172, 6.6, max_lines=1, min_size=4.6)
+    return y - alto - 4
+
+
+def _bloque_firmas(c: Canvas, data: dict[str, Any], firma: dict[str, Any] | None,
+                   tope: float) -> None:
+    """Espacios de firma, fecha de recepción y constancia de copia fiel.
+
+    ``tope`` es el borde inferior del último bloque: las observaciones se estiran
+    hasta ahí para que la hoja no quede con un hueco en blanco.
+    """
+    alto = max(22.0, min(180.0, tope - 84))
+    c.setFillColor(white); c.setStrokeColor(LINE); c.setLineWidth(.35)
+    c.rect(28, 84, 540, alto, fill=1, stroke=1)
+    _text(c, 34, 84 + alto - 8, "OBSERVACIONES", 5.8, True, GRAY)
+
+    c.setStrokeColor(GRAY)
+    c.line(40, 62, 200, 62)
+    _text(c, 40, 54, "Firma del empleador", 6.4, color=GRAY)
+    c.line(215, 62, 375, 62)
+    _text(c, 215, 54, "Firma o aceptación del trabajador", 6.4, color=GRAY)
+    c.line(390, 62, 480, 62)
+    _text(c, 390, 54, "Fecha de recepción", 6.4, color=GRAY)
+    c.line(492, 62, 568, 62)
+    _text(c, 492, 54, "Aclaración / DNI", 6.4, color=GRAY)
+
+    _text(c, 40, 42,
+          "Constancia de entrega: recibí copia fiel de este recibo (LCT arts. 139 y 140).",
+          6.2, True, DARK)
+    if firma:
+        _draw_fit(c, 40, 33,
+                  f"Firma registrada: {firma['tipo']} · {firma['verificacion']} · "
+                  f"recepción {_date_display(firma['fecha_recepcion'])}",
+                  520, 6, color=GRAY, max_lines=1, min_size=5)
+    else:
+        _draw_fit(c, 40, 33,
+                  "Sin firma ni constancia de entrega registradas: este documento no "
+                  "acredita la recepción del pago.", 520, 6, color=AMBER_INK,
+                  max_lines=1, min_size=5)
+
+    c.setFillColor(PALE); c.rect(20, 12, 555, 16, fill=1, stroke=0)
+    _text(c, 297, 18,
+          "Recibo confeccionado conforme a los artículos 139 y 140 de la LCT y al "
+          "artículo 12 de la Ley 17.250", 6, color=GRAY, right=True)
 
 
 def generar_recibo_pdf(data: dict[str, Any]) -> bytes:
@@ -268,60 +557,96 @@ def generar_recibo_pdf(data: dict[str, Any]) -> bytes:
     concepts = list(data["conceptos"])
     contributions = [r for r in concepts if r["tipo"] == "contribucion"]
     worker = [r for r in concepts if r["tipo"] != "contribucion"]
-    count = len(contributions) + len(worker)
-    row_h = 12 if count <= 22 else max(6.3, 185 / max(count, 1))
-    font = 7 if count <= 22 else max(4.5, row_h - 2.1)
+    # La ruta pública sólo genera vistas previas. Una firma válida deberá venir
+    # de un registro persistido y verificado por el servidor, nunca del cuerpo
+    # enviado por el navegador.
+    firma = None
 
-    # Encabezado documental compacto. La marca pertenece a la aplicación y no
-    # ocupa espacio en el instrumento laboral impreso.
+    # Encabezado documental compacto.
     c.setStrokeColor(DARK); c.setLineWidth(.8); c.line(24, 810, 571, 810)
-    _text(c, 24, 818, "RECIBO DE HABERES", 10, True)
+    _text(c, 24, 818, "RECIBO DE HABERES" if firma else "RECIBO DE HABERES · VISTA PREVIA", 10, True)
     _text(c, 571, 818, f"PERÍODO {data['periodo']}", 8.5, True, right=True)
 
+    y = 800
+    if not firma:
+        c.setFillColor(AMBER_BG); c.setStrokeColor(AMBER_LINE)
+        c.rect(24, y - 11, 547, 15, fill=1, stroke=1)
+        _text(c, 297, y - 6, VISTA_PREVIA, 7, True, AMBER_INK, right=True)
+        y -= 17
     if data.get("pendiente_aprobacion_contador"):
-        c.setFillColor(Color(1, .96, .80)); c.setStrokeColor(Color(.85, .55, 0))
-        c.rect(24, 789, 547, 17, fill=1, stroke=1)
-        _text(c, 297, 795,
+        c.setFillColor(AMBER_BG); c.setStrokeColor(AMBER_LINE)
+        c.rect(24, y - 11, 547, 15, fill=1, stroke=1)
+        _text(c, 297, y - 6,
               "NÚMEROS REALES · PENDIENTE DE REVISIÓN Y APROBACIÓN POR CONTADOR PÚBLICO",
-              6.7, True, Color(.50, .28, 0), right=True)
+              6.7, True, AMBER_INK, right=True)
+        y -= 17
 
-    y = _section(c, 784 if data.get("pendiente_aprobacion_contador") else 800,
-                 "1. DATOS DEL EMPLEADOR, TRABAJADOR Y PAGO")
+    y = _section(c, y, "1. DATOS DEL EMPLEADOR, TRABAJADOR Y PAGO")
     e, w = data["empresa"], data["empleado"]
-    left = (("Empleador", e["razon_social"]), ("CUIT", e["cuit"]), ("Domicilio", e["domicilio"]),
-            ("Pago sueldo", f"{_date_display(data['pago']['fecha'])} - {data['pago']['lugar']} - {data['pago']['forma']}"),
-            ("Último pago cargas", f"{_date_display(data['cargas_sociales']['fecha'])} - {data['cargas_sociales']['lugar']}"))
+    left = (("Empleador", e["razon_social"]), ("CUIT", e["cuit"]),
+            ("Domicilio legal", e["domicilio"]))
     worker_name = f"{w['nombre']} {w['apellido']}".strip().title()
     right = (("Trabajador", worker_name), ("CUIL / Legajo", f"{w['cuil']} / {w.get('legajo') or '-'}"),
-             ("Ingreso / Antig.", f"{_date_display(w['fecha_ingreso'])} / {w.get('antiguedad') or '-'}"),
-             ("Categoría / CCT", f"{w['categoria']} / {w.get('cct_numero') or '-'}"),
-             ("Modalidad", w.get("modalidad_contrato") or "-"))
-    c.setFillColor(white); c.setStrokeColor(LINE); c.rect(28, y - 62, 540, 68, fill=1, stroke=1)
-    c.setStrokeColor(LINE); c.line(297, y - 62, 297, y + 6)
-    for i, ((ll, vl), (lr, vr)) in enumerate(zip(left, right)):
-        yy = y - 7 - i * 12
-        _text(c, 34, yy, ll + ":", 6.7, True, GRAY); _text(c, 104, yy, _fit(vl, 183, 6.7), 6.7)
-        _text(c, 303, yy, lr + ":", 6.7, True, GRAY); _text(c, 382, yy, _fit(vr, 176, 6.7), 6.7)
-    y -= 72
+             ("Ingreso / Antig.", f"{_date_display(w['fecha_ingreso'])} / {w.get('antiguedad') or '-'}"))
+    extra = (("Categoría", w["categoria"]), ("CCT", w.get("cct_numero") or NO_INFORMADO),
+             ("Modalidad", w.get("modalidad_contrato") or NO_INFORMADO))
+    c.setFillColor(white); c.setStrokeColor(LINE); c.setLineWidth(.35)
+    c.rect(28, y - 46, 540, 52, fill=1, stroke=1)
+    c.line(208, y - 46, 208, y + 6); c.line(388, y - 46, 388, y + 6)
+    for columna, filas in enumerate((left, right, extra)):
+        x = 34 + columna * 180
+        for indice, (etiqueta, valor) in enumerate(filas):
+            yy = y - 8 - indice * 14
+            _text(c, x, yy, etiqueta, 5.4, True, GRAY)
+            _draw_fit(c, x, yy - 7.4, valor, 168, 6.6, max_lines=1, min_size=4.4)
+    y -= 56
+
+    y = _bloque_pago(c, y, data)
+    y = _bloque_deposito(c, y, data)
+
+    # Alto de fila calculado con el espacio realmente disponible: se descuenta
+    # todo lo que ocupa un alto fijo y el resto se reparte entre las líneas.
+    bandas = sum(
+        1 for _, tipo in (("", "remunerativo"), ("", "no_remunerativo"), ("", "deduccion"))
+        if any(r["tipo"] == tipo for r in worker)
+    )
+    alto_composicion = 64 + (len(RUBROS_MINIMOS) + 1) * 10.4
+    alto_fijo = (
+        20 + 15 + 20        # sección 2: título, encabezado de tabla y total
+        + 20 + 15 + 22      # sección 3: título, encabezado y caja bruto/descuentos
+        + bandas * 13       # bandas de agrupación de conceptos
+        + 20 + 40           # sección 4 (neto)
+        + 20 + alto_composicion
+    )
+    # Los dos totales dejan media fila de aire cada uno: entran en la ecuación.
+    disponible = y - 112 - alto_fijo - 6
+    total_filas = len(contributions) + len(worker) + 1
+    row_h = min(12.0, max(5.2, disponible / max(total_filas, 1)))
+    font = min(7.0, max(4.2, row_h * .62))
 
     y = _section(c, y, "2. CONTRIBUCIONES Y CONCEPTOS A CARGO DEL EMPLEADOR")
     y = _table_header(c, y)
-    for index, row in enumerate(contributions): y = _row(c, y, row, font, row_h, index % 2 == 1)
+    for index, row in enumerate(contributions):
+        y = _row(c, y, row, font, row_h, index % 2 == 1)
     total = sum((_decimal(r["importe"]) for r in contributions), Decimal("0"))
+    y -= row_h / 2 + 3
     c.setFillColor(PALE); c.setStrokeColor(LINE); c.rect(365, y - 5, 203, 15, fill=1, stroke=1)
     _text(c, 375, y, "TOTAL EMPLEADOR", 6.7, True); _text(c, 558, y, _money(total), 7, True, DARK, True)
     y -= 20
 
     y = _section(c, y, "3. REMUNERACIÓN BRUTA, HABERES Y DEDUCCIONES")
     y = _table_header(c, y)
-    grupos = (("REMUNERATIVOS", "remunerativo"), ("NO REMUNERATIVOS", "no_remunerativo"), ("DESCUENTOS", "deduccion"))
+    grupos = (("REMUNERATIVOS", "remunerativo"), ("NO REMUNERATIVOS", "no_remunerativo"),
+              ("DESCUENTOS", "deduccion"))
     shade = 0
     for titulo, tipo in grupos:
         rows = [r for r in worker if r["tipo"] == tipo]
-        if not rows: continue
+        if not rows:
+            continue
         y = _concept_band(c, y, titulo)
         for row in rows:
             y = _row(c, y, row, font, row_h, shade % 2 == 1); shade += 1
+    y -= row_h / 2 + 3
     c.setFillColor(PALE); c.setStrokeColor(LINE); c.rect(28, y - 5, 540, 17, fill=1, stroke=1)
     _text(c, 38, y, f"SUELDO BRUTO: {_money(data['bruto'])}", 7, True)
     _text(c, 330, y, f"DESCUENTOS: {_money(data['total_deducciones'])}", 7, True)
@@ -331,17 +656,12 @@ def generar_recibo_pdf(data: dict[str, Any]) -> bytes:
     c.setFillColor(white); c.setStrokeColor(DARK); c.setLineWidth(1); c.rect(28, y - 28, 540, 35, fill=1, stroke=1)
     _text(c, 38, y - 7, "NETO A COBRAR", 8.5, True, DARK)
     _text(c, 558, y - 7, _money(data["neto"]), 11, True, GREEN, True)
-    _text(c, 38, y - 21, _fit(_money_words(data["neto"]), 500, 6.5), 6.5, True, DARK); y -= 40
+    _draw_fit(c, 38, y - 21, _money_words(data["neto"]), 500, 6.5, bold=True, max_lines=1, min_size=5)
+    y -= 40
 
-    y = _section(c, y, "RESUMEN DE LA COMPOSICIÓN TOTAL DEL COSTO LABORAL")
+    y = _section(c, y, "5. COMPOSICIÓN DEL COSTO LABORAL")
     y = _composition_block(c, y, _decimal(data["neto"]), worker, contributions)
-    if y < 105: raise ValueError("El recibo excede una hoja A4; deben agruparse líneas equivalentes")
-    c.setFillColor(white); c.setStrokeColor(LINE); c.rect(28, 88, 540, 20, fill=1, stroke=1)
-    _text(c, 34, 100, "OBSERVACIONES", 5.8, True, GRAY)
-    sy = 82
-    c.setStrokeColor(GRAY); c.line(45, sy, 250, sy); c.line(345, sy, 550, sy)
-    _text(c, 103, sy - 14, "Firma del empleador", 7)
-    _text(c, 395, sy - 14, "Recibí copia fiel - Firma del trabajador", 7)
-    c.setFillColor(PALE); c.rect(20, 20, 555, 25, fill=1, stroke=0)
-    _text(c, 297, 30, "Recibo confeccionado conforme a los artículos 139 y 140 de la LCT", 6.2, color=GRAY, right=True)
+    if y < 112:
+        raise ValueError("El recibo excede una hoja A4; deben agruparse líneas equivalentes")
+    _bloque_firmas(c, data, firma, y)
     c.showPage(); c.save(); return output.getvalue()
