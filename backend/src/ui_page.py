@@ -2019,23 +2019,25 @@ async function descargarReciboPdf(empId, reintento=true){
   const det=ultimaLiq.detalles.find(x=>x.empleado_id===empId);
   const emp=empleadosCache[empId]||{};
   if(!det) return;
-  const domicilioEmpresa=prompt('Domicilio legal del empleador (obligatorio):',localStorage.getItem('sc_empresa_domicilio')||'');
-  if(!domicilioEmpresa) return;
-  const fechaPago=prompt('Fecha real de pago del sueldo (AAAA-MM-DD):',new Date().toISOString().slice(0,10));
-  if(!fechaPago) return;
-  const lugarPago=prompt('Lugar real de pago:',emp.lugar_trabajo||localStorage.getItem('sc_lugar_pago')||'');
-  if(!lugarPago) return;
+  // Los datos permanentes se reutilizan. No se vuelve a interrogar al usuario
+  // cada vez que descarga el mismo recibo.
+  let domicilioEmpresa=empresaCache.domicilio||localStorage.getItem('sc_empresa_domicilio')||'';
+  if(!domicilioEmpresa){
+    domicilioEmpresa=prompt('Ingresá una sola vez el domicilio legal del empleador:','')||'';
+    if(!domicilioEmpresa) return;
+    localStorage.setItem('sc_empresa_domicilio',domicilioEmpresa);
+  }
+  const claveFechaPago='sc_fecha_pago_'+ultimaLiq.periodo;
+  const fechaPago=localStorage.getItem(claveFechaPago)||new Date().toISOString().slice(0,10);
+  localStorage.setItem(claveFechaPago,fechaPago);
+  const lugarPago=emp.lugar_trabajo||localStorage.getItem('sc_lugar_pago')||domicilioEmpresa;
   const formasPago={'1':'Efectivo','2':'Cheque','3':'Acreditación en cuenta','4':'Otra'};
-  const formaPago=prompt('Forma real de pago:',formasPago[emp.forma_pago]||localStorage.getItem('sc_forma_pago')||'');
-  if(!formaPago) return;
+  const formaPago=formasPago[emp.forma_pago]||localStorage.getItem('sc_forma_pago')||'No informada';
   // Ley 17.250 art. 12: fecha, período y banco del último depósito. Si no se
   // informan, el recibo los declara pendientes; nunca se completan solos.
-  const fechaCargas=prompt('Último depósito de aportes — fecha (AAAA-MM-DD, vacío si falta):',localStorage.getItem('sc_fecha_cargas')||'')||'';
-  const periodoCargas=prompt('Último depósito de aportes — período al que corresponde (vacío si falta):',localStorage.getItem('sc_periodo_cargas')||'')||'';
-  const bancoCargas=prompt('Último depósito de aportes — banco o entidad (vacío si falta):',localStorage.getItem('sc_banco_cargas')||'')||'';
-  localStorage.setItem('sc_periodo_cargas',periodoCargas);
-  localStorage.setItem('sc_banco_cargas',bancoCargas);
-  localStorage.setItem('sc_empresa_domicilio',domicilioEmpresa);
+  const fechaCargas=localStorage.getItem('sc_fecha_cargas')||'';
+  const periodoCargas=localStorage.getItem('sc_periodo_cargas')||'';
+  const bancoCargas=localStorage.getItem('sc_banco_cargas')||'';
   localStorage.setItem('sc_lugar_pago',lugarPago);
   localStorage.setItem('sc_forma_pago',formaPago);
   localStorage.setItem('sc_fecha_cargas',fechaCargas);
