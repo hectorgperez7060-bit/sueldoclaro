@@ -210,7 +210,7 @@ class ParametroSet:
     def _obtener(self, codigo: str) -> ParametroLegal:
         if codigo not in self._por_codigo:
             raise KeyError(f"Parámetro legal faltante: {codigo}")
-        self._parametros_usados.add(codigo)
+        self._parametros_usados[codigo] = self._por_codigo[codigo]
         return self._por_codigo[codigo]
 
     def fraccion(self, codigo: str) -> Decimal:

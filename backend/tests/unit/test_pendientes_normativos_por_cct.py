@@ -44,3 +44,13 @@ def test_con_extra_comparte_el_registro_de_uso():
     por_empleado.fraccion("CUOTA_RESUELTA")
 
     assert [p.codigo for p in parametros.pendientes_usados()] == ["CUOTA_RESUELTA"]
+
+
+def test_consultar_porcentaje_guarda_el_objeto_y_no_solo_el_codigo():
+    parametro = _p("APORTE_ADEF_REM_414/05", "414/05")
+    parametros = ParametroSet([parametro])
+
+    assert parametros.fraccion("APORTE_ADEF_REM_414/05") == Decimal("1")
+    assert parametros._parametros_usados == {
+        "APORTE_ADEF_REM_414/05": parametro
+    }
