@@ -210,12 +210,15 @@ HTML = r"""<!DOCTYPE html>
       <p id="sinEmpresas" style="margin-top:10px;color:#6b7280;font-size:.9rem">Cargando empresas…</p>
       <div id="perfilLaboralEmpresa" style="border-top:1px solid var(--borde);margin-top:18px;padding-top:16px">
         <h3>Configuración de la empresa para liquidar</h3>
-        <p style="font-size:.86rem;color:#6b7280">Esto no es el gremio. Define el porcentaje general de contribuciones que paga la empresa. El convenio se elige por cada empleado.</p>
+        <p style="font-size:.86rem;color:#6b7280">Cargá datos conocidos de la empresa; Sueldo Claro determina el porcentaje. El convenio continúa eligiéndose por empleado.</p>
         <div class="fila">
           <div><label>Uso de los datos</label><select id="empresaModoLiquidacion"><option value="PRUEBA">Prueba / simulación</option><option value="PRODUCCION">Producción real</option></select></div>
-          <div><label>Porcentaje de contribuciones de la empresa</label><select id="empresaRegimenPatronal"><option value="PENDIENTE">Todavía no definido</option><option value="PRIVADO_18">18% — empleador privado</option><option value="SERVICIOS_COMERCIO_204">20,40% — gran empresa de servicios o comercio</option></select></div>
-          <div><label>Fundamento o constancia</label><input id="empresaFundamentoPatronal" placeholder="En prueba: caso ensayado. En producción: constancia o fundamento."></div>
+          <div><label>Actividad principal</label><select id="empresaActividadSector"><option value="PENDIENTE">Todavía no informada</option><option value="COMERCIO">Comercio</option><option value="SERVICIOS">Servicios</option><option value="INDUSTRIA">Industria</option><option value="CONSTRUCCION">Construcción</option><option value="AGRO">Agropecuaria</option><option value="MINERIA">Minería</option><option value="OTRO">Otra actividad</option></select></div>
+          <div><label>Situación MiPyME</label><select id="empresaCondicionMipyme" onchange="mostrarVigenciaMipyme()"><option value="PENDIENTE">Todavía no comprobada</option><option value="CERTIFICADO_VIGENTE">Tiene Certificado MiPyME vigente</option><option value="SUPERA_LIMITES">Supera los límites MiPyME</option></select></div>
+          <div id="campoVigenciaMipyme" style="display:none"><label>Certificado vigente hasta</label><input type="date" id="empresaMipymeHasta"></div>
+          <div><label>Respaldo</label><input id="empresaRespaldoPatronal" placeholder="Constancia, enlace o referencia del documento"></div>
         </div>
+        <p style="font-size:.8rem;color:#6b7280;margin-top:8px"><a href="https://pyme.produccion.gob.ar/condicionpyme/" target="_blank" rel="noopener">Consultar condición MiPyME por CUIT</a></p>
         <button class="chico" onclick="guardarPerfilLaboral()">Guardar configuración</button>
         <span id="perfilLaboralEstado" style="font-size:.82rem;color:#6b7280;margin-left:8px"></span>
         <div id="perfilLaboralError" class="error"></div>
@@ -798,27 +801,42 @@ async function cargarEmpresasSeccion(){
     const actual=empresas.find(e=>e.activa||e.id===activa);
     if(actual){
       $('empresaModoLiquidacion').value=actual.modo_liquidacion||'PRUEBA';
-      $('empresaRegimenPatronal').value=actual.regimen_contribucion_patronal||'PENDIENTE';
-      $('empresaFundamentoPatronal').value=actual.fundamento_regimen_patronal||'';
-      $('perfilLaboralEstado').textContent=(actual.modo_liquidacion==='PRUEBA'?'Simulación':'Producción')+' · '+(actual.regimen_contribucion_patronal==='PENDIENTE'?'régimen pendiente':'régimen definido');
+      $('empresaActividadSector').value=actual.actividad_sector||'PENDIENTE';
+      $('empresaCondicionMipyme').value=actual.condicion_mipyme||'PENDIENTE';
+      $('empresaMipymeHasta').value=actual.certificado_mipyme_vigente_hasta||'';
+      $('empresaRespaldoPatronal').value=actual.respaldo_regimen_patronal||'';
+      mostrarVigenciaMipyme();
+      const tasa=actual.regimen_contribucion_patronal==='PRIVADO_18'?'18%':(actual.regimen_contribucion_patronal==='SERVICIOS_COMERCIO_204'?'20,40%':'pendiente');
+      $('perfilLaboralEstado').textContent=(actual.modo_liquidacion==='PRUEBA'?'Simulación':'Producción')+' · resultado '+tasa;
     }
   }catch(e){ /* silencioso */ }
+}
+function mostrarVigenciaMipyme(){
+  $('campoVigenciaMipyme').style.display=$('empresaCondicionMipyme').value==='CERTIFICADO_VIGENTE'?'block':'none';
 }
 async function guardarPerfilLaboral(){
   ocultar('perfilLaboralError');
   const modo=$('empresaModoLiquidacion').value;
-  const regimen=$('empresaRegimenPatronal').value;
-  const fundamento=$('empresaFundamentoPatronal').value.trim();
-  if(modo==='PRODUCCION'&&!fundamento){
-    mostrarError('perfilLaboralError','Producción requiere fundamento o constancia.'); return;
+  const actividad=$('empresaActividadSector').value;
+  const condicion=$('empresaCondicionMipyme').value;
+  const vigenteHasta=$('empresaMipymeHasta').value||null;
+  const respaldo=$('empresaRespaldoPatronal').value.trim();
+  if(condicion==='CERTIFICADO_VIGENTE'&&!vigenteHasta){
+    mostrarError('perfilLaboralError','Informá hasta cuándo está vigente el certificado.'); return;
+  }
+  if(modo==='PRODUCCION'&&!respaldo){
+    mostrarError('perfilLaboralError','Producción requiere una constancia o referencia.'); return;
   }
   try{
-    await api('/auth/empresas/activa/perfil-laboral','PUT',{
+    const actualizada=await api('/auth/empresas/activa/perfil-laboral','PUT',{
       modo_liquidacion:modo,
-      regimen_contribucion_patronal:regimen,
-      fundamento_regimen_patronal:fundamento
+      actividad_sector:actividad,
+      condicion_mipyme:condicion,
+      certificado_mipyme_vigente_hasta:vigenteHasta,
+      respaldo_regimen_patronal:respaldo
     });
-    $('perfilLaboralEstado').textContent='Guardado';
+    const tasa=actualizada.regimen_contribucion_patronal==='PRIVADO_18'?'18%':(actualizada.regimen_contribucion_patronal==='SERVICIOS_COMERCIO_204'?'20,40%':'pendiente');
+    $('perfilLaboralEstado').textContent='Guardado · resultado '+tasa;
     await cargarEmpresasSeccion();
   }catch(e){mostrarError('perfilLaboralError',e.message);}
 }
