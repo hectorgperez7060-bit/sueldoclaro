@@ -386,7 +386,7 @@ class LiquidarPeriodo:
                             emp.cuil, periodo, base, fondo, aportes, feriados, extras,
                             adicionales_tarea,
                         )
-                    except (KeyError, TypeError, ValueError) as exc:
+                    except (AttributeError, KeyError, TypeError, ValueError) as exc:
                         bloqueos.append({
                             "empleado_id": str(emp.id), "cct_numero": emp.cct_numero,
                             "categoria": emp.categoria, "provisorio": False,
@@ -462,7 +462,7 @@ class LiquidarPeriodo:
                             ),
                             a_fecha=fecha_ref,
                         )
-                    except (KeyError, TypeError, ValueError) as exc:
+                    except (AttributeError, KeyError, TypeError, ValueError) as exc:
                         bloqueos.append({
                             "empleado_id": str(emp.id), "cct_numero": emp.cct_numero,
                             "categoria": emp.categoria,
