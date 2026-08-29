@@ -573,11 +573,39 @@ class LiquidarPeriodo:
                 detalles=detalles_out, snapshot=dict(snapshot),
                 reglas_pendientes=reglas_pendientes,
             )
-            carpeta = await CarpetaMensualRepo(s).crear_calculada(
+            carpeta_repo = CarpetaMensualRepo(s)
+            ultima = await carpeta_repo.ultima(uuid.UUID(tenant_id), periodo_str)
+            if ultima is not None:
+                actual_comparable = dict(contenido_carpeta)
+                anterior_comparable = dict(ultima.contenido or {})
+                actual_comparable.pop("liquidacion_id", None)
+                anterior_comparable.pop("liquidacion_id", None)
+                if huella_carpeta(actual_comparable) == huella_carpeta(anterior_comparable):
+                    obligaciones_anteriores = await carpeta_repo.listar_obligaciones(
+                        uuid.UUID(tenant_id), ultima.id
+                    )
+                    liquidacion_id = str(liq.id)
+                    estado = liq.estado
+                    await liq_repo.descartar(liq)
+                    return {
+                        "id": liquidacion_id, "periodo": periodo_str, "tipo": tipo,
+                        "estado": estado, "detalles": detalles_out, "bloqueos": [],
+                        "carpeta_mensual": {
+                            "id": str(ultima.id), "version": ultima.version,
+                            "estado": ultima.estado, "hash_sha256": ultima.hash_sha256,
+                            "apto_produccion": (ultima.contenido or {}).get(
+                                "control_normativo", {}
+                            ).get("apto_produccion", False),
+                            "obligaciones_generadas": len(obligaciones_anteriores),
+                            "sin_cambios": True,
+                        },
+                    }
+
+            carpeta = await carpeta_repo.crear_calculada(
                 uuid.UUID(tenant_id), periodo_str, liq.id,
                 contenido_carpeta, huella_carpeta(contenido_carpeta),
             )
-            obligaciones = await CarpetaMensualRepo(s).crear_obligaciones(
+            obligaciones = await carpeta_repo.crear_obligaciones(
                 uuid.UUID(tenant_id), carpeta.id,
                 obligaciones_desde_contenido(contenido_carpeta),
             )
