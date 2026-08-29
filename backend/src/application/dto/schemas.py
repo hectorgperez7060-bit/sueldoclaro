@@ -45,8 +45,17 @@ class EmpresaOut(BaseModel):
     razon_social: str
     cuit: str
     grupo_cliente: str = ""
+    modo_liquidacion: str = "PRUEBA"
+    regimen_contribucion_patronal: str = "PENDIENTE"
+    fundamento_regimen_patronal: str = ""
     rol: str
     activa: bool = False
+
+
+class PerfilLaboralEmpresa(BaseModel):
+    modo_liquidacion: str
+    regimen_contribucion_patronal: str
+    fundamento_regimen_patronal: str = Field(default="", max_length=500)
 
 
 class SeleccionarEmpresa(BaseModel):
