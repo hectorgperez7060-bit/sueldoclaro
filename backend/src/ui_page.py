@@ -209,14 +209,14 @@ HTML = r"""<!DOCTYPE html>
       <table id="tablaEmpresas" class="tabla-movil" style="display:none;margin-top:12px"><thead><tr><th>Cliente / grupo</th><th>Razón social</th><th>Rol</th><th>Estado</th><th></th></tr></thead><tbody></tbody></table>
       <p id="sinEmpresas" style="margin-top:10px;color:#6b7280;font-size:.9rem">Cargando empresas…</p>
       <div id="perfilLaboralEmpresa" style="border-top:1px solid var(--borde);margin-top:18px;padding-top:16px">
-        <h3>Escenario laboral de la empresa activa</h3>
-        <p style="font-size:.86rem;color:#6b7280">La app no presume el régimen patronal. En prueba elegís el caso que querés verificar; en producción debe quedar documentado.</p>
+        <h3>Configuración de la empresa para liquidar</h3>
+        <p style="font-size:.86rem;color:#6b7280">Esto no es el gremio. Define el porcentaje general de contribuciones que paga la empresa. El convenio se elige por cada empleado.</p>
         <div class="fila">
           <div><label>Uso de los datos</label><select id="empresaModoLiquidacion"><option value="PRUEBA">Prueba / simulación</option><option value="PRODUCCION">Producción real</option></select></div>
-          <div><label>Contribuciones patronales</label><select id="empresaRegimenPatronal"><option value="PENDIENTE">Pendiente de definir</option><option value="PRIVADO_18">Caso 18%</option><option value="SERVICIOS_COMERCIO_204">Servicios/comercio 20,40%</option></select></div>
+          <div><label>Porcentaje de contribuciones de la empresa</label><select id="empresaRegimenPatronal"><option value="PENDIENTE">Todavía no definido</option><option value="PRIVADO_18">18% — empleador privado</option><option value="SERVICIOS_COMERCIO_204">20,40% — gran empresa de servicios o comercio</option></select></div>
           <div><label>Fundamento o constancia</label><input id="empresaFundamentoPatronal" placeholder="En prueba: caso ensayado. En producción: constancia o fundamento."></div>
         </div>
-        <button class="chico" onclick="guardarPerfilLaboral()">Guardar escenario</button>
+        <button class="chico" onclick="guardarPerfilLaboral()">Guardar configuración</button>
         <span id="perfilLaboralEstado" style="font-size:.82rem;color:#6b7280;margin-left:8px"></span>
         <div id="perfilLaboralError" class="error"></div>
       </div>
@@ -347,7 +347,7 @@ HTML = r"""<!DOCTYPE html>
           <div><label>Feriados trabajados (días)</label><input id="novFeriados" type="number" min="0" step="1" value="0"></div>
           <div><label>Feriados no trabajados (días)</label><input id="novFeriadosNoTrab" type="number" min="0" step="1" value="0"><small style="color:#6b7280">Calcula automáticamente el plus feriado.</small></div>
           <div><label>Premios ($)</label><input id="novPremios" type="number" min="0" step="0.01" value="0"></div>
-          <div><label>Tratamiento del premio</label><select id="novTipoPremio"><option value="pendiente">Pendiente de definir (no calcular)</option><option value="remunerativo">Remunerativo (integra aportes)</option><option value="no_remunerativo">No remunerativo</option></select></div>
+          <div><label>Tratamiento del premio</label><select id="novTipoPremio"><option value="pendiente">Todavía no definido (no calcular)</option><option value="remunerativo">Remunerativo (integra aportes)</option><option value="no_remunerativo">No remunerativo</option></select></div>
           <div><label>Descuentos adicionales ($)</label><input id="novDescuentos" type="number" min="0" step="0.01" value="0"></div>
           <div id="novFarmacia" style="display:none;grid-column:1/-1;border:1px solid var(--borde);border-radius:8px;padding:12px">
             <b>Adicionales Farmacia — CCT 414/05</b>
