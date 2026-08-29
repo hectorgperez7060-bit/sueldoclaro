@@ -204,6 +204,11 @@ class Tenant(Base):
     razon_social: Mapped[str] = mapped_column(String(200))
     cuit: Mapped[str] = mapped_column(String(13), index=True)
     grupo_cliente: Mapped[str] = mapped_column(String(200), default="")
+    modo_liquidacion: Mapped[str] = mapped_column(String(20), default="PRUEBA")
+    regimen_contribucion_patronal: Mapped[str] = mapped_column(
+        String(30), default="PENDIENTE"
+    )
+    fundamento_regimen_patronal: Mapped[str] = mapped_column(Text, default="")
     plan: Mapped[str] = mapped_column(String(30), default="free")
     estado: Mapped[str] = mapped_column(String(20), default="activo")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc)
