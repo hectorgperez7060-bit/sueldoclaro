@@ -444,23 +444,33 @@ class LiquidarPeriodo:
                         })
                         continue
                 else:
-                    motor = MotorLiquidacion(params_emp, amparos)
-                    res = motor.liquidar_mensual(
-                    dom_emp, periodo, escala, cct_cfg,
-                    Novedades(
-                        horas_extra_50=Decimal(str(nv.get("horas_extra_50", "0"))),
-                        horas_extra_100=Decimal(str(nv.get("horas_extra_100", "0"))),
-                        feriados_trabajados=int(nv.get("feriados_trabajados", 0)),
-                        feriados_no_trabajados=int(nv.get("feriados_no_trabajados", 0)),
-                        premio=Decimal(str(nv.get("premio", "0"))),
-                        tipo_premio=nv.get("tipo_premio", "pendiente"),
-                        descuento_adicional=Decimal(str(nv.get("descuento_adicional", "0"))),
-                        detalle_descuento=nv.get("detalle_descuento", ""),
-                        adicionales_convencionales=nv.get("adicionales_convencionales", ()),
-                        cantidades_adicionales=nv.get("cantidades_adicionales", ()),
-                    ),
-                        a_fecha=fecha_ref,
-                    )
+                    try:
+                        motor = MotorLiquidacion(params_emp, amparos)
+                        res = motor.liquidar_mensual(
+                            dom_emp, periodo, escala, cct_cfg,
+                            Novedades(
+                                horas_extra_50=Decimal(str(nv.get("horas_extra_50", "0"))),
+                                horas_extra_100=Decimal(str(nv.get("horas_extra_100", "0"))),
+                                feriados_trabajados=int(nv.get("feriados_trabajados", 0)),
+                                feriados_no_trabajados=int(nv.get("feriados_no_trabajados", 0)),
+                                premio=Decimal(str(nv.get("premio", "0"))),
+                                tipo_premio=nv.get("tipo_premio", "pendiente"),
+                                descuento_adicional=Decimal(str(nv.get("descuento_adicional", "0"))),
+                                detalle_descuento=nv.get("detalle_descuento", ""),
+                                adicionales_convencionales=nv.get("adicionales_convencionales", ()),
+                                cantidades_adicionales=nv.get("cantidades_adicionales", ()),
+                            ),
+                            a_fecha=fecha_ref,
+                        )
+                    except (KeyError, TypeError, ValueError) as exc:
+                        bloqueos.append({
+                            "empleado_id": str(emp.id), "cct_numero": emp.cct_numero,
+                            "categoria": emp.categoria,
+                            "provisorio": bool(escala_provisoria),
+                            "requiere_confirmacion": False,
+                            "motivo": f"Liquidación bloqueada: {exc}",
+                        })
+                        continue
                 conceptos = [
                     {
                         "codigo": c.codigo, "descripcion": c.descripcion, "tipo": c.tipo.value,
