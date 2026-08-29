@@ -131,6 +131,15 @@ def test_nr_solo_para_categoria_declarada():
         assert not any(c.codigo.startswith("FARMACIA_NR") for c in res.conceptos), otra
 
 
+def test_antiguedad_escalonada_muestra_el_tramo_aplicado_y_no_un_porcentaje_anual():
+    resultado = _liquidar(ESPECIALIZADO)
+    antiguedad = next(c for c in resultado.conceptos if c.codigo == "ANTIGUEDAD")
+    assert antiguedad.importe.monto == D("365746.15")
+    assert antiguedad.base_calculo.monto == D("1828730.75")
+    assert antiguedad.unidad == "escala 20.00%"
+    assert antiguedad.cantidad == D("1")
+
+
 def test_nr_no_se_prorratea_sin_regla_verificada_de_jornada_parcial():
     emp = Empleado(
         "N", "A", Cuil("27240320520"), date(2018, 4, 9), "414/05",

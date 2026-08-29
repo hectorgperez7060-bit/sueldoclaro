@@ -189,11 +189,18 @@ class MotorLiquidacion:
         # remunerativa. Mezclarlas altera las bases previsionales y hace que el
         # recibo parezca correcto por total, aunque esté mal clasificado.
         fraccion_antiguedad = cct.antiguedad_fraccion(anios)
+        antiguedad_es_escalonada = bool(cct.antiguedad_escalones)
+        cantidad_antiguedad = Decimal("1") if antiguedad_es_escalonada else Decimal(anios)
+        unidad_antiguedad = (
+            f"escala {fraccion_antiguedad * 100}%"
+            if antiguedad_es_escalonada
+            else f"{cct.antiguedad_fraccion(1) * 100}% por año"
+        )
         antiguedad = basico.porcentaje(fraccion_antiguedad).redondear()
         conceptos.append(
             Concepto("ANTIGUEDAD", f"Antigüedad ({anios} años)", TipoConcepto.REMUNERATIVO,
-                     antiguedad, cantidad=Decimal(anios), base_calculo=basico,
-                     unidad=f"{cct.antiguedad_fraccion(1) * 100}% por año")
+                     antiguedad, cantidad=cantidad_antiguedad, base_calculo=basico,
+                     unidad=unidad_antiguedad)
         )
         base_antiguedad_nr = _nr("integra_antiguedad").redondear()
         antiguedad_nr = base_antiguedad_nr.porcentaje(fraccion_antiguedad).redondear()
@@ -201,8 +208,8 @@ class MotorLiquidacion:
             conceptos.append(Concepto(
                 "ANTIGUEDAD_NR", f"Antigüedad no remunerativa ({anios} años)",
                 TipoConcepto.NO_REMUNERATIVO, antiguedad_nr,
-                cantidad=Decimal(anios), base_calculo=base_antiguedad_nr,
-                unidad=f"{cct.antiguedad_fraccion(1) * 100}% por año",
+                cantidad=cantidad_antiguedad, base_calculo=base_antiguedad_nr,
+                unidad=unidad_antiguedad,
             ))
 
         # Adicionales convencionales genéricos. El motor sólo interpreta bases
