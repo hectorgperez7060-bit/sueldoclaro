@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import logging
+import re
 import uuid
 from decimal import Decimal, ROUND_HALF_UP
 
@@ -33,6 +34,10 @@ def _diagnostico_seguro(exc: Exception) -> str:
         "TypeError": "Un parámetro tiene un formato incorrecto",
     }
     mensaje = mensajes.get(codigo, "La liquidación falló en una etapa posterior al cálculo")
+    if codigo == "AttributeError":
+        coincidencia = re.search(r"has no attribute ['\"]([^'\"]+)['\"]", str(exc))
+        if coincidencia:
+            mensaje = f"Falta el campo interno {coincidencia.group(1)} en la configuración laboral"
     return f"{mensaje} (diagnóstico: {codigo})"
 
 
