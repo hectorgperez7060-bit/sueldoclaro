@@ -11,7 +11,7 @@ from datetime import date, timedelta
 from decimal import Decimal
 from typing import List, Optional
 
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from domain.entities.parametros import (
@@ -572,6 +572,16 @@ class LiquidacionRepo:
         self.s.add(det)
         await self.s.flush()
         return det
+
+    async def descartar(self, liquidacion: m.Liquidacion) -> None:
+        """Elimina un intento incompleto sin dejar detalles huérfanos."""
+        await self.s.execute(
+            delete(m.LiquidacionDetalle).where(
+                m.LiquidacionDetalle.liquidacion_id == liquidacion.id
+            )
+        )
+        await self.s.delete(liquidacion)
+        await self.s.flush()
 
     async def obtener(self, liquidacion_id: uuid.UUID) -> Optional[m.Liquidacion]:
         return await self.s.get(m.Liquidacion, liquidacion_id)
