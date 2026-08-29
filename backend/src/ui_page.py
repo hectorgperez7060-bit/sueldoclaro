@@ -1790,14 +1790,19 @@ function resumenSindical(d){
   </div>`;
 }
 
-async function liquidar(){
+async function liquidar(confirmarProvisorios=false){
   ocultar('liqError'); $('resultados').innerHTML='<p style="margin-top:12px">Calculando…</p>';
   try{
-    const d = await api('/liquidaciones','POST',{periodo:$('periodo').value, tipo:'mensual', novedades:[]});
+    const d = await api('/liquidaciones','POST',{
+      periodo:$('periodo').value, tipo:'mensual', novedades:[],
+      confirmar_provisorios:confirmarProvisorios
+    });
     ultimaLiq = d;
     if(!d.detalles.length){
       const motivos=(d.bloqueos||[]).map(b=>`<li>${esc(b.categoria||'Empleado')}: ${esc(b.motivo)}</li>`).join('');
-      $('resultados').innerHTML=motivos?`<div class="error" style="display:block"><b>No se pudo calcular:</b><ul>${motivos}</ul></div>`:'<p style="margin-top:12px">No hay empleados para liquidar.</p>';
+      const confirmables=(d.bloqueos||[]).filter(b=>b.requiere_confirmacion);
+      const confirmar=confirmables.length?`<div style="margin-top:10px;padding:10px;border:1px solid #f59e0b;background:#fffbeb;border-radius:8px"><b>Hay una escala anterior disponible como valor provisorio.</b><br><small>La liquidación y su historial quedarán identificados como provisorios. No equivale a una escala nueva ni a una aprobación profesional.</small><br><button class="chico" style="margin-top:8px" onclick="liquidar(true)">Confirmar y calcular provisoriamente</button></div>`:'';
+      $('resultados').innerHTML=motivos?`<div class="error" style="display:block"><b>No se pudo calcular:</b><ul>${motivos}</ul></div>${confirmar}`:'<p style="margin-top:12px">No hay empleados para liquidar.</p>';
       return;
     }
     renderLiquidacion();
@@ -1822,7 +1827,7 @@ function renderLiquidacion(){
         filas += `<tr><td>${c.descripcion} ${amparo}</td><td>${tipo}</td><td class="num">$ ${fmt(c.importe)}</td></tr>`;
       });
       html += `<div class="detalle">
-        <b>${emp.apellido}, ${emp.nombre}</b> <span class="etiqueta">CCT ${emp.cct_numero}</span> <span class="etiqueta">${d.periodo}</span> ${det.pendiente_aprobacion_contador?'<span class="etiqueta" style="background:#fff3cd;color:#7c5700">NÚMEROS REALES · PENDIENTE APROBACIÓN CONTADOR</span>':det.vista_previa?'<span class="etiqueta" style="background:#fff3cd;color:#7c5700">VISTA PREVIA</span>':''}
+        <b>${emp.apellido}, ${emp.nombre}</b> <span class="etiqueta">CCT ${emp.cct_numero}</span> <span class="etiqueta">${d.periodo}</span> ${det.escala_provisoria?'<span class="etiqueta" style="background:#fffbeb;color:#92400e">ESCALA PROVISORIA CONFIRMADA</span>':''} ${det.pendiente_aprobacion_contador?'<span class="etiqueta" style="background:#fff3cd;color:#7c5700">NÚMEROS REALES · PENDIENTE APROBACIÓN CONTADOR</span>':det.vista_previa?'<span class="etiqueta" style="background:#fff3cd;color:#7c5700">VISTA PREVIA</span>':''}
         <table><thead><tr><th>Concepto</th><th>Tipo</th><th class="num">Importe</th></tr></thead><tbody>${filas}</tbody></table>
         <div style="display:flex;justify-content:space-between;margin-top:10px;flex-wrap:wrap;gap:8px">
           <span>Bruto: <b>$ ${fmt(det.bruto)}</b> &nbsp;·&nbsp; Descuentos: <b>$ ${fmt(det.total_deducciones)}</b></span>
