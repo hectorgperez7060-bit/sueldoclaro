@@ -3,6 +3,10 @@ BEGIN;
 
 ALTER TABLE public.tenant
   ADD COLUMN IF NOT EXISTS modo_liquidacion varchar(20) NOT NULL DEFAULT 'PRUEBA',
+  ADD COLUMN IF NOT EXISTS actividad_sector varchar(30) NOT NULL DEFAULT 'PENDIENTE',
+  ADD COLUMN IF NOT EXISTS condicion_mipyme varchar(30) NOT NULL DEFAULT 'PENDIENTE',
+  ADD COLUMN IF NOT EXISTS certificado_mipyme_vigente_hasta date,
+  ADD COLUMN IF NOT EXISTS respaldo_regimen_patronal text NOT NULL DEFAULT '',
   ADD COLUMN IF NOT EXISTS regimen_contribucion_patronal varchar(30) NOT NULL DEFAULT 'PENDIENTE',
   ADD COLUMN IF NOT EXISTS fundamento_regimen_patronal text NOT NULL DEFAULT '';
 
@@ -13,6 +17,23 @@ BEGIN
   ) THEN
     ALTER TABLE public.tenant ADD CONSTRAINT ck_tenant_modo_liquidacion
       CHECK (modo_liquidacion IN ('PRUEBA', 'PRODUCCION'));
+  END IF;
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'ck_tenant_actividad_sector'
+  ) THEN
+    ALTER TABLE public.tenant ADD CONSTRAINT ck_tenant_actividad_sector
+      CHECK (actividad_sector IN (
+        'PENDIENTE', 'COMERCIO', 'SERVICIOS', 'INDUSTRIA',
+        'CONSTRUCCION', 'AGRO', 'MINERIA', 'OTRO'
+      ));
+  END IF;
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'ck_tenant_condicion_mipyme'
+  ) THEN
+    ALTER TABLE public.tenant ADD CONSTRAINT ck_tenant_condicion_mipyme
+      CHECK (condicion_mipyme IN (
+        'PENDIENTE', 'CERTIFICADO_VIGENTE', 'SUPERA_LIMITES'
+      ));
   END IF;
   IF NOT EXISTS (
     SELECT 1 FROM pg_constraint WHERE conname = 'ck_tenant_regimen_contribucion_patronal'
