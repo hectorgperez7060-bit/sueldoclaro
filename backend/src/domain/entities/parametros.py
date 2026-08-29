@@ -125,14 +125,27 @@ def resolver_cuota_art101(
 class ParametroSet:
     """Conjunto de parámetros vigentes para una liquidación."""
 
-    def __init__(self, parametros: List[ParametroLegal]):
+    def __init__(
+        self,
+        parametros: List[ParametroLegal],
+        _codigos_usados: Optional[set[str]] = None,
+    ):
         self._por_codigo: Dict[str, ParametroLegal] = {p.codigo: p for p in parametros}
         self._todos: List[ParametroLegal] = list(parametros)
+        # Un mismo registro se comparte con las variantes creadas por con_extra.
+        # Así la carpeta conserva exactamente las reglas consultadas por todos
+        # los empleados, sin considerar parámetros ajenos al cálculo.
+        self._codigos_usados = (
+            _codigos_usados if _codigos_usados is not None else set()
+        )
 
     def con_extra(self, parametro: ParametroLegal) -> "ParametroSet":
         """Devuelve un ParametroSet nuevo con un parametro adicional (p.ej. la
         cuota Art. 101 ya resuelta por filial/localidad). No muta el original."""
-        return ParametroSet(self._todos + [parametro])
+        return ParametroSet(
+            self._todos + [parametro],
+            _codigos_usados=self._codigos_usados,
+        )
 
     def conceptos_convenio(self, cct_numero: str) -> List[ParametroLegal]:
         """Conceptos en ARS propios de un convenio (NR/adicionales), ya filtrados
@@ -188,9 +201,16 @@ class ParametroSet:
                 if p.cct_numero == cct_numero and p.unidad == "%"
                 and (p.ambito or "").startswith("ded_")]
 
+    def marcar_usado(self, codigo: str) -> None:
+        """Registra que una regla intervino efectivamente en el cálculo."""
+        if codigo not in self._por_codigo:
+            raise KeyError(f"Parámetro legal faltante: {codigo}")
+        self._codigos_usados.add(codigo)
+
     def _obtener(self, codigo: str) -> ParametroLegal:
         if codigo not in self._por_codigo:
             raise KeyError(f"Parámetro legal faltante: {codigo}")
+        self._codigos_usados.add(codigo)
         return self._por_codigo[codigo]
 
     def fraccion(self, codigo: str) -> Decimal:
@@ -211,6 +231,14 @@ class ParametroSet:
 
     def hay_no_verificados(self) -> bool:
         return any(not p.is_verified for p in self._por_codigo.values())
+
+    def pendientes_usados(self) -> List[ParametroLegal]:
+        """Reglas realmente utilizadas que aún carecen de aprobación o fuente."""
+        return [
+            p for p in self._todos
+            if p.codigo in self._codigos_usados
+            and (not p.is_verified or not (p.fuente or "").strip())
+        ]
 
     def pendientes_normativos(
         self, cct_numeros: set[str] | None = None,
