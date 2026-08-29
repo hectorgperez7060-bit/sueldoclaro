@@ -89,6 +89,10 @@ async def listar_empresas(principal: Principal = Depends(get_principal)):
                 id=str(empresa.id), razon_social=empresa.razon_social,
                 cuit=empresa.cuit, grupo_cliente=empresa.grupo_cliente or "",
                 modo_liquidacion=empresa.modo_liquidacion,
+                actividad_sector=empresa.actividad_sector,
+                condicion_mipyme=empresa.condicion_mipyme,
+                certificado_mipyme_vigente_hasta=empresa.certificado_mipyme_vigente_hasta,
+                respaldo_regimen_patronal=empresa.respaldo_regimen_patronal or "",
                 regimen_contribucion_patronal=empresa.regimen_contribucion_patronal,
                 fundamento_regimen_patronal=empresa.fundamento_regimen_patronal or "",
                 rol=rol, activa=str(empresa.id) == principal.tenant_id,
@@ -127,18 +131,49 @@ async def actualizar_perfil_laboral(
 ):
     if principal.rol != "admin":
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Solo un administrador puede cambiar este perfil")
-    if body.modo_liquidacion not in {"PRUEBA", "PRODUCCION"}:
+    modos = {"PRUEBA", "PRODUCCION"}
+    sectores = {
+        "PENDIENTE", "COMERCIO", "SERVICIOS", "INDUSTRIA",
+        "CONSTRUCCION", "AGRO", "MINERIA", "OTRO",
+    }
+    condiciones = {"PENDIENTE", "CERTIFICADO_VIGENTE", "SUPERA_LIMITES"}
+    if body.modo_liquidacion not in modos:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "Modo de liquidación inválido")
-    if body.regimen_contribucion_patronal not in {
-        "PENDIENTE", "PRIVADO_18", "SERVICIOS_COMERCIO_204",
-    }:
-        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "Régimen patronal inválido")
-    fundamento = body.fundamento_regimen_patronal.strip()
-    if body.modo_liquidacion == "PRODUCCION" and not fundamento:
+    if body.actividad_sector not in sectores:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "Actividad inválida")
+    if body.condicion_mipyme not in condiciones:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "Condición MiPyME inválida")
+
+    respaldo = body.respaldo_regimen_patronal.strip()
+    if body.condicion_mipyme == "CERTIFICADO_VIGENTE":
+        if body.certificado_mipyme_vigente_hasta is None:
+            raise HTTPException(
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+                "Informá hasta cuándo está vigente el Certificado MiPyME",
+            )
+        regimen = "PRIVADO_18"
+        fundamento = "Certificado MiPyME vigente informado por la empresa"
+    elif (
+        body.condicion_mipyme == "SUPERA_LIMITES"
+        and body.actividad_sector in {"COMERCIO", "SERVICIOS"}
+    ):
+        regimen = "SERVICIOS_COMERCIO_204"
+        fundamento = "Comercio/servicios por encima de los límites MiPyME"
+    elif body.condicion_mipyme == "SUPERA_LIMITES":
+        regimen = "PRIVADO_18"
+        fundamento = "Empleador privado no incluido en comercio/servicios 20,40%"
+    else:
+        regimen = "PENDIENTE"
+        fundamento = ""
+
+    if body.modo_liquidacion == "PRODUCCION" and (
+        regimen == "PENDIENTE" or not respaldo
+    ):
         raise HTTPException(
             status.HTTP_422_UNPROCESSABLE_ENTITY,
-            "Producción requiere fundamento o constancia del régimen patronal",
+            "Producción requiere situación MiPyME resuelta y respaldo",
         )
+
     tenant_id = uuid.UUID(principal.tenant_id)
     async with plain_session() as s:
         repo = TenantRepo(s)
@@ -146,13 +181,18 @@ async def actualizar_perfil_laboral(
         if empresa is None:
             raise HTTPException(status.HTTP_404_NOT_FOUND, "Empresa no encontrada")
         empresa = await repo.actualizar_perfil_laboral(
-            empresa, body.modo_liquidacion,
-            body.regimen_contribucion_patronal, fundamento,
+            empresa, body.modo_liquidacion, body.actividad_sector,
+            body.condicion_mipyme, body.certificado_mipyme_vigente_hasta,
+            respaldo, regimen, fundamento,
         )
         return EmpresaOut(
             id=str(empresa.id), razon_social=empresa.razon_social, cuit=empresa.cuit,
             grupo_cliente=empresa.grupo_cliente or "",
             modo_liquidacion=empresa.modo_liquidacion,
+            actividad_sector=empresa.actividad_sector,
+            condicion_mipyme=empresa.condicion_mipyme,
+            certificado_mipyme_vigente_hasta=empresa.certificado_mipyme_vigente_hasta,
+            respaldo_regimen_patronal=empresa.respaldo_regimen_patronal or "",
             regimen_contribucion_patronal=empresa.regimen_contribucion_patronal,
             fundamento_regimen_patronal=empresa.fundamento_regimen_patronal or "",
             rol=principal.rol or "", activa=True,
