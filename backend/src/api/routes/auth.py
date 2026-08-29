@@ -8,8 +8,8 @@ from fastapi import APIRouter, Depends, HTTPException, status
 
 from api.dependencies.auth import Principal, get_principal
 from application.dto.schemas import (
-    EmpresaIn, EmpresaOut, Login, RefreshRequest, RegistroEstudio,
-    SeleccionarEmpresa, TokenResponse,
+    EmpresaIn, EmpresaOut, Login, PerfilLaboralEmpresa, RefreshRequest,
+    RegistroEstudio, SeleccionarEmpresa, TokenResponse,
 )
 from application.use_cases.registrar_estudio import RegistrarEstudio
 from infrastructure.database.repositories import TenantRepo, UsuarioRepo
@@ -87,8 +87,11 @@ async def listar_empresas(principal: Principal = Depends(get_principal)):
         return [
             EmpresaOut(
                 id=str(empresa.id), razon_social=empresa.razon_social,
-                cuit=empresa.cuit, grupo_cliente=empresa.grupo_cliente or "", rol=rol,
-                activa=str(empresa.id) == principal.tenant_id,
+                cuit=empresa.cuit, grupo_cliente=empresa.grupo_cliente or "",
+                modo_liquidacion=empresa.modo_liquidacion,
+                regimen_contribucion_patronal=empresa.regimen_contribucion_patronal,
+                fundamento_regimen_patronal=empresa.fundamento_regimen_patronal or "",
+                rol=rol, activa=str(empresa.id) == principal.tenant_id,
             )
             for empresa, rol in filas
         ]
@@ -115,6 +118,45 @@ async def crear_empresa(body: EmpresaIn, principal: Principal = Depends(get_prin
         )
         await repo.agregar_miembro(tenant_id, uuid.UUID(principal.usuario_id), "admin")
     return _emitir_par(principal.usuario_id, str(tenant_id), "admin")
+
+
+@router.put("/empresas/activa/perfil-laboral", response_model=EmpresaOut)
+async def actualizar_perfil_laboral(
+    body: PerfilLaboralEmpresa,
+    principal: Principal = Depends(get_principal),
+):
+    if principal.rol != "admin":
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Solo un administrador puede cambiar este perfil")
+    if body.modo_liquidacion not in {"PRUEBA", "PRODUCCION"}:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "Modo de liquidación inválido")
+    if body.regimen_contribucion_patronal not in {
+        "PENDIENTE", "PRIVADO_18", "SERVICIOS_COMERCIO_204",
+    }:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "Régimen patronal inválido")
+    fundamento = body.fundamento_regimen_patronal.strip()
+    if body.modo_liquidacion == "PRODUCCION" and not fundamento:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            "Producción requiere fundamento o constancia del régimen patronal",
+        )
+    tenant_id = uuid.UUID(principal.tenant_id)
+    async with plain_session() as s:
+        repo = TenantRepo(s)
+        empresa = await repo.obtener(tenant_id)
+        if empresa is None:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "Empresa no encontrada")
+        empresa = await repo.actualizar_perfil_laboral(
+            empresa, body.modo_liquidacion,
+            body.regimen_contribucion_patronal, fundamento,
+        )
+        return EmpresaOut(
+            id=str(empresa.id), razon_social=empresa.razon_social, cuit=empresa.cuit,
+            grupo_cliente=empresa.grupo_cliente or "",
+            modo_liquidacion=empresa.modo_liquidacion,
+            regimen_contribucion_patronal=empresa.regimen_contribucion_patronal,
+            fundamento_regimen_patronal=empresa.fundamento_regimen_patronal or "",
+            rol=principal.rol or "", activa=True,
+        )
 
 
 @router.post("/seleccionar-empresa", response_model=TokenResponse)
