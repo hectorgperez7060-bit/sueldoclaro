@@ -40,6 +40,7 @@ from infrastructure.database.repositories import (
     LiquidacionRepo,
     NovedadMensualRepo,
     ParametrosRepo,
+    TenantRepo,
 )
 from infrastructure.database.session import tenant_session
 
@@ -122,6 +123,34 @@ class LiquidarPeriodo:
         async with tenant_session(tenant_id) as s:
             params_repo = ParametrosRepo(s)
             parametros = await params_repo.parametro_set(fecha_ref)
+            empresa = await TenantRepo(s).obtener(uuid.UUID(tenant_id))
+            if empresa is None:
+                raise ValueError("Empresa no encontrada")
+            regimen = empresa.regimen_contribucion_patronal
+            tasas_patronales = {
+                "PRIVADO_18": (
+                    Decimal("0.18"),
+                    "ARCA — Ley 27.541 art. 19 inc. b: alícuota patronal 18%",
+                ),
+                "SERVICIOS_COMERCIO_204": (
+                    Decimal("0.204"),
+                    "ARCA — Ley 27.541 art. 19 inc. a: alícuota patronal 20,40%",
+                ),
+            }
+            if regimen not in tasas_patronales:
+                raise ValueError(
+                    "Configurá el escenario patronal de la empresa antes de liquidar"
+                )
+            tasa_patronal, fuente_patronal = tasas_patronales[regimen]
+            parametros = parametros.con_extra(ParamDom(
+                "CONTRIB_JUBILACION", tasa_patronal, "%", "empleador",
+                fecha_ref, None, True, fuente_patronal, None,
+                {
+                    "modo_liquidacion": empresa.modo_liquidacion,
+                    "regimen_empresa": regimen,
+                    "fundamento_empresa": empresa.fundamento_regimen_patronal,
+                },
+            ))
 
             empleados = await EmpleadoRepo(s).listar()
             novedades_guardadas = await NovedadMensualRepo(s).listar_periodo(
@@ -130,7 +159,16 @@ class LiquidarPeriodo:
             horas_extra = resolver_horas_extra(empleados, novedades_guardadas, novedades)
             liq_repo = LiquidacionRepo(s)
 
-            snapshot = {"periodo": periodo_str, "generado": fecha_ref.isoformat(), "empleados": {}}
+            snapshot = {
+                "periodo": periodo_str,
+                "generado": fecha_ref.isoformat(),
+                "empresa": {
+                    "modo_liquidacion": empresa.modo_liquidacion,
+                    "regimen_contribucion_patronal": regimen,
+                    "fundamento_regimen_patronal": empresa.fundamento_regimen_patronal,
+                },
+                "empleados": {},
+            }
             liq = await liq_repo.crear(uuid.UUID(tenant_id), periodo_str, tipo, snapshot)
 
             detalles_out = []
