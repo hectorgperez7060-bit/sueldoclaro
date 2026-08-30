@@ -160,3 +160,32 @@ def test_residuos_aplica_adicional_remunerativo_y_recargo_nr_sobre_comida():
     assert recibo.concepto("CAM_RESIDUOS_OPERATIVO_PCT").importe.monto == Decimal("150000.00")
     assert recibo.concepto("RECARGO_COMIDA_RESIDUOS_5_3_11").importe.monto == Decimal("4810.05")
     assert recibo.concepto("RECARGO_COMIDA_RESIDUOS_5_3_11").tipo.value == "no_remunerativo"
+
+
+def test_expreso_recarga_basico_comida_y_viatico_sin_volverlos_remunerativos():
+    variables = calcular_variables_camioneros(
+        valores(), NovedadesVariablesCamioneros(dias_comida=2, dias_viatico_especial=1)
+    )
+    recibo = armar_recibo_camioneros_general(
+        "20123456789", Periodo(2026, 8), Dinero.de("1000000"), 0,
+        Decimal("1"), variables, Decimal("0.11"), Decimal("0.03"), Decimal("0.03"),
+        Decimal("0.18"), Decimal("0.05"), Decimal("0"),
+        (("CAM_EXPRESO_PCT", "Adicional expreso", Decimal("0.16")),),
+        Decimal("0.16"), Decimal("0.16"), "EXPRESO_5_10", "expreso y mudanzas",
+    )
+    assert recibo.concepto("CAM_EXPRESO_PCT").importe.monto == Decimal("160000.00")
+    assert recibo.concepto("RECARGO_COMIDA_EXPRESO_5_10").importe.monto == Decimal("5130.72")
+    assert recibo.concepto("RECARGO_VIATICO_EXPRESO_5_10").importe.monto == Decimal("1287.29")
+    assert recibo.concepto("RECARGO_VIATICO_EXPRESO_5_10").tipo.value == "no_remunerativo"
+
+
+def test_aguas_gaseosas_adicional_integra_antiguedad_y_aportes():
+    recibo = armar_recibo_camioneros_general(
+        "20123456789", Periodo(2026, 8), Dinero.de("1000000"), 2,
+        Decimal("1"), (), Decimal("0.11"), Decimal("0.03"), Decimal("0.03"),
+        Decimal("0.18"), Decimal("0.05"), Decimal("0"),
+        (("CAM_AGUAS_GASEOSAS_20_PCT", "Adicional aguas gaseosas", Decimal("0.20")),),
+    )
+    assert recibo.concepto("CAM_AGUAS_GASEOSAS_20_PCT").importe.monto == Decimal("200000.00")
+    assert recibo.concepto("ANTIGUEDAD").importe.monto == Decimal("24000.00")
+    assert recibo.concepto("APORTE_JUBILACION").base_calculo.monto == Decimal("1224000.00")
