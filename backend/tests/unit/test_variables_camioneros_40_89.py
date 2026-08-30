@@ -6,6 +6,7 @@ import pytest
 from domain.payroll_engine.camioneros import (
     NovedadesVariablesCamioneros, ValoresVariablesCamioneros,
     armar_recibo_camioneros_general, calcular_variables_camioneros,
+    tramo_transporte_pesado,
 )
 from domain.value_objects.dinero import Dinero
 from domain.value_objects.periodo import Periodo
@@ -232,3 +233,19 @@ def test_asfalto_suma_un_jornal_por_dia_sobre_adicional_combustibles():
     assert recibo.concepto("CAM_RAMA_COMBUSTIBLES_PCT").importe.monto == Decimal("180000.00")
     assert recibo.concepto("RECARGO_ASFALTO_5_5_2").importe.monto == Decimal("100000.00")
     assert recibo.concepto("APORTE_JUBILACION").base_calculo.monto == Decimal("1480000.00")
+
+
+@pytest.mark.parametrize(("toneladas", "codigo"), [
+    ("1", "CAM_PESADO_HASTA_50_PCT"),
+    ("50", "CAM_PESADO_HASTA_50_PCT"),
+    ("50.01", "CAM_PESADO_50_100_PCT"),
+    ("100", "CAM_PESADO_50_100_PCT"),
+    ("100.01", "CAM_PESADO_MAS_100_PCT"),
+])
+def test_transporte_pesado_selecciona_tramo_por_carga_util(toneladas, codigo):
+    assert tramo_transporte_pesado(Decimal(toneladas)) == codigo
+
+
+def test_transporte_pesado_rechaza_carga_no_positiva():
+    with pytest.raises(ValueError, match="mayor que cero"):
+        tramo_transporte_pesado(Decimal("0"))
