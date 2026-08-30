@@ -16,7 +16,7 @@ WITH datos(codigo,valor,unidad,articulo,descripcion,base,remunerativo) AS (VALUE
  ('CAM_POZOS_VIATICOS_PCT',0.40::numeric,'%','5.7.4.a','Recargo comida y viáticos de pozos','comida_viatico',false),
  ('CAM_POZOS_CUENCA_PCT',0.125::numeric,'%','5.7.4.c','Adicional por cuenca petrolífera','basico_categoria',true),
  ('CAM_POZOS_LP_MZA_PCT',0.20::numeric,'%','5.7.4.d','Adicional La Pampa y Mendoza con coeficiente 1,20','basico_categoria_zonal',true),
- ('CAM_AUTOS_JORNALES_POR_VIAJE',1::numeric,'jornal/viaje','4.2.9','Transporte de automóviles','jornal_categoria',true)
+ ('CAM_AUTOS_JORNALES_POR_VIAJE',1::numeric,'jornal','4.2.9','Transporte de automóviles','jornal_categoria',true)
 )
 INSERT INTO public.parametro_legal
  (id,codigo,valor,unidad,ambito,valid_from,valid_to,fuente,estado_fuente,
