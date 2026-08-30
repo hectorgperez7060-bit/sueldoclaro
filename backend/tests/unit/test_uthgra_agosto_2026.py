@@ -38,7 +38,7 @@ def test_matriz_oficial_tiene_33_combinaciones_y_no_fabrica_homologacion():
     assert SQL.count("('B',") == 7
     assert SQL.count("('A',") == 7
     assert SQL.count("('ESP',") == 7
-    assert "PENDIENTE_HOMOLOGACION" in SQL
+    assert "PROVISORIA" in SQL
     assert "is_verified=false" in SQL
 
 
