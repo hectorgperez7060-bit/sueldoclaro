@@ -166,6 +166,15 @@ async def gestor_normativo(
                 else set(zonas_config)
             )
             esc = [e for e in esc if (getattr(e, "zona", "") or "") in zonas_validas]
+            esc_ok = len({
+                (e.categoria, getattr(e, "zona", "") or "") for e in esc
+                if e.is_verified and e.fuente.strip()
+            })
+            esc_habilitadas = len({
+                (e.categoria, getattr(e, "zona", "") or "") for e in esc
+                if e.is_verified and e.fuente.strip()
+                and getattr(e, "habilitada_liquidacion", True)
+            })
         cantidad_zonas = len(zonas_config) if zonas_config else 1
         escalas_esperadas = len(nombres_categorias) * max(cantidad_zonas, 1)
         escala_completa = bool(nombres_categorias) and esc_ok == escalas_esperadas
