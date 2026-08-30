@@ -15,8 +15,8 @@ UPDATE public.cct SET
   aplica_cuota_sindical=false, activo=true
 WHERE numero='389/04';
 
-DROP TABLE IF EXISTS public._staging_public._staging_uthgra_agosto_2026;
-CREATE TABLE public._staging_public._staging_uthgra_agosto_2026 (
+DROP TABLE IF EXISTS public._staging_uthgra_agosto_2026;
+CREATE TABLE public._staging_uthgra_agosto_2026 (
   clase text, nivel integer, basico numeric, no_remunerativo numeric
 );
 
