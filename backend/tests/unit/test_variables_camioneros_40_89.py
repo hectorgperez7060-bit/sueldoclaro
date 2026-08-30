@@ -139,8 +139,24 @@ def test_adicional_porcentual_de_rama_integra_antiguedad_y_aportes():
         "20123456789", Periodo(2026, 8), Dinero.de("1000000"), 2,
         Decimal("1"), (), Decimal("0.11"), Decimal("0.03"), Decimal("0.03"),
         Decimal("0.18"), Decimal("0.05"), Decimal("0"),
-        ("CAM_RAMA_COMBUSTIBLES_PCT", "Adicional combustibles", Decimal("0.15")),
+        (("CAM_RAMA_COMBUSTIBLES_PCT", "Adicional combustibles", Decimal("0.15")),),
     )
     assert recibo.concepto("CAM_RAMA_COMBUSTIBLES_PCT").importe.monto == Decimal("150000.00")
     assert recibo.concepto("ANTIGUEDAD").importe.monto == Decimal("23000.00")
     assert recibo.concepto("APORTE_JUBILACION").base_calculo.monto == Decimal("1173000.00")
+
+
+def test_residuos_aplica_adicional_remunerativo_y_recargo_nr_sobre_comida():
+    variables = calcular_variables_camioneros(
+        valores(), NovedadesVariablesCamioneros(dias_comida=2)
+    )
+    recibo = armar_recibo_camioneros_general(
+        "20123456789", Periodo(2026, 8), Dinero.de("1000000"), 0,
+        Decimal("1"), variables, Decimal("0.11"), Decimal("0.03"), Decimal("0.03"),
+        Decimal("0.18"), Decimal("0.05"), Decimal("0"),
+        (("CAM_RESIDUOS_OPERATIVO_PCT", "Adicional residuos", Decimal("0.15")),),
+        Decimal("0.15"),
+    )
+    assert recibo.concepto("CAM_RESIDUOS_OPERATIVO_PCT").importe.monto == Decimal("150000.00")
+    assert recibo.concepto("RECARGO_COMIDA_RESIDUOS_5_3_11").importe.monto == Decimal("4810.05")
+    assert recibo.concepto("RECARGO_COMIDA_RESIDUOS_5_3_11").tipo.value == "no_remunerativo"
