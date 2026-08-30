@@ -31,7 +31,7 @@ from domain.entities.farmacia_414_05 import (
 )
 from domain.entities.sanidad_122_75 import CCT_SANIDAD, configurar_adicionales_sanidad
 from domain.entities.zonificacion_salarial import normalizar_provincia
-from domain.payroll_engine.config import CctConfig
+from domain.payroll_engine.config import CctConfig, ReglaAdicionalConfig
 from domain.value_objects.dinero import Dinero
 
 from . import models as m
@@ -532,6 +532,40 @@ class ParametrosRepo:
                 )
         elif cct_numero == CCT_SANIDAD:
             adicionales = configurar_adicionales_sanidad()
+        elif cct_numero == "389/04":
+            r = await self.s.execute(select(m.CctReglaEstructural).where(
+                m.CctReglaEstructural.cct_numero == cct_numero,
+                m.CctReglaEstructural.activa.is_(True),
+                m.CctReglaEstructural.is_verified.is_(True),
+                m.CctReglaEstructural.codigo.in_((
+                    "ANTIGUEDAD_ESCALONADA", "ASISTENCIA_PERFECTA",
+                    "COMPLEMENTO_SERVICIO",
+                )),
+            ))
+            reglas = {regla.codigo: (regla.configuracion or {})
+                      for regla in r.scalars().all()}
+            ant = reglas.get("ANTIGUEDAD_ESCALONADA", {})
+            if ant.get("escalones"):
+                escalones = tuple(
+                    (int(item["desde"]), Decimal(str(item["porcentaje"])))
+                    for item in ant["escalones"]
+                )
+            adicionales_uthgra = []
+            for codigo, descripcion, articulo in (
+                ("ASISTENCIA_PERFECTA", "Asistencia perfecta", "11.5"),
+                ("COMPLEMENTO_SERVICIO", "Complemento de servicio", "11.6"),
+            ):
+                configuracion = reglas.get(codigo)
+                if configuracion and configuracion.get("porcentaje") is not None:
+                    adicionales_uthgra.append(ReglaAdicionalConfig(
+                        codigo=codigo,
+                        descripcion=descripcion,
+                        porcentaje=Decimal(str(configuracion["porcentaje"])),
+                        base="basico_categoria",
+                        articulo=articulo,
+                        aplica_automaticamente=True,
+                    ))
+            adicionales = tuple(adicionales_uthgra)
 
         return CctConfig(
             cct_numero=c.numero,
