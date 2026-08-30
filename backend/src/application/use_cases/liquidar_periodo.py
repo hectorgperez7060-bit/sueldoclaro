@@ -432,6 +432,7 @@ class LiquidarPeriodo:
                             "general", "larga_distancia", "residuos", "taller", "caudales",
                             "clearing", "expreso_mudanza", "aguas_gaseosas",
                             "logistica", "pozos_petroliferos", "transporte_automoviles",
+                            "asfalto_caliente",
                             *ramas_porcentuales,
                         }:
                             raise ValueError(
@@ -452,6 +453,9 @@ class LiquidarPeriodo:
                         viajes_autos = Decimal(str(detalle_cam.get("viajes_transporte_automoviles") or 0))
                         if rama != "transporte_automoviles" and viajes_autos:
                             raise ValueError("los viajes de automóviles requieren la rama transporte de automóviles")
+                        dias_asfalto = Decimal(str(detalle_cam.get("dias_asfalto_caliente") or 0))
+                        if rama != "asfalto_caliente" and dias_asfalto:
+                            raise ValueError("los días de asfalto requieren la rama asfalto caliente")
                         if rama == "larga_distancia" and any(
                             Decimal(str(detalle_cam.get(campo) or 0)) > 0
                             for campo in ("dias_comida", "dias_viatico_especial", "pernoctadas")
@@ -623,6 +627,14 @@ class LiquidarPeriodo:
                         if rama == "transporte_automoviles":
                             if "conductor" not in categoria and "chofer" not in categoria:
                                 raise ValueError("el transporte de automóviles requiere categoría de conductor")
+                        if rama == "asfalto_caliente":
+                            if "conductor" not in categoria or "primera" not in categoria:
+                                raise ValueError("asfalto caliente requiere conductor de primera categoría")
+                            codigo = "CAM_RAMA_COMBUSTIBLES_PCT"
+                            adicionales_rama.append((
+                                codigo, "Adicional transporte de combustibles",
+                                params_emp.fraccion(codigo),
+                            ))
                         if novedad_cam.zona != escala.zona:
                             raise ValueError(
                                 "la zona de la novedad no coincide con la zona del establecimiento"
@@ -658,6 +670,9 @@ class LiquidarPeriodo:
                             Decimal(str(detalle_cam.get("viajes_transporte_automoviles") or 0)),
                             params_emp.fraccion("CAM_AUTOS_JORNALES_POR_VIAJE")
                             if rama == "transporte_automoviles" else Decimal("1"),
+                            Decimal(str(detalle_cam.get("dias_asfalto_caliente") or 0)),
+                            params_emp.fraccion("CAM_ASFALTO_JORNALES_POR_DIA")
+                            if rama == "asfalto_caliente" else Decimal("1"),
                         )
                     except (AttributeError, KeyError, TypeError, ValueError) as exc:
                         bloqueos.append({
