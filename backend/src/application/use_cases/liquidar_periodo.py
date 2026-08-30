@@ -17,6 +17,10 @@ from domain.entities.carpeta_mensual import (
 from domain.entities.escala_verificada import evaluar_escala
 from domain.entities.parametros import ParametroLegal as ParamDom
 from domain.payroll_engine.engine import MotorLiquidacion, Novedades
+from domain.payroll_engine.camioneros import (
+    ValoresVariablesCamioneros, armar_recibo_camioneros_general,
+    calcular_variables_camioneros, novedades_camioneros_desde_dict,
+)
 from domain.payroll_engine.uom import (
     armar_recibo_uom, calcular_adicional_uom, calcular_base_uom, calcular_compensacion_abril_julio_uom,
     calcular_complemento_imgr, calcular_gratificacion_uom, habilitar_vista_previa_uom,
@@ -211,7 +215,7 @@ class LiquidarPeriodo:
                 )
                 amparos = await params_repo.amparos(emp.cct_numero)
                 vista_previa_contador = bool(
-                    emp.cct_numero == "260/75" and escala is not None
+                    emp.cct_numero in {"260/75", "40/89"} and escala is not None
                     and escala.is_verified
                     and not getattr(escala, "habilitada_liquidacion", True)
                 )
@@ -324,6 +328,7 @@ class LiquidarPeriodo:
                 nv = horas_extra.get(str(emp.id), {})
                 es_motor_uocra = emp.cct_numero == "76/75"
                 es_motor_uom = emp.cct_numero == "260/75"
+                es_motor_camioneros = emp.cct_numero == "40/89"
                 if es_motor_uocra:
                     try:
                         base = calcular_base_quincenal(escala, HechosQuincenalesUocra(
@@ -396,6 +401,53 @@ class LiquidarPeriodo:
                             "categoria": emp.categoria, "provisorio": False,
                             "requiere_confirmacion": False,
                             "motivo": f"Liquidación UOCRA bloqueada: {exc}",
+                        })
+                        continue
+                elif es_motor_camioneros:
+                    try:
+                        detalle_cam = nv.get("camioneros_detalle") or {}
+                        rama = str(detalle_cam.get("rama") or "general")
+                        if rama != "general":
+                            raise ValueError(
+                                f"la rama {rama.replace('_', ' ')} conserva adicionales específicos pendientes de integrar"
+                            )
+                        novedad_cam = novedades_camioneros_desde_dict(detalle_cam)
+                        if novedad_cam.zona != escala.zona:
+                            raise ValueError(
+                                "la zona de la novedad no coincide con la zona del establecimiento"
+                            )
+                        valores_cam = ValoresVariablesCamioneros(
+                            params_emp.valor_ars("CAM_COMIDA_4_1_12"),
+                            params_emp.valor_ars("CAM_VIATICO_ESP_4_1_13"),
+                            params_emp.valor_ars("CAM_PERNOCTADA_4_1_14"),
+                            params_emp.valor_ars("CAM_HORA_EXTRA_KM_4_2_3").monto,
+                            params_emp.valor_ars("CAM_VIATICO_KM_4_2_4").monto,
+                            params_emp.valor_ars("CAM_PERMANENCIA_4_2_5"),
+                            params_emp.valor_ars("CAM_SIMPLE_PRESENCIA_4_2_5"),
+                            params_emp.valor_ars("CAM_PERMANENCIA_SUR_4_2_5"),
+                            params_emp.valor_ars("CAM_SIMPLE_PRESENCIA_SUR_4_2_5"),
+                            params_emp.valor_ars("CAM_CRUCE_FRONTERA_4_2_17"),
+                            params_emp.valor_ars("CAM_INGRESO_EGRESO_TDF_4_2_17"),
+                            params_emp.valor_ars("CAM_PLUS_VACACIONAL_3_3_2"),
+                            params_emp.valor_ars("CAM_ADICIONAL_BITRENES"),
+                        )
+                        variables_cam = calcular_variables_camioneros(valores_cam, novedad_cam)
+                        res = armar_recibo_camioneros_general(
+                            emp.cuil, periodo, escala.basico,
+                            dom_emp.antiguedad_anios(fecha_ref), dom_emp.proporcion_jornada,
+                            variables_cam,
+                            parametros.fraccion("APORTE_JUBILACION"),
+                            parametros.fraccion("APORTE_LEY19032"),
+                            parametros.fraccion("APORTE_OBRA_SOCIAL"),
+                            parametros.fraccion("CONTRIB_JUBILACION"),
+                            parametros.fraccion("CONTRIB_OBRA_SOCIAL"),
+                        )
+                    except (AttributeError, KeyError, TypeError, ValueError) as exc:
+                        bloqueos.append({
+                            "empleado_id": str(emp.id), "cct_numero": emp.cct_numero,
+                            "categoria": emp.categoria, "provisorio": False,
+                            "requiere_confirmacion": False,
+                            "motivo": f"Liquidación Camioneros bloqueada: {exc}",
                         })
                         continue
                 elif es_motor_uom:
