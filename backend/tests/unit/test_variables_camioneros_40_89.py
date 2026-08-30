@@ -189,3 +189,32 @@ def test_aguas_gaseosas_adicional_integra_antiguedad_y_aportes():
     assert recibo.concepto("CAM_AGUAS_GASEOSAS_20_PCT").importe.monto == Decimal("200000.00")
     assert recibo.concepto("ANTIGUEDAD").importe.monto == Decimal("24000.00")
     assert recibo.concepto("APORTE_JUBILACION").base_calculo.monto == Decimal("1224000.00")
+
+
+def test_transporte_automoviles_paga_un_jornal_por_viaje():
+    recibo = armar_recibo_camioneros_general(
+        "20123456789", Periodo(2026, 8), Dinero.de("1200000"), 0,
+        Decimal("1"), (), Decimal("0.11"), Decimal("0.03"), Decimal("0.03"),
+        Decimal("0.18"), Decimal("0.05"), Decimal("0"), (), Decimal("0"),
+        Decimal("0"), "AUTOS_4_2_9", "transporte de automóviles", Decimal("3"), Decimal("1"),
+    )
+    concepto = recibo.concepto("TRANSPORTE_AUTOMOVILES_4_2_9")
+    assert concepto.importe.monto == Decimal("150000.00")
+    assert concepto.tipo.value == "remunerativo"
+    assert recibo.concepto("APORTE_JUBILACION").base_calculo.monto == Decimal("1350000.00")
+
+
+def test_logistica_recarga_basico_comida_y_viatico():
+    variables = calcular_variables_camioneros(
+        valores(), NovedadesVariablesCamioneros(dias_comida=1, dias_viatico_especial=1)
+    )
+    recibo = armar_recibo_camioneros_general(
+        "20123456789", Periodo(2026, 8), Dinero.de("1000000"), 0,
+        Decimal("1"), variables, Decimal("0.11"), Decimal("0.03"), Decimal("0.03"),
+        Decimal("0.18"), Decimal("0.05"), Decimal("0"),
+        (("CAM_LOGISTICA_PCT", "Adicional logística", Decimal("0.20")),),
+        Decimal("0.20"), Decimal("0.20"), "LOGISTICA_5_12", "operaciones logísticas",
+    )
+    assert recibo.concepto("CAM_LOGISTICA_PCT").importe.monto == Decimal("200000.00")
+    assert recibo.concepto("RECARGO_COMIDA_LOGISTICA_5_12").tipo.value == "no_remunerativo"
+    assert recibo.concepto("RECARGO_VIATICO_LOGISTICA_5_12").tipo.value == "no_remunerativo"

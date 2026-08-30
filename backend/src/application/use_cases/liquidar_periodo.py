@@ -431,6 +431,7 @@ class LiquidarPeriodo:
                         if rama not in {
                             "general", "larga_distancia", "residuos", "taller", "caudales",
                             "clearing", "expreso_mudanza", "aguas_gaseosas",
+                            "logistica", "pozos_petroliferos", "transporte_automoviles",
                             *ramas_porcentuales,
                         }:
                             raise ValueError(
@@ -448,6 +449,9 @@ class LiquidarPeriodo:
                             for campo in campos_larga_distancia
                         ):
                             raise ValueError("los kilómetros, permanencias y traslados requieren rama larga distancia")
+                        viajes_autos = Decimal(str(detalle_cam.get("viajes_transporte_automoviles") or 0))
+                        if rama != "transporte_automoviles" and viajes_autos:
+                            raise ValueError("los viajes de automóviles requieren la rama transporte de automóviles")
                         if rama == "larga_distancia" and any(
                             Decimal(str(detalle_cam.get(campo) or 0)) > 0
                             for campo in ("dias_comida", "dias_viatico_especial", "pernoctadas")
@@ -577,6 +581,48 @@ class LiquidarPeriodo:
                                 codigo, "Adicional transporte y distribución de aguas gaseosas",
                                 params_emp.fraccion(codigo),
                             ))
+                        if rama == "logistica":
+                            categorias_logistica = (
+                                "conductor", "chofer", "operario", "peon", "controlador",
+                                "recibidor", "clasificador", "encargado", "autoelevador",
+                                "administrativo",
+                            )
+                            if not any(x in categoria for x in categorias_logistica):
+                                raise ValueError("la categoría no está comprendida en operaciones logísticas")
+                            codigo = "CAM_LOGISTICA_FRIO_PCT" if detalle_cam.get("camara_frio") else "CAM_LOGISTICA_PCT"
+                            porcentaje = params_emp.fraccion(codigo)
+                            descripcion = "Adicional logística en cámara de frío" if detalle_cam.get("camara_frio") else "Adicional operaciones logísticas"
+                            adicionales_rama.append((codigo, descripcion, porcentaje))
+                            recargo_comida_pct = porcentaje
+                            recargo_viatico_pct = porcentaje
+                            recargo_codigo = "LOGISTICA_5_12"
+                            recargo_descripcion = "operaciones logísticas"
+                        if rama == "pozos_petroliferos":
+                            if "conductor" not in categoria and "chofer" not in categoria:
+                                raise ValueError("la rama pozos petrolíferos requiere una categoría de conductor")
+                            adicionales_rama.append((
+                                "CAM_POZOS_ESPECIALIDAD_PCT", "Adicional pozos petrolíferos",
+                                params_emp.fraccion("CAM_POZOS_ESPECIALIDAD_PCT"),
+                            ))
+                            if detalle_cam.get("cuenca_petrolifera"):
+                                adicionales_rama.append((
+                                    "CAM_POZOS_CUENCA_PCT", "Adicional por cuenca petrolífera",
+                                    params_emp.fraccion("CAM_POZOS_CUENCA_PCT"),
+                                ))
+                            if detalle_cam.get("la_pampa_mendoza"):
+                                if novedad_cam.zona != "COEF_1_20":
+                                    raise ValueError("La Pampa/Mendoza requiere informar zona COEF_1_20")
+                                adicionales_rama.append((
+                                    "CAM_POZOS_LP_MZA_PCT", "Adicional La Pampa/Mendoza",
+                                    params_emp.fraccion("CAM_POZOS_LP_MZA_PCT"),
+                                ))
+                            recargo_comida_pct = params_emp.fraccion("CAM_POZOS_VIATICOS_PCT")
+                            recargo_viatico_pct = recargo_comida_pct
+                            recargo_codigo = "POZOS_5_7_4"
+                            recargo_descripcion = "pozos petrolíferos"
+                        if rama == "transporte_automoviles":
+                            if "conductor" not in categoria and "chofer" not in categoria:
+                                raise ValueError("el transporte de automóviles requiere categoría de conductor")
                         if novedad_cam.zona != escala.zona:
                             raise ValueError(
                                 "la zona de la novedad no coincide con la zona del establecimiento"
@@ -609,6 +655,9 @@ class LiquidarPeriodo:
                             Decimal(str(detalle_cam.get("traslados_unidad_descarga") or 0)),
                             tuple(adicionales_rama), recargo_comida_pct,
                             recargo_viatico_pct, recargo_codigo, recargo_descripcion,
+                            Decimal(str(detalle_cam.get("viajes_transporte_automoviles") or 0)),
+                            params_emp.fraccion("CAM_AUTOS_JORNALES_POR_VIAJE")
+                            if rama == "transporte_automoviles" else Decimal("1"),
                         )
                     except (AttributeError, KeyError, TypeError, ValueError) as exc:
                         bloqueos.append({
