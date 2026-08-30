@@ -20,6 +20,7 @@ from domain.payroll_engine.engine import MotorLiquidacion, Novedades
 from domain.payroll_engine.camioneros import (
     ValoresVariablesCamioneros, armar_recibo_camioneros_general,
     calcular_variables_camioneros, novedades_camioneros_desde_dict,
+    tramo_transporte_pesado,
 )
 from domain.payroll_engine.uom import (
     armar_recibo_uom, calcular_adicional_uom, calcular_base_uom, calcular_compensacion_abril_julio_uom,
@@ -432,7 +433,7 @@ class LiquidarPeriodo:
                             "general", "larga_distancia", "residuos", "taller", "caudales",
                             "clearing", "expreso_mudanza", "aguas_gaseosas",
                             "logistica", "pozos_petroliferos", "transporte_automoviles",
-                            "asfalto_caliente",
+                            "asfalto_caliente", "transporte_pesado",
                             *ramas_porcentuales,
                         }:
                             raise ValueError(
@@ -479,6 +480,23 @@ class LiquidarPeriodo:
                                 raise ValueError("esta rama se calcula sobre conductor de primera categoría")
                             adicionales_rama.append((
                                 codigo_pct, descripcion_pct, params_emp.fraccion(codigo_pct)
+                            ))
+                        if rama == "transporte_pesado":
+                            categoria_normalizada = emp.categoria.translate(
+                                str.maketrans("ÁÉÍÓÚÜÑáéíóúüñ", "AEIOUUNaeiouun")
+                            ).casefold()
+                            if "conductor" not in categoria_normalizada or "primera" not in categoria_normalizada:
+                                raise ValueError(
+                                    "el tramo habilitado de transporte pesado requiere conductor de primera categoría"
+                                )
+                            toneladas = Decimal(str(
+                                detalle_cam.get("toneladas_transporte_pesado") or 0
+                            ))
+                            codigo_pesado = tramo_transporte_pesado(toneladas)
+                            adicionales_rama.append((
+                                codigo_pesado,
+                                f"Adicional transporte pesado ({toneladas} toneladas)",
+                                params_emp.fraccion(codigo_pesado),
                             ))
                         categoria = emp.categoria.translate(
                             str.maketrans("ÁÉÍÓÚÜÑáéíóúüñ", "AEIOUUNaeiouun")
