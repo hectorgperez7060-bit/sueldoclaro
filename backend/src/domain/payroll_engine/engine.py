@@ -58,6 +58,7 @@ def _desc_nr(codigo: str) -> str:
         "COMERCIO_BONO": "Suma no remun. única (Revisión 2026)",
         "SANIDAD_SUMA_NR": "Suma no remunerativa (acuerdo FATSA)",
         "SANIDAD_DIA": "Día de la Sanidad (pago único)",
+        "UTHGRA_ACUERDO_2026_SEGUNDA": "Acuerdo 2026 Segunda Cuota - suma no remunerativa",
     }
     for pref, desc in prefijos.items():
         if codigo.startswith(pref):
@@ -215,6 +216,10 @@ class MotorLiquidacion:
         # Adicionales convencionales genéricos. El motor sólo interpreta bases
         # declarativas; no contiene nombres de gremios ni artículos propios.
         solicitados = set(novedades.adicionales_convencionales)
+        solicitados.update(
+            regla.codigo for regla in cct.adicionales
+            if regla.aplica_automaticamente
+        )
         cantidades = dict(novedades.cantidades_adicionales)
         reglas = {regla.codigo: regla for regla in cct.adicionales}
         desconocidos = solicitados - set(reglas)
