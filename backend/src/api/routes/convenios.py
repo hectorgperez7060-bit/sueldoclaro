@@ -155,8 +155,26 @@ async def gestor_normativo(
         estructura_completa = estructura_registrada and bool(nombres_categorias) and cats_ok == len(nombres_categorias) and bool(regs) and all(
             r.is_verified and r.fuente.strip() for r in regs
         )
-        regla_zona = next((r for r in regs if r.codigo == "ZONIFICACION" and r.is_verified), None)
+        regla_zona = next((r for r in regs if r.codigo in {
+            "ZONIFICACION", "COEFICIENTES_TERRITORIALES"
+        } and r.is_verified), None)
         zonas_config = (regla_zona.configuracion or {}).get("zonas", {}) if regla_zona else {}
+        if regla_zona and zonas_config:
+            zonas_validas = (
+                set(zonas_config)
+                if isinstance(zonas_config, dict)
+                else set(zonas_config)
+            )
+            esc = [e for e in esc if (getattr(e, "zona", "") or "") in zonas_validas]
+            esc_ok = len({
+                (e.categoria, getattr(e, "zona", "") or "") for e in esc
+                if e.is_verified and e.fuente.strip()
+            })
+            esc_habilitadas = len({
+                (e.categoria, getattr(e, "zona", "") or "") for e in esc
+                if e.is_verified and e.fuente.strip()
+                and getattr(e, "habilitada_liquidacion", True)
+            })
         cantidad_zonas = len(zonas_config) if zonas_config else 1
         escalas_esperadas = len(nombres_categorias) * max(cantidad_zonas, 1)
         escala_completa = bool(nombres_categorias) and esc_ok == escalas_esperadas

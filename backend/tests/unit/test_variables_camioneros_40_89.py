@@ -4,9 +4,11 @@ from pathlib import Path
 import pytest
 
 from domain.payroll_engine.camioneros import (
-    NovedadesVariablesCamioneros, ValoresVariablesCamioneros, calcular_variables_camioneros,
+    NovedadesVariablesCamioneros, ValoresVariablesCamioneros,
+    armar_recibo_camioneros_general, calcular_variables_camioneros,
 )
 from domain.value_objects.dinero import Dinero
+from domain.value_objects.periodo import Periodo
 from domain.entities.parametros import ParametroLegal, ParametroSet
 from datetime import date
 
@@ -86,3 +88,35 @@ def test_parametros_variables_nunca_se_suman_como_haber_automatico():
     assert conjunto.conceptos_convenio("40/89") == []
     assert conjunto.variables_convenio("40/89") == [p]
     assert "'ARS','variable'" in SQL
+
+
+def test_recibo_general_separa_viaticos_de_remuneracion_y_cargas():
+    variables = calcular_variables_camioneros(valores(), NovedadesVariablesCamioneros(
+        dias_comida=1, kilometros_extra=10,
+    ))
+    recibo = armar_recibo_camioneros_general(
+        "20123456789", Periodo(2026, 8),
+        Dinero.de("1000000"), 2, Decimal("1"), variables,
+        Decimal("0.11"), Decimal("0.03"), Decimal("0.03"),
+        Decimal("0.18"), Decimal("0.05"),
+    )
+    comida = recibo.concepto("COMIDA_4_1_12")
+    extra = recibo.concepto("HORAS_EXTRA_KM_4_2_3")
+    assert comida.tipo.value == "no_remunerativo"
+    assert extra.tipo.value == "remunerativo"
+    # 1.000.000 + 838,28 de extras; antigüedad 2% sobre ambos.
+    assert recibo.concepto("ANTIGUEDAD").importe.monto == Decimal("20016.77")
+    assert recibo.concepto("APORTE_JUBILACION").base_calculo.monto == Decimal("1020855.05")
+
+
+def test_bitrenes_no_se_liquida_hasta_documentar_hecho_generador():
+    variables = calcular_variables_camioneros(valores(), NovedadesVariablesCamioneros(
+        unidades_bitrenes=1,
+    ))
+    with pytest.raises(ValueError, match="bitrenes"):
+        armar_recibo_camioneros_general(
+            "20123456789", Periodo(2026, 8),
+            Dinero.de("1000000"), 0, Decimal("1"), variables,
+            Decimal("0.11"), Decimal("0.03"), Decimal("0.03"),
+            Decimal("0.18"), Decimal("0.05"),
+        )

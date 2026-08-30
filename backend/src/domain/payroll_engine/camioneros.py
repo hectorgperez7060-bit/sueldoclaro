@@ -5,6 +5,9 @@ from dataclasses import dataclass
 from decimal import Decimal
 
 from domain.value_objects.dinero import Dinero
+from domain.entities.concepto import Concepto, TipoConcepto
+from domain.entities.liquidacion import ResultadoLiquidacion
+from domain.value_objects.periodo import Periodo
 
 
 ZONAS_CAMIONEROS = {
@@ -60,6 +63,13 @@ CAMPOS_CANTIDAD_CAMIONEROS = tuple(
     nombre for nombre in NovedadesVariablesCamioneros.__dataclass_fields__ if nombre != "zona"
 )
 CLAVES_DETALLE_CAMIONEROS = {"rama", "camara_frio", "zona", *CAMPOS_CANTIDAD_CAMIONEROS}
+
+CODIGOS_VIATICO_NO_REMUNERATIVO = {
+    "COMIDA_4_1_12", "VIATICO_ESPECIAL_4_1_13", "PERNOCTADA_4_1_14",
+    "VIATICO_KM_4_2_4", "PERMANENCIA_4_2_5", "SIMPLE_PRESENCIA_4_2_5",
+    "PERMANENCIA_SUR_4_2_5", "SIMPLE_PRESENCIA_SUR_4_2_5",
+    "CRUCE_FRONTERA_4_2_17", "INGRESO_EGRESO_TDF_4_2_17",
+}
 
 
 def novedades_camioneros_desde_dict(datos: dict) -> NovedadesVariablesCamioneros:
@@ -144,3 +154,79 @@ def calcular_variables_camioneros(
     fijo("PLUS_VACACIONAL_3_3_2", "Plus vacacional por día", cantidades["dias_plus_vacacional"], valores.plus_vacacional_dia)
     fijo("ADICIONAL_BITRENES", "Adicional bitrenes", cantidades["unidades_bitrenes"], valores.adicional_bitrenes)
     return tuple(resultado)
+
+
+def armar_recibo_camioneros_general(
+    empleado_cuil: str,
+    periodo: Periodo,
+    basico: Dinero,
+    anios_antiguedad: int,
+    proporcion_jornada: Decimal,
+    variables: tuple[ConceptoVariableCamioneros, ...],
+    jubilacion_pct: Decimal,
+    inssjp_pct: Decimal,
+    obra_social_pct: Decimal,
+    contrib_seguridad_pct: Decimal,
+    contrib_obra_social_pct: Decimal,
+) -> ResultadoLiquidacion:
+    """Recibo de la rama general con incidencias explícitas del CCT 40/89.
+
+    Los viáticos enumerados por el ítem 4.2.11 no integran remuneración ni
+    cargas sociales. Horas extraordinarias por kilometraje y plus vacacional
+    sí integran la base. Bitrenes continúa bloqueado porque su hecho generador
+    aún no está documentado en el paquete normativo.
+    """
+    proporcion = Decimal(str(proporcion_jornada))
+    if not Decimal("0") < proporcion <= Decimal("1"):
+        raise ValueError("la proporción de jornada debe ser mayor que cero y no superar uno")
+    if any(v.codigo == "ADICIONAL_BITRENES" for v in variables):
+        raise ValueError("el adicional bitrenes todavía requiere documentar su hecho generador")
+
+    basico_proporcional = basico.porcentaje(proporcion).redondear()
+    conceptos = [Concepto(
+        "BASICO", "Sueldo básico Camioneros", TipoConcepto.REMUNERATIVO,
+        basico_proporcional, base_calculo=basico, unidad="mes",
+    )]
+    remunerativos_variables = Dinero.cero()
+    for variable in variables:
+        tipo = (
+            TipoConcepto.NO_REMUNERATIVO
+            if variable.codigo in CODIGOS_VIATICO_NO_REMUNERATIVO
+            else TipoConcepto.REMUNERATIVO
+        )
+        conceptos.append(Concepto(
+            variable.codigo, variable.descripcion, tipo, variable.importe,
+            cantidad=variable.cantidad, base_calculo=variable.valor_unitario,
+            unidad="unidad convencional",
+        ))
+        if tipo == TipoConcepto.REMUNERATIVO:
+            remunerativos_variables = remunerativos_variables + variable.importe
+
+    base_antiguedad = (basico_proporcional + remunerativos_variables).redondear()
+    antiguedad_pct = Decimal(int(anios_antiguedad)) / Decimal("100")
+    antiguedad = base_antiguedad.porcentaje(antiguedad_pct).redondear()
+    conceptos.append(Concepto(
+        "ANTIGUEDAD", f"Antigüedad ({int(anios_antiguedad)} años)",
+        TipoConcepto.REMUNERATIVO, antiguedad,
+        cantidad=Decimal(int(anios_antiguedad)), base_calculo=base_antiguedad,
+        unidad="1% por año · ítem 6.1.5",
+    ))
+    base_rem = (base_antiguedad + antiguedad).redondear()
+    conceptos.extend([
+        Concepto("APORTE_JUBILACION", "Jubilación", TipoConcepto.DEDUCCION,
+                 base_rem.porcentaje(jubilacion_pct).redondear(), base_calculo=base_rem,
+                 unidad="porcentaje versionado"),
+        Concepto("APORTE_LEY19032", "Ley 19.032 - INSSJP", TipoConcepto.DEDUCCION,
+                 base_rem.porcentaje(inssjp_pct).redondear(), base_calculo=base_rem,
+                 unidad="porcentaje versionado"),
+        Concepto("APORTE_OBRA_SOCIAL", "Obra social", TipoConcepto.DEDUCCION,
+                 base_rem.porcentaje(obra_social_pct).redondear(), base_calculo=base_rem,
+                 unidad="porcentaje versionado"),
+        Concepto("CONTRIB_SEGURIDAD_SOCIAL", "Contribuciones patronales seguridad social",
+                 TipoConcepto.CONTRIBUCION,
+                 base_rem.porcentaje(contrib_seguridad_pct).redondear(), base_calculo=base_rem),
+        Concepto("CONTRIB_OBRA_SOCIAL", "Contribución patronal obra social",
+                 TipoConcepto.CONTRIBUCION,
+                 base_rem.porcentaje(contrib_obra_social_pct).redondear(), base_calculo=base_rem),
+    ])
+    return ResultadoLiquidacion(empleado_cuil, periodo, "mensual", conceptos)
