@@ -68,7 +68,7 @@ CAMPOS_CANTIDAD_CAMIONEROS = tuple(
 )
 CLAVES_DETALLE_CAMIONEROS = {
     "rama", "camara_frio", "zona", "grupo_taller", "cuenca_petrolifera",
-    "la_pampa_mendoza", *CAMPOS_CANTIDAD_CAMIONEROS
+    "la_pampa_mendoza", "toneladas_transporte_pesado", *CAMPOS_CANTIDAD_CAMIONEROS
 }
 
 CODIGOS_VIATICO_NO_REMUNERATIVO = {
@@ -77,6 +77,18 @@ CODIGOS_VIATICO_NO_REMUNERATIVO = {
     "PERMANENCIA_SUR_4_2_5", "SIMPLE_PRESENCIA_SUR_4_2_5",
     "CRUCE_FRONTERA_4_2_17", "INGRESO_EGRESO_TDF_4_2_17",
 }
+
+
+def tramo_transporte_pesado(toneladas: Decimal) -> str:
+    """Devuelve el parámetro del ítem 5.8.1.2.a según la carga útil."""
+    carga = Decimal(str(toneladas))
+    if carga <= 0:
+        raise ValueError("la carga útil del transporte pesado debe ser mayor que cero")
+    if carga <= Decimal("50"):
+        return "CAM_PESADO_HASTA_50_PCT"
+    if carga <= Decimal("100"):
+        return "CAM_PESADO_50_100_PCT"
+    return "CAM_PESADO_MAS_100_PCT"
 
 
 def novedades_camioneros_desde_dict(datos: dict) -> NovedadesVariablesCamioneros:
