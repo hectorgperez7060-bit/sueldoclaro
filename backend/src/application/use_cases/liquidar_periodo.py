@@ -430,6 +430,7 @@ class LiquidarPeriodo:
                         }
                         if rama not in {
                             "general", "larga_distancia", "residuos", "taller", "caudales",
+                            "clearing", "expreso_mudanza", "aguas_gaseosas",
                             *ramas_porcentuales,
                         }:
                             raise ValueError(
@@ -456,6 +457,9 @@ class LiquidarPeriodo:
                             )
                         adicionales_rama = []
                         recargo_comida_pct = Decimal("0")
+                        recargo_viatico_pct = Decimal("0")
+                        recargo_codigo = "RESIDUOS_5_3_11"
+                        recargo_descripcion = "recolección de residuos"
                         if rama in ramas_porcentuales:
                             codigo_pct, descripcion_pct, requisito = ramas_porcentuales[rama]
                             categoria_normalizada = emp.categoria.translate(
@@ -529,6 +533,50 @@ class LiquidarPeriodo:
                                     ))
                             elif not any(x in categoria for x in ("chofer de camion blindado", "chofer con firma")):
                                 raise ValueError("la categoría no está alcanzada por las reglas modeladas de caudales")
+                        if rama == "clearing":
+                            categorias_clearing = (
+                                "conductor", "distribuidor domiciliario", "operador de servicios",
+                                "auxiliar operativo", "administrativo",
+                            )
+                            if not any(x in categoria for x in categorias_clearing):
+                                raise ValueError("la categoría no está comprendida en clearing y carga postal")
+                            codigo = "CAM_CLEARING_PCT"
+                            porcentaje = params_emp.fraccion(codigo)
+                            adicionales_rama.append((codigo, "Adicional clearing y carga postal", porcentaje))
+                            recargo_comida_pct = porcentaje
+                            recargo_viatico_pct = porcentaje
+                            recargo_codigo = "CLEARING_5_2_2"
+                            recargo_descripcion = "clearing y carga postal"
+                        if rama == "expreso_mudanza":
+                            categorias_expreso = (
+                                "conductor", "operario", "peon", "embalador", "recibidor",
+                                "clasificador", "encargado", "autoelevador", "administrativo",
+                            )
+                            if not any(x in categoria for x in categorias_expreso):
+                                raise ValueError("la categoría no está comprendida en expreso, mudanzas y encomiendas")
+                            codigo = "CAM_EXPRESO_FRIO_PCT" if detalle_cam.get("camara_frio") else "CAM_EXPRESO_PCT"
+                            porcentaje = params_emp.fraccion(codigo)
+                            descripcion = "Adicional expreso/mudanzas en cámara de frío" if detalle_cam.get("camara_frio") else "Adicional expreso, mudanzas y encomiendas"
+                            adicionales_rama.append((codigo, descripcion, porcentaje))
+                            recargo_comida_pct = porcentaje
+                            recargo_viatico_pct = porcentaje
+                            recargo_codigo = "EXPRESO_5_10"
+                            recargo_descripcion = "expreso, mudanzas y encomiendas"
+                        if rama == "aguas_gaseosas":
+                            categoria_20 = any(x in categoria for x in (
+                                "conductor", "chofer", "taller", "oficial", "lavador",
+                                "engrasador", "administrativo",
+                            ))
+                            categoria_16 = any(x in categoria for x in (
+                                "operario especializado", "maestranza", "sereno",
+                            ))
+                            if not (categoria_20 or categoria_16):
+                                raise ValueError("la categoría no está comprendida en aguas gaseosas")
+                            codigo = "CAM_AGUAS_GASEOSAS_20_PCT" if categoria_20 else "CAM_AGUAS_GASEOSAS_16_PCT"
+                            adicionales_rama.append((
+                                codigo, "Adicional transporte y distribución de aguas gaseosas",
+                                params_emp.fraccion(codigo),
+                            ))
                         if novedad_cam.zona != escala.zona:
                             raise ValueError(
                                 "la zona de la novedad no coincide con la zona del establecimiento"
@@ -560,6 +608,7 @@ class LiquidarPeriodo:
                             parametros.fraccion("CONTRIB_OBRA_SOCIAL"),
                             Decimal(str(detalle_cam.get("traslados_unidad_descarga") or 0)),
                             tuple(adicionales_rama), recargo_comida_pct,
+                            recargo_viatico_pct, recargo_codigo, recargo_descripcion,
                         )
                     except (AttributeError, KeyError, TypeError, ValueError) as exc:
                         bloqueos.append({
