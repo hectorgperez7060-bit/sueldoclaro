@@ -27,6 +27,9 @@ class ReglaAdicionalConfig:
     # Dos reglas del mismo grupo no pueden aplicarse simultáneamente al mismo
     # empleado y período (por ejemplo, dos regímenes alternativos de sector).
     grupo_exclusion: Optional[str] = None
+    # Los adicionales generales del convenio se aplican sin que el usuario
+    # tenga que cargarlos como novedad mensual (p.ej. asistencia UTHGRA).
+    aplica_automaticamente: bool = False
 
 
 @dataclass(frozen=True)
