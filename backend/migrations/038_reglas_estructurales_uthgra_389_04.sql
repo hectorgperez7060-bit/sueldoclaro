@@ -10,10 +10,10 @@ INSERT INTO public.cct_regla_estructural
    fuente,estado_fuente,is_verified,version,activa)
 VALUES
  (gen_random_uuid(),'389/04','AMBITO_TERRITORIAL','ambito',
-  'Aplicación en todo el territorio de la República Argentina.',
+  'Aplicación nacional con exclusión expresa de la Provincia de Tucumán.',
   'SEGUNDO',
-  '{"territorio":"ARGENTINA","exclusiones":[]}'::jsonb,
-  'CCT 389/04 oficial UTHGRA, cláusula SEGUNDO',
+  '{"territorio":"ARGENTINA","exclusiones":["TUCUMAN"]}'::jsonb,
+  'Acuerdo UTHGRA-FEHGRA 24/07/2026, cláusula OCTAVO A; CCT 389/04',
   'VERIFICADA_OFICIAL',true,1,true),
 
  (gen_random_uuid(),'389/04','MATRIZ_NIVEL_ESTABLECIMIENTO','encuadramiento',
