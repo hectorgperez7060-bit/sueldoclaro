@@ -120,3 +120,15 @@ def test_bitrenes_no_se_liquida_hasta_documentar_hecho_generador():
             Decimal("0.11"), Decimal("0.03"), Decimal("0.03"),
             Decimal("0.18"), Decimal("0.05"),
         )
+
+
+def test_larga_distancia_suma_un_jornal_remunerativo_por_traslado():
+    recibo = armar_recibo_camioneros_general(
+        "20123456789", Periodo(2026, 8), Dinero.de("1200000"), 0,
+        Decimal("1"), (), Decimal("0.11"), Decimal("0.03"), Decimal("0.03"),
+        Decimal("0.18"), Decimal("0.05"), Decimal("2"),
+    )
+    traslado = recibo.concepto("TRASLADO_UNIDAD_DESCARGA_4_2_6")
+    assert traslado.importe.monto == Decimal("100000.00")
+    assert traslado.tipo.value == "remunerativo"
+    assert recibo.concepto("APORTE_JUBILACION").base_calculo.monto == Decimal("1300000.00")
