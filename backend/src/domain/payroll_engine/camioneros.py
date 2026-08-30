@@ -18,7 +18,7 @@ RAMAS_CAMIONEROS = {
     "general", "materia_prima_lactea", "auxilio", "residuos", "taller",
     "caudales", "diarios_revistas", "combustibles", "sustancias_peligrosas",
     "pozos_petroliferos", "clearing", "expreso_mudanza", "aguas_gaseosas",
-    "logistica", "larga_distancia",
+    "logistica", "larga_distancia", "transporte_automoviles",
 }
 
 
@@ -58,13 +58,15 @@ class NovedadesVariablesCamioneros:
     dias_plus_vacacional: Decimal = Decimal("0")
     unidades_bitrenes: Decimal = Decimal("0")
     traslados_unidad_descarga: Decimal = Decimal("0")
+    viajes_transporte_automoviles: Decimal = Decimal("0")
 
 
 CAMPOS_CANTIDAD_CAMIONEROS = tuple(
     nombre for nombre in NovedadesVariablesCamioneros.__dataclass_fields__ if nombre != "zona"
 )
 CLAVES_DETALLE_CAMIONEROS = {
-    "rama", "camara_frio", "zona", "grupo_taller", *CAMPOS_CANTIDAD_CAMIONEROS
+    "rama", "camara_frio", "zona", "grupo_taller", "cuenca_petrolifera",
+    "la_pampa_mendoza", *CAMPOS_CANTIDAD_CAMIONEROS
 }
 
 CODIGOS_VIATICO_NO_REMUNERATIVO = {
@@ -88,6 +90,9 @@ def novedades_camioneros_desde_dict(datos: dict) -> NovedadesVariablesCamioneros
     camara_frio = datos.get("camara_frio", False)
     if not isinstance(camara_frio, bool):
         raise ValueError("Cámara de frío debe informarse como sí o no")
+    for campo_booleano in ("cuenca_petrolifera", "la_pampa_mendoza"):
+        if not isinstance(datos.get(campo_booleano, False), bool):
+            raise ValueError(f"{campo_booleano.replace('_', ' ')} debe informarse como sí o no")
     grupo_taller = str(datos.get("grupo_taller") or "")
     if grupo_taller not in {"", "I", "II", "III"}:
         raise ValueError("El grupo de taller debe ser I, II o III")
@@ -180,6 +185,8 @@ def armar_recibo_camioneros_general(
     recargo_viatico_pct: Decimal = Decimal("0"),
     recargo_codigo: str = "RESIDUOS_5_3_11",
     recargo_descripcion: str = "recolección de residuos",
+    viajes_transporte_automoviles: Decimal = Decimal("0"),
+    jornales_por_viaje_automoviles: Decimal = Decimal("1"),
 ) -> ResultadoLiquidacion:
     """Recibo de la rama general con incidencias explícitas del CCT 40/89.
 
@@ -256,6 +263,23 @@ def armar_recibo_camioneros_general(
             unidad="jornal por traslado · ítem 4.2.6",
         ))
         remunerativos_variables = remunerativos_variables + importe_traslados
+
+    viajes_autos = Decimal(str(viajes_transporte_automoviles))
+    if viajes_autos < 0 or viajes_autos != viajes_autos.to_integral_value():
+        raise ValueError("los viajes de transporte de automóviles deben ser enteros no negativos")
+    if viajes_autos:
+        factor_jornales = Decimal(str(jornales_por_viaje_automoviles))
+        if factor_jornales <= 0:
+            raise ValueError("la cantidad convencional de jornales por viaje no es válida")
+        jornal_autos = basico_proporcional.dividir(Decimal("24")).redondear()
+        importe_autos = jornal_autos.multiplicar(viajes_autos * factor_jornales).redondear()
+        conceptos.append(Concepto(
+            "TRANSPORTE_AUTOMOVILES_4_2_9",
+            "Viaje de transporte de automóviles", TipoConcepto.REMUNERATIVO,
+            importe_autos, cantidad=viajes_autos, base_calculo=jornal_autos,
+            unidad=f"{factor_jornales} jornal por viaje · ítem 4.2.9",
+        ))
+        remunerativos_variables = remunerativos_variables + importe_autos
 
     base_antiguedad = (basico_proporcional + remunerativos_variables).redondear()
     antiguedad_pct = Decimal(int(anios_antiguedad)) / Decimal("100")
