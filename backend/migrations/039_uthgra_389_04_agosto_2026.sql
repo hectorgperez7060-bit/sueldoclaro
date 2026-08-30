@@ -15,11 +15,12 @@ UPDATE public.cct SET
   aplica_cuota_sindical=false, activo=true
 WHERE numero='389/04';
 
-CREATE TEMP TABLE uthgra_agosto_2026 (
+DROP TABLE IF EXISTS public._staging_uthgra_agosto_2026;
+CREATE TABLE public._staging_uthgra_agosto_2026 (
   clase text, nivel integer, basico numeric, no_remunerativo numeric
-) ON COMMIT DROP;
+);
 
-INSERT INTO uthgra_agosto_2026 VALUES
+INSERT INTO public._staging_uthgra_agosto_2026 VALUES
  ('D',1, 990555, 68000), ('D',2,1047930,72000), ('D',3,1099139,75000),
  ('D',4,1157884, 79000), ('D',5,1210980,83000), ('D',6,1292026,88000),
  ('C',1,1013346, 69000), ('C',2,1080354,74000), ('C',3,1148481,79000),
@@ -46,14 +47,14 @@ SELECT gen_random_uuid(), '389/04',
        true,
        'CCT 389/04 arts. 10.1 y 11.1; acuerdo UTHGRA-FEHGRA 24/07/2026, Anexo I',
        'VERIFICADA_OFICIAL', true, 1
-FROM uthgra_agosto_2026 d
+FROM public._staging_uthgra_agosto_2026 d
 WHERE NOT EXISTS (
   SELECT 1 FROM public.cct_categoria c
   WHERE c.cct_numero='389/04' AND c.codigo='N' || d.nivel || '_CLASE_' || d.clase
 );
 
 UPDATE public.cct_categoria c SET activa=true
-FROM uthgra_agosto_2026 d
+FROM public._staging_uthgra_agosto_2026 d
 WHERE c.cct_numero='389/04' AND c.codigo='N' || d.nivel || '_CLASE_' || d.clase;
 
 DELETE FROM public.escala_salarial
@@ -67,7 +68,7 @@ SELECT gen_random_uuid(), '389/04',
        basico, DATE '2026-08-01', DATE '2026-08-31',
        'UTHGRA-FEHGRA · Acta 24/07/2026 · RE-2026-72653200 · Anexo I pág. 5',
        'PROVISORIA', false, 1, true
-FROM uthgra_agosto_2026;
+FROM public._staging_uthgra_agosto_2026;
 
 DELETE FROM public.parametro_legal
 WHERE cct_numero='389/04'
@@ -92,6 +93,8 @@ SELECT gen_random_uuid(),
          'aporte_obra_social', false,
          'aporte_sindicato', false
        )
-FROM uthgra_agosto_2026;
+FROM public._staging_uthgra_agosto_2026;
+
+DROP TABLE IF EXISTS public._staging_uthgra_agosto_2026;
 
 COMMIT;
