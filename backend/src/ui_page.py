@@ -473,6 +473,7 @@ HTML = r"""<!DOCTYPE html>
             <div class="fila">
               <div><label>Rama de actividad</label><select id="camRama"><option value="general">General</option><option value="larga_distancia">Larga distancia</option><option value="logistica">Logística</option><option value="combustibles">Combustibles</option><option value="sustancias_peligrosas">Sustancias peligrosas</option><option value="pozos_petroliferos">Pozos petrolíferos</option><option value="materia_prima_lactea">Materia prima láctea</option><option value="auxilio">Auxilio mecánico</option><option value="residuos">Residuos</option><option value="taller">Taller</option><option value="caudales">Caudales</option><option value="diarios_revistas">Diarios y revistas</option><option value="clearing">Clearing</option><option value="expreso_mudanza">Expreso y mudanza</option><option value="aguas_gaseosas">Aguas gaseosas</option></select></div>
               <div><label>Zona salarial</label><select id="camZona"><option value="BASE">Base</option><option value="COEF_1_20">Coeficiente 1,20</option><option value="COEF_1_40">Coeficiente 1,40</option></select></div>
+              <div><label>Grupo de taller</label><select id="camGrupoTaller"><option value="">No corresponde</option><option value="I">Grupo I</option><option value="II">Grupo II</option><option value="III">Grupo III</option></select><small style="color:#6b7280">Completalo para personal de taller.</small></div>
               <label><input id="camFrio" type="checkbox"> Trabajo habitual en cámara de frío</label>
             </div>
             <div class="fila" style="margin-top:10px">
@@ -1150,16 +1151,16 @@ const camposCamioneros={dias_comida:'camDiasComida',dias_viatico_especial:'camDi
 function datosCamioneros(){
   const emp=empleadosCache[$('novEmpleado').value];
   if(!emp || emp.cct_numero!=='40/89') return {};
-  const datos={rama:$('camRama').value,zona:$('camZona').value,camara_frio:$('camFrio').checked};
+  const datos={rama:$('camRama').value,zona:$('camZona').value,grupo_taller:$('camGrupoTaller').value,camara_frio:$('camFrio').checked};
   Object.entries(camposCamioneros).forEach(([campo,id])=>datos[campo]=numeroNov(id));
   return datos;
 }
 function limpiarCamioneros(){
-  $('camRama').value='general'; $('camZona').value='BASE'; $('camFrio').checked=false;
+  $('camRama').value='general'; $('camZona').value='BASE'; $('camGrupoTaller').value=''; $('camFrio').checked=false;
   Object.values(camposCamioneros).forEach(id=>$(id).value='0');
 }
 function cargarCamioneros(datos={}){
-  limpiarCamioneros(); $('camRama').value=datos.rama||'general'; $('camZona').value=datos.zona||'BASE'; $('camFrio').checked=Boolean(datos.camara_frio);
+  limpiarCamioneros(); $('camRama').value=datos.rama||'general'; $('camZona').value=datos.zona||'BASE'; $('camGrupoTaller').value=datos.grupo_taller||''; $('camFrio').checked=Boolean(datos.camara_frio);
   Object.entries(camposCamioneros).forEach(([campo,id])=>$(id).value=datos[campo]??0);
 }
 function datosUom(){
