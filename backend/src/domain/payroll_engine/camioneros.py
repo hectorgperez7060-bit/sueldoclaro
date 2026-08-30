@@ -19,6 +19,7 @@ RAMAS_CAMIONEROS = {
     "caudales", "diarios_revistas", "combustibles", "sustancias_peligrosas",
     "pozos_petroliferos", "clearing", "expreso_mudanza", "aguas_gaseosas",
     "logistica", "larga_distancia", "transporte_automoviles",
+    "asfalto_caliente", "transporte_pesado", "zafra",
 }
 
 
@@ -59,6 +60,7 @@ class NovedadesVariablesCamioneros:
     unidades_bitrenes: Decimal = Decimal("0")
     traslados_unidad_descarga: Decimal = Decimal("0")
     viajes_transporte_automoviles: Decimal = Decimal("0")
+    dias_asfalto_caliente: Decimal = Decimal("0")
 
 
 CAMPOS_CANTIDAD_CAMIONEROS = tuple(
@@ -187,6 +189,8 @@ def armar_recibo_camioneros_general(
     recargo_descripcion: str = "recolección de residuos",
     viajes_transporte_automoviles: Decimal = Decimal("0"),
     jornales_por_viaje_automoviles: Decimal = Decimal("1"),
+    dias_asfalto_caliente: Decimal = Decimal("0"),
+    jornales_por_dia_asfalto: Decimal = Decimal("1"),
 ) -> ResultadoLiquidacion:
     """Recibo de la rama general con incidencias explícitas del CCT 40/89.
 
@@ -280,6 +284,23 @@ def armar_recibo_camioneros_general(
             unidad=f"{factor_jornales} jornal por viaje · ítem 4.2.9",
         ))
         remunerativos_variables = remunerativos_variables + importe_autos
+
+    dias_asfalto = Decimal(str(dias_asfalto_caliente))
+    if dias_asfalto < 0 or dias_asfalto != dias_asfalto.to_integral_value():
+        raise ValueError("los días de operación con asfalto deben ser enteros no negativos")
+    if dias_asfalto:
+        factor_asfalto = Decimal(str(jornales_por_dia_asfalto))
+        if factor_asfalto <= 0:
+            raise ValueError("la cantidad convencional de jornales de asfalto no es válida")
+        jornal_asfalto = basico_proporcional.dividir(Decimal("24")).redondear()
+        importe_asfalto = jornal_asfalto.multiplicar(dias_asfalto * factor_asfalto).redondear()
+        conceptos.append(Concepto(
+            "RECARGO_ASFALTO_5_5_2",
+            "Operación con asfalto o producto caliente", TipoConcepto.REMUNERATIVO,
+            importe_asfalto, cantidad=dias_asfalto, base_calculo=jornal_asfalto,
+            unidad=f"{factor_asfalto} jornal por día · ítem 5.5.2",
+        ))
+        remunerativos_variables = remunerativos_variables + importe_asfalto
 
     base_antiguedad = (basico_proporcional + remunerativos_variables).redondear()
     antiguedad_pct = Decimal(int(anios_antiguedad)) / Decimal("100")
