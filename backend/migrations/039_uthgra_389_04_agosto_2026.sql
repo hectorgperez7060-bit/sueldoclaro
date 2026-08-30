@@ -66,7 +66,7 @@ SELECT gen_random_uuid(), '389/04',
        'Nivel ' || nivel || ' · Categoría ' || clase,
        basico, DATE '2026-08-01', DATE '2026-08-31',
        'UTHGRA-FEHGRA · Acta 24/07/2026 · RE-2026-72653200 · Anexo I pág. 5',
-       'ACUERDO_PRESENTADO_PENDIENTE_HOMOLOGACION', false, 1, true
+       'PENDIENTE_HOMOLOGACION', false, 1, true
 FROM uthgra_agosto_2026;
 
 DELETE FROM public.parametro_legal
@@ -82,7 +82,7 @@ SELECT gen_random_uuid(),
        no_remunerativo, 'ARS', 'no_rem',
        DATE '2026-08-01', DATE '2026-08-31',
        'UTHGRA-FEHGRA · Acta 24/07/2026 · RE-2026-72653200 · PRIMERO y Anexo I pág. 5',
-       'ACUERDO_PRESENTADO_PENDIENTE_HOMOLOGACION', false, 1, '389/04',
+       'PENDIENTE_HOMOLOGACION', false, 1, '389/04',
        jsonb_build_object(
          'categoria', 'Nivel ' || nivel || ' · Categoría ' || clase,
          'regla_jornada', 'proporcional',
