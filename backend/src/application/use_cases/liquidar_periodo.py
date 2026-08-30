@@ -18,7 +18,7 @@ from domain.entities.escala_verificada import evaluar_escala
 from domain.entities.parametros import ParametroLegal as ParamDom
 from domain.payroll_engine.engine import MotorLiquidacion, Novedades
 from domain.payroll_engine.uom import (
-    armar_recibo_uom, calcular_base_uom, calcular_compensacion_abril_julio_uom,
+    armar_recibo_uom, calcular_adicional_uom, calcular_base_uom, calcular_compensacion_abril_julio_uom,
     calcular_complemento_imgr, calcular_gratificacion_uom, habilitar_vista_previa_uom,
 )
 from domain.payroll_engine.uocra import (
@@ -429,6 +429,37 @@ class LiquidarPeriodo:
                             bool(detalle_uom.get("contrato_vigente_31_07")),
                             Dinero(Decimal(str(detalle_uom.get("pagos_a_cuenta_absorbibles") or 0))),
                         )
+                        grupo_uom = next(
+                            ((p.incidencias or {}).get("grupo")
+                             for p in params_emp.variables_convenio("260/75")
+                             if (p.incidencias or {}).get("tipo") == "garantia_ingreso"
+                             and (p.incidencias or {}).get("grupo") in escala.fuente),
+                            None,
+                        )
+                        if not grupo_uom:
+                            raise ValueError("no se pudo identificar la rama UOM de la categoría")
+                        catalogo_adicionales = {
+                            p.codigo: p for p in params_emp.variables_convenio("260/75")
+                            if (p.incidencias or {}).get("tipo") == "adicional_variable"
+                            and (p.incidencias or {}).get("grupo") == grupo_uom
+                        }
+                        adicionales = []
+                        for codigo, cantidad in (detalle_uom.get("adicionales") or {}).items():
+                            parametro = catalogo_adicionales.get(codigo)
+                            if parametro is None:
+                                raise ValueError(
+                                    f"el adicional {codigo} no corresponde a la rama UOM seleccionada"
+                                )
+                            incidencias = parametro.incidencias or {}
+                            adicionales.append((
+                                codigo,
+                                incidencias.get("descripcion") or codigo.replace("_", " ").title(),
+                                calcular_adicional_uom(
+                                    params_emp.valor_ars(codigo),
+                                    incidencias.get("modalidad") or "",
+                                    Decimal(str(cantidad)),
+                                ),
+                            ))
                         res = armar_recibo_uom(
                             emp.cuil, periodo, base, gratificacion, compensacion, imgr,
                             parametros.fraccion("APORTE_JUBILACION"),
@@ -438,6 +469,7 @@ class LiquidarPeriodo:
                             parametros.fraccion("CONTRIB_OBRA_SOCIAL"),
                             params_emp.valor_ars("SEGURO_VIDA_SEPELIO_UOM_TRAB"),
                             params_emp.valor_ars("SEGURO_VIDA_SEPELIO_UOM_EMP"),
+                            adicionales,
                         )
                     except (KeyError, StopIteration, TypeError, ValueError) as exc:
                         bloqueos.append({
