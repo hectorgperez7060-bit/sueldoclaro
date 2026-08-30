@@ -205,7 +205,7 @@ async def gestor_normativo(
                 "motor_habilitado": motor_periodo_habilitado,
                 "vista_previa_habilitada": vista_previa_habilitada,
                 "mensaje_motor": (
-                    "Rama general y larga distancia disponibles; ramas especiales pendientes"
+                    "Disponibles: general, larga distancia, lácteos, auxilio, diarios, combustibles y sustancias peligrosas; otras ramas pendientes"
                     if cct.numero == "40/89" and vista_previa_habilitada else None
                 ),
             },

@@ -132,3 +132,15 @@ def test_larga_distancia_suma_un_jornal_remunerativo_por_traslado():
     assert traslado.importe.monto == Decimal("100000.00")
     assert traslado.tipo.value == "remunerativo"
     assert recibo.concepto("APORTE_JUBILACION").base_calculo.monto == Decimal("1300000.00")
+
+
+def test_adicional_porcentual_de_rama_integra_antiguedad_y_aportes():
+    recibo = armar_recibo_camioneros_general(
+        "20123456789", Periodo(2026, 8), Dinero.de("1000000"), 2,
+        Decimal("1"), (), Decimal("0.11"), Decimal("0.03"), Decimal("0.03"),
+        Decimal("0.18"), Decimal("0.05"), Decimal("0"),
+        ("CAM_RAMA_COMBUSTIBLES_PCT", "Adicional combustibles", Decimal("0.15")),
+    )
+    assert recibo.concepto("CAM_RAMA_COMBUSTIBLES_PCT").importe.monto == Decimal("150000.00")
+    assert recibo.concepto("ANTIGUEDAD").importe.monto == Decimal("23000.00")
+    assert recibo.concepto("APORTE_JUBILACION").base_calculo.monto == Decimal("1173000.00")

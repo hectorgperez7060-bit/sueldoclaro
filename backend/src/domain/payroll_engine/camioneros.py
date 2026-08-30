@@ -170,6 +170,7 @@ def armar_recibo_camioneros_general(
     contrib_seguridad_pct: Decimal,
     contrib_obra_social_pct: Decimal,
     traslados_unidad_descarga: Decimal = Decimal("0"),
+    adicional_rama: tuple[str, str, Decimal] | None = None,
 ) -> ResultadoLiquidacion:
     """Recibo de la rama general con incidencias explícitas del CCT 40/89.
 
@@ -190,6 +191,18 @@ def armar_recibo_camioneros_general(
         basico_proporcional, base_calculo=basico, unidad="mes",
     )]
     remunerativos_variables = Dinero.cero()
+    if adicional_rama is not None:
+        codigo_rama, descripcion_rama, porcentaje_rama = adicional_rama
+        porcentaje = Decimal(str(porcentaje_rama))
+        if porcentaje <= 0 or porcentaje > Decimal("1"):
+            raise ValueError("el porcentaje de rama Camioneros no es válido")
+        importe_rama = basico_proporcional.porcentaje(porcentaje).redondear()
+        conceptos.append(Concepto(
+            codigo_rama, descripcion_rama, TipoConcepto.REMUNERATIVO,
+            importe_rama, base_calculo=basico_proporcional,
+            unidad=f"{porcentaje * 100}% sobre básico de categoría",
+        ))
+        remunerativos_variables = remunerativos_variables + importe_rama
     for variable in variables:
         tipo = (
             TipoConcepto.NO_REMUNERATIVO

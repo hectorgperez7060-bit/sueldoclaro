@@ -407,7 +407,28 @@ class LiquidarPeriodo:
                     try:
                         detalle_cam = nv.get("camioneros_detalle") or {}
                         rama = str(detalle_cam.get("rama") or "general")
-                        if rama not in {"general", "larga_distancia"}:
+                        ramas_porcentuales = {
+                            "materia_prima_lactea": (
+                                "CAM_RAMA_MATERIA_PRIMA_LACTEA_PCT",
+                                "Adicional transporte de materia prima láctea",
+                                "conductor",
+                            ),
+                            "auxilio": (
+                                "CAM_RAMA_AUXILIO_PCT", "Adicional camión de auxilio", "conductor",
+                            ),
+                            "diarios_revistas": (
+                                "CAM_RAMA_DIARIOS_REVISTAS_PCT",
+                                "Adicional distribución de diarios y revistas", "primera",
+                            ),
+                            "combustibles": (
+                                "CAM_RAMA_COMBUSTIBLES_PCT", "Adicional transporte de combustibles", "primera",
+                            ),
+                            "sustancias_peligrosas": (
+                                "CAM_RAMA_SUSTANCIAS_PELIGROSAS_PCT",
+                                "Adicional transporte de sustancias peligrosas", "primera",
+                            ),
+                        }
+                        if rama not in {"general", "larga_distancia", *ramas_porcentuales}:
                             raise ValueError(
                                 f"la rama {rama.replace('_', ' ')} conserva adicionales específicos pendientes de integrar"
                             )
@@ -429,6 +450,17 @@ class LiquidarPeriodo:
                         ):
                             raise ValueError(
                                 "larga distancia no usa comida, viático especial ni pernoctada de los ítems 4.1"
+                            )
+                        adicional_rama = None
+                        if rama in ramas_porcentuales:
+                            codigo_pct, descripcion_pct, requisito = ramas_porcentuales[rama]
+                            categoria_normalizada = emp.categoria.casefold()
+                            if "conductor" not in categoria_normalizada:
+                                raise ValueError("esta rama requiere una categoría de conductor")
+                            if requisito == "primera" and "primera" not in categoria_normalizada:
+                                raise ValueError("esta rama se calcula sobre conductor de primera categoría")
+                            adicional_rama = (
+                                codigo_pct, descripcion_pct, params_emp.fraccion(codigo_pct)
                             )
                         if novedad_cam.zona != escala.zona:
                             raise ValueError(
@@ -460,6 +492,7 @@ class LiquidarPeriodo:
                             parametros.fraccion("CONTRIB_JUBILACION"),
                             parametros.fraccion("CONTRIB_OBRA_SOCIAL"),
                             Decimal(str(detalle_cam.get("traslados_unidad_descarga") or 0)),
+                            adicional_rama,
                         )
                     except (AttributeError, KeyError, TypeError, ValueError) as exc:
                         bloqueos.append({
