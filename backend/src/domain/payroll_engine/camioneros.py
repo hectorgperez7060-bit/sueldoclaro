@@ -57,6 +57,7 @@ class NovedadesVariablesCamioneros:
     ingresos_egresos_tdf: Decimal = Decimal("0")
     dias_plus_vacacional: Decimal = Decimal("0")
     unidades_bitrenes: Decimal = Decimal("0")
+    traslados_unidad_descarga: Decimal = Decimal("0")
 
 
 CAMPOS_CANTIDAD_CAMIONEROS = tuple(
@@ -168,6 +169,7 @@ def armar_recibo_camioneros_general(
     obra_social_pct: Decimal,
     contrib_seguridad_pct: Decimal,
     contrib_obra_social_pct: Decimal,
+    traslados_unidad_descarga: Decimal = Decimal("0"),
 ) -> ResultadoLiquidacion:
     """Recibo de la rama general con incidencias explícitas del CCT 40/89.
 
@@ -201,6 +203,20 @@ def armar_recibo_camioneros_general(
         ))
         if tipo == TipoConcepto.REMUNERATIVO:
             remunerativos_variables = remunerativos_variables + variable.importe
+
+    traslados = Decimal(str(traslados_unidad_descarga))
+    if traslados < 0 or traslados != traslados.to_integral_value():
+        raise ValueError("los traslados para descarga deben ser una cantidad entera no negativa")
+    if traslados:
+        jornal = basico_proporcional.dividir(Decimal("24")).redondear()
+        importe_traslados = jornal.multiplicar(traslados).redondear()
+        conceptos.append(Concepto(
+            "TRASLADO_UNIDAD_DESCARGA_4_2_6",
+            "Traslado de la unidad para descarga", TipoConcepto.REMUNERATIVO,
+            importe_traslados, cantidad=traslados, base_calculo=jornal,
+            unidad="jornal por traslado · ítem 4.2.6",
+        ))
+        remunerativos_variables = remunerativos_variables + importe_traslados
 
     base_antiguedad = (basico_proporcional + remunerativos_variables).redondear()
     antiguedad_pct = Decimal(int(anios_antiguedad)) / Decimal("100")
