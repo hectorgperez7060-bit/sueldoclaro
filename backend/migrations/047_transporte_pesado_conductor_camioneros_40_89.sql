@@ -19,7 +19,7 @@ SELECT
   gen_random_uuid(), codigo, valor, '%', 'rama_pct',
   DATE '2026-08-01', DATE '2026-08-31',
   'CCT 40/89 ítem 5.8.1.2.a; Laudo 16/04/1990 homologado Disp. DNRT 2932/90',
-  'NORMA_HOMOLOGADA', true, 1, '40/89',
+  'VERIFICADA_OFICIAL', true, 1, '40/89',
   jsonb_build_object(
     'descripcion', descripcion,
     'base', 'basico_conductor_primera',
