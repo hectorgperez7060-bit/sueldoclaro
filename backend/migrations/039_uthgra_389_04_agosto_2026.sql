@@ -1,100 +1,157 @@
 -- UTHGRA-FEHGRA CCT 389/04 · básicos y segunda cuota NR de agosto 2026.
--- Fuente oficial publicada por UTHGRA:
--- RE-2026-72653200-APN-CGDTEYS#MCH, Acta 24/07/2026, Anexo I, pág. 5 de 5.
+-- Fuente oficial: RE-2026-72653200-APN-CGDTEYS#MCH,
+-- Acta 24/07/2026, Anexo I, pág. 5 de 5.
 --
--- El acuerdo fue presentado y ratificado, pero al 30/08/2026 no se encontró
--- acto homologatorio oficial publicado. Por eso los valores quedan cargados
--- para prueba y trazabilidad con is_verified=false: no deben cerrar una
--- liquidación definitiva hasta incorporar la homologación.
+-- Operación atómica sin tablas auxiliares. El acuerdo fue presentado y
+-- ratificado, pero al 30/08/2026 no se encontró acto homologatorio publicado.
+-- Por eso la escala queda PROVISORIA, is_verified=false y provisoria=true.
 
-BEGIN;
+DO $migracion$
+DECLARE
+  r record;
+  categoria_nombre text;
+  categoria_codigo text;
+  parametro_codigo text;
+  cantidad_escalas integer;
+  cantidad_parametros integer;
+BEGIN
+  UPDATE public.cct
+     SET nombre='Gastronómicos y Hoteleros',
+         sindicato='UTHGRA',
+         antiguedad_pct_por_anio=0,
+         aplica_presentismo=false,
+         aplica_cuota_sindical=false,
+         activo=true
+   WHERE numero='389/04';
 
-UPDATE public.cct SET
-  nombre='Gastronómicos y Hoteleros', sindicato='UTHGRA',
-  antiguedad_pct_por_anio=0, aplica_presentismo=false,
-  aplica_cuota_sindical=false, activo=true
-WHERE numero='389/04';
+  UPDATE public.cct_categoria
+     SET activa=false
+   WHERE cct_numero='389/04';
 
-DROP TABLE IF EXISTS public._staging_uthgra_agosto_2026;
-CREATE TABLE public._staging_uthgra_agosto_2026 (
-  clase text, nivel integer, basico numeric, no_remunerativo numeric
-);
+  DELETE FROM public.escala_salarial
+   WHERE cct_numero='389/04'
+     AND valid_from=DATE '2026-08-01';
 
-INSERT INTO public._staging_uthgra_agosto_2026 VALUES
- ('D',1, 990555, 68000), ('D',2,1047930,72000), ('D',3,1099139,75000),
- ('D',4,1157884, 79000), ('D',5,1210980,83000), ('D',6,1292026,88000),
- ('C',1,1013346, 69000), ('C',2,1080354,74000), ('C',3,1148481,79000),
- ('C',4,1195083, 82000), ('C',5,1243418,85000), ('C',6,1337186,91000),
- ('B',1,1038120, 71000), ('B',2,1102324,75000), ('B',3,1180295,81000),
- ('B',4,1217642, 83000), ('B',5,1271299,87000), ('B',6,1384689,95000),
- ('B',7,1538297,105000),
- ('A',1,1074307, 74000), ('A',2,1141004,78000), ('A',3,1220868,83000),
- ('A',4,1284118, 88000), ('A',5,1356517,93000), ('A',6,1429981,98000),
- ('A',7,1840959,126000),
- ('ESP',1,1206779, 83000), ('ESP',2,1281272,88000), ('ESP',3,1342334,92000),
- ('ESP',4,1424619,97000), ('ESP',5,1483366,101000), ('ESP',6,1524806,104000),
- ('ESP',7,1970475,134000);
+  DELETE FROM public.parametro_legal
+   WHERE cct_numero='389/04'
+     AND codigo LIKE 'UTHGRA_ACUERDO_2026_SEGUNDA_%'
+     AND valid_from=DATE '2026-08-01';
 
-UPDATE public.cct_categoria SET activa=false WHERE cct_numero='389/04';
+  FOR r IN
+    SELECT *
+      FROM (VALUES
+        ('D',1, 990555::numeric, 68000::numeric),
+        ('D',2,1047930::numeric, 72000::numeric),
+        ('D',3,1099139::numeric, 75000::numeric),
+        ('D',4,1157884::numeric, 79000::numeric),
+        ('D',5,1210980::numeric, 83000::numeric),
+        ('D',6,1292026::numeric, 88000::numeric),
+        ('C',1,1013346::numeric, 69000::numeric),
+        ('C',2,1080354::numeric, 74000::numeric),
+        ('C',3,1148481::numeric, 79000::numeric),
+        ('C',4,1195083::numeric, 82000::numeric),
+        ('C',5,1243418::numeric, 85000::numeric),
+        ('C',6,1337186::numeric, 91000::numeric),
+        ('B',1,1038120::numeric, 71000::numeric),
+        ('B',2,1102324::numeric, 75000::numeric),
+        ('B',3,1180295::numeric, 81000::numeric),
+        ('B',4,1217642::numeric, 83000::numeric),
+        ('B',5,1271299::numeric, 87000::numeric),
+        ('B',6,1384689::numeric, 95000::numeric),
+        ('B',7,1538297::numeric,105000::numeric),
+        ('A',1,1074307::numeric, 74000::numeric),
+        ('A',2,1141004::numeric, 78000::numeric),
+        ('A',3,1220868::numeric, 83000::numeric),
+        ('A',4,1284118::numeric, 88000::numeric),
+        ('A',5,1356517::numeric, 93000::numeric),
+        ('A',6,1429981::numeric, 98000::numeric),
+        ('A',7,1840959::numeric,126000::numeric),
+        ('ESP',1,1206779::numeric, 83000::numeric),
+        ('ESP',2,1281272::numeric, 88000::numeric),
+        ('ESP',3,1342334::numeric, 92000::numeric),
+        ('ESP',4,1424619::numeric, 97000::numeric),
+        ('ESP',5,1483366::numeric,101000::numeric),
+        ('ESP',6,1524806::numeric,104000::numeric),
+        ('ESP',7,1970475::numeric,134000::numeric)
+      ) AS datos(clase,nivel,basico,no_remunerativo)
+  LOOP
+    categoria_nombre := 'Nivel ' || r.nivel || ' · Categoría ' || r.clase;
+    categoria_codigo := 'N' || r.nivel || '_CLASE_' || r.clase;
+    parametro_codigo := 'UTHGRA_ACUERDO_2026_SEGUNDA_N' || r.nivel || '_' || r.clase;
 
-INSERT INTO public.cct_categoria
-  (id,cct_numero,codigo,nombre,orden,activa,fuente,estado_fuente,is_verified,version)
-SELECT gen_random_uuid(), '389/04',
-       'N' || nivel || '_CLASE_' || clase,
-       'Nivel ' || nivel || ' · Categoría ' || clase,
-       CASE clase WHEN 'D' THEN 0 WHEN 'C' THEN 100 WHEN 'B' THEN 200
-                  WHEN 'A' THEN 300 ELSE 400 END + nivel * 10,
-       true,
-       'CCT 389/04 arts. 10.1 y 11.1; acuerdo UTHGRA-FEHGRA 24/07/2026, Anexo I',
-       'VERIFICADA_OFICIAL', true, 1
-FROM public._staging_uthgra_agosto_2026 d
-WHERE NOT EXISTS (
-  SELECT 1 FROM public.cct_categoria c
-  WHERE c.cct_numero='389/04' AND c.codigo='N' || d.nivel || '_CLASE_' || d.clase
-);
+    IF EXISTS (
+      SELECT 1 FROM public.cct_categoria
+       WHERE cct_numero='389/04' AND codigo=categoria_codigo
+    ) THEN
+      UPDATE public.cct_categoria
+         SET nombre=categoria_nombre,
+             orden=(CASE r.clase
+                      WHEN 'D' THEN 0 WHEN 'C' THEN 100
+                      WHEN 'B' THEN 200 WHEN 'A' THEN 300 ELSE 400
+                    END) + r.nivel * 10,
+             activa=true,
+             fuente='CCT 389/04 arts. 10.1 y 11.1; acuerdo UTHGRA-FEHGRA 24/07/2026, Anexo I',
+             estado_fuente='VERIFICADA_OFICIAL',
+             is_verified=true
+       WHERE cct_numero='389/04' AND codigo=categoria_codigo;
+    ELSE
+      INSERT INTO public.cct_categoria
+        (id,cct_numero,codigo,nombre,orden,activa,fuente,
+         estado_fuente,is_verified,version)
+      VALUES
+        (gen_random_uuid(),'389/04',categoria_codigo,categoria_nombre,
+         (CASE r.clase
+            WHEN 'D' THEN 0 WHEN 'C' THEN 100
+            WHEN 'B' THEN 200 WHEN 'A' THEN 300 ELSE 400
+          END) + r.nivel * 10,
+         true,
+         'CCT 389/04 arts. 10.1 y 11.1; acuerdo UTHGRA-FEHGRA 24/07/2026, Anexo I',
+         'VERIFICADA_OFICIAL',true,1);
+    END IF;
 
-UPDATE public.cct_categoria c SET activa=true
-FROM public._staging_uthgra_agosto_2026 d
-WHERE c.cct_numero='389/04' AND c.codigo='N' || d.nivel || '_CLASE_' || d.clase;
-
-DELETE FROM public.escala_salarial
-WHERE cct_numero='389/04' AND valid_from=DATE '2026-08-01';
-
-INSERT INTO public.escala_salarial
-  (id,cct_numero,categoria,basico,valid_from,valid_to,fuente,
-   estado_fuente,is_verified,version,provisoria)
-SELECT gen_random_uuid(), '389/04',
-       'Nivel ' || nivel || ' · Categoría ' || clase,
-       basico, DATE '2026-08-01', DATE '2026-08-31',
+    INSERT INTO public.escala_salarial
+      (id,cct_numero,categoria,basico,valid_from,valid_to,fuente,
+       estado_fuente,is_verified,version,provisoria)
+    VALUES
+      (gen_random_uuid(),'389/04',categoria_nombre,r.basico,
+       DATE '2026-08-01',DATE '2026-08-31',
        'UTHGRA-FEHGRA · Acta 24/07/2026 · RE-2026-72653200 · Anexo I pág. 5',
-       'PROVISORIA', false, 1, true
-FROM public._staging_uthgra_agosto_2026;
+       'PROVISORIA',false,1,true);
 
-DELETE FROM public.parametro_legal
-WHERE cct_numero='389/04'
-  AND codigo LIKE 'UTHGRA_ACUERDO_2026_SEGUNDA_%'
-  AND valid_from=DATE '2026-08-01';
-
-INSERT INTO public.parametro_legal
-  (id,codigo,valor,unidad,ambito,valid_from,valid_to,fuente,
-   estado_fuente,is_verified,version,cct_numero,incidencias)
-SELECT gen_random_uuid(),
-       'UTHGRA_ACUERDO_2026_SEGUNDA_N' || nivel || '_' || clase,
-       no_remunerativo, 'ARS', 'no_rem',
-       DATE '2026-08-01', DATE '2026-08-31',
+    INSERT INTO public.parametro_legal
+      (id,codigo,valor,unidad,ambito,valid_from,valid_to,fuente,
+       estado_fuente,is_verified,version,cct_numero,incidencias)
+    VALUES
+      (gen_random_uuid(),parametro_codigo,r.no_remunerativo,'ARS','no_rem',
+       DATE '2026-08-01',DATE '2026-08-31',
        'UTHGRA-FEHGRA · Acta 24/07/2026 · RE-2026-72653200 · PRIMERO y Anexo I pág. 5',
-       'PROVISORIA', false, 1, '389/04',
+       'PROVISORIA',false,1,'389/04',
        jsonb_build_object(
-         'categoria', 'Nivel ' || nivel || ' · Categoría ' || clase,
-         'regla_jornada', 'proporcional',
-         'integra_antiguedad', false,
-         'integra_presentismo', false,
-         'aporte_jubilacion', false,
-         'aporte_obra_social', false,
-         'aporte_sindicato', false
-       )
-FROM public._staging_uthgra_agosto_2026;
+         'categoria',categoria_nombre,
+         'regla_jornada','proporcional',
+         'integra_antiguedad',false,
+         'integra_presentismo',false,
+         'aporte_jubilacion',false,
+         'aporte_obra_social',false,
+         'aporte_sindicato',false
+       ));
+  END LOOP;
 
-DROP TABLE IF EXISTS public._staging_uthgra_agosto_2026;
+  SELECT count(*) INTO cantidad_escalas
+    FROM public.escala_salarial
+   WHERE cct_numero='389/04'
+     AND valid_from=DATE '2026-08-01';
 
-COMMIT;
+  SELECT count(*) INTO cantidad_parametros
+    FROM public.parametro_legal
+   WHERE cct_numero='389/04'
+     AND codigo LIKE 'UTHGRA_ACUERDO_2026_SEGUNDA_%'
+     AND valid_from=DATE '2026-08-01';
+
+  IF cantidad_escalas <> 33 OR cantidad_parametros <> 33 THEN
+    RAISE EXCEPTION
+      'Control UTHGRA falló: escalas %, parámetros %',
+      cantidad_escalas, cantidad_parametros;
+  END IF;
+END
+$migracion$;
