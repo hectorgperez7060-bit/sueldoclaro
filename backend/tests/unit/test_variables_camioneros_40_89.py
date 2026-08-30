@@ -218,3 +218,17 @@ def test_logistica_recarga_basico_comida_y_viatico():
     assert recibo.concepto("CAM_LOGISTICA_PCT").importe.monto == Decimal("200000.00")
     assert recibo.concepto("RECARGO_COMIDA_LOGISTICA_5_12").tipo.value == "no_remunerativo"
     assert recibo.concepto("RECARGO_VIATICO_LOGISTICA_5_12").tipo.value == "no_remunerativo"
+
+
+def test_asfalto_suma_un_jornal_por_dia_sobre_adicional_combustibles():
+    recibo = armar_recibo_camioneros_general(
+        "20123456789", Periodo(2026, 8), Dinero.de("1200000"), 0,
+        Decimal("1"), (), Decimal("0.11"), Decimal("0.03"), Decimal("0.03"),
+        Decimal("0.18"), Decimal("0.05"), Decimal("0"),
+        (("CAM_RAMA_COMBUSTIBLES_PCT", "Adicional combustibles", Decimal("0.15")),),
+        Decimal("0"), Decimal("0"), "ASFALTO_5_5_2", "asfalto", Decimal("0"),
+        Decimal("1"), Decimal("2"), Decimal("1"),
+    )
+    assert recibo.concepto("CAM_RAMA_COMBUSTIBLES_PCT").importe.monto == Decimal("180000.00")
+    assert recibo.concepto("RECARGO_ASFALTO_5_5_2").importe.monto == Decimal("100000.00")
+    assert recibo.concepto("APORTE_JUBILACION").base_calculo.monto == Decimal("1480000.00")
