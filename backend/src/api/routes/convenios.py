@@ -135,6 +135,11 @@ async def gestor_normativo(
                 e.categoria == nombre and e.is_verified and (e.fuente or '').strip()
                 for e in historicas
             ))
+        # Cuando existe un padrón estructural, una escala histórica cuya
+        # categoría ya no está activa no forma parte de la cobertura actual.
+        # Se conserva en la base, pero no debe sumar ni bloquear el semáforo.
+        if estructura_registrada:
+            esc = [e for e in esc if e.categoria in nombres_categorias]
         # Una categoría puede conservar más de una versión histórica/solapada.
         # El semáforo cuenta coberturas únicas, no filas físicas, para no mostrar
         # 248/247 ni bloquear un motor por un duplicado legado.
