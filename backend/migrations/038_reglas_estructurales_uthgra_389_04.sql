@@ -17,10 +17,10 @@ VALUES
   'VERIFICADA_OFICIAL',true,1,true),
 
  (gen_random_uuid(),'389/04','MATRIZ_NIVEL_ESTABLECIMIENTO','encuadramiento',
-  'El básico resulta del nivel profesional y de la clase/categoría I a V del establecimiento.',
+  'El básico vigente resulta del nivel profesional y de la categoría salarial D, C, B, A o ESP.',
   '10.1 y 11.1',
-  '{"entradas_obligatorias":["nivel_profesional","clase_establecimiento"],"niveles":[0,1,2,3,4,5,6,7],"clases":["I","II","III","IV","V"],"bloquea_sin_dato":true}'::jsonb,
-  'CCT 389/04 oficial UTHGRA, págs. 18 a 22',
+  '{"entradas_obligatorias":["nivel_profesional","clase_establecimiento"],"niveles":[1,2,3,4,5,6,7],"clases":["D","C","B","A","ESP"],"combinaciones":{"D":[1,2,3,4,5,6],"C":[1,2,3,4,5,6],"B":[1,2,3,4,5,6,7],"A":[1,2,3,4,5,6,7],"ESP":[1,2,3,4,5,6,7]},"bloquea_sin_dato":true}'::jsonb,
+  'CCT 389/04 y acuerdo UTHGRA-FEHGRA 24/07/2026, Anexo I',
   'VERIFICADA_OFICIAL',true,1,true),
 
  (gen_random_uuid(),'389/04','TAREAS_POR_NIVEL','encuadramiento',
@@ -31,10 +31,10 @@ VALUES
   'VERIFICADA_OFICIAL',true,1,true),
 
  (gen_random_uuid(),'389/04','CLASE_ESTABLECIMIENTO','encuadramiento',
-  'La actividad, estrellas o categoría comercial se convierten en clase salarial I a V.',
+  'La categoría salarial D, C, B, A o ESP debe corresponder a la clasificación vigente del establecimiento.',
   '11.1',
-  '{"I":["ALOJAMIENTO_1_ESTRELLA","HOSPEDAJE_PENSION","RESTAURANTE_D","BAR_C","DESPACHO_SIN_SALON","GASTRONOMICO_D"],"II":["ALOJAMIENTO_2_ESTRELLAS","RESTAURANTE_C","PIZZERIA_CON_SALON","BAR_B","CATERING_C","GASTRONOMICO_C"],"III":["ALOJAMIENTO_3_ESTRELLAS","RESTAURANTE_B","HELADERIA_CON_SALON","CABARET_BOITE_VARIETE","BAR_A","CATERING_B","GASTRONOMICO_B"],"IV":["ALOJAMIENTO_4_ESTRELLAS","RESTAURANTE_A","CATERING_A","GASTRONOMICO_A"],"V":["ALOJAMIENTO_5_ESTRELLAS"],"bloquea_sin_clasificacion":true}'::jsonb,
-  'CCT 389/04 oficial UTHGRA, págs. 21 y 22',
+  '{"categorias":["D","C","B","A","ESP"],"requiere_clasificacion_vigente":true,"bloquea_sin_clasificacion":true}'::jsonb,
+  'Acuerdo UTHGRA-FEHGRA 24/07/2026, Anexo I; clasificación del CCT 389/04',
   'VERIFICADA_OFICIAL',true,1,true),
 
  (gen_random_uuid(),'389/04','BASE_ADICIONALES','base_calculo',
