@@ -4,9 +4,9 @@ from pathlib import Path
 SQL = (Path(__file__).parents[2] / "migrations" / "038_reglas_estructurales_uthgra_389_04.sql").read_text()
 
 
-def test_no_excluye_tucuman_ni_inventa_importes_mensuales():
-    assert '"territorio":"ARGENTINA","exclusiones":[]' in SQL
-    assert "TUCUMAN" not in SQL
+def test_ambito_actual_excluye_tucuman_y_no_inventa_importes_mensuales():
+    assert '"territorio":"ARGENTINA","exclusiones":["TUCUMAN"]' in SQL
+    assert "Acuerdo UTHGRA-FEHGRA 24/07/2026" in SQL
     assert "INSERT INTO public.escala_salarial" not in SQL
     assert "INSERT INTO public.parametro_legal" not in SQL
 
