@@ -180,7 +180,7 @@ async def gestor_normativo(
         escala_completa = bool(nombres_categorias) and esc_ok == escalas_esperadas
         motor_periodo_habilitado = escala_completa and esc_habilitadas == escalas_esperadas
         vista_previa_habilitada = False
-        if cct.numero == "260/75" and estructura_completa and escala_completa:
+        if cct.numero in {"260/75", "40/89"} and estructura_completa and escala_completa:
             vista_previa_habilitada = not motor_periodo_habilitado
         if estructura_completa and escala_completa and motor_periodo_habilitado:
             estado = "completo"
@@ -204,6 +204,10 @@ async def gestor_normativo(
                 "parametros": len(par), "completa": escala_completa,
                 "motor_habilitado": motor_periodo_habilitado,
                 "vista_previa_habilitada": vista_previa_habilitada,
+                "mensaje_motor": (
+                    "Rama general y larga distancia disponibles; ramas especiales pendientes"
+                    if cct.numero == "40/89" and vista_previa_habilitada else None
+                ),
             },
         })
     return salida
