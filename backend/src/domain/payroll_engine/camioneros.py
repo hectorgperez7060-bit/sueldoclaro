@@ -177,6 +177,9 @@ def armar_recibo_camioneros_general(
     traslados_unidad_descarga: Decimal = Decimal("0"),
     adicionales_rama: tuple[tuple[str, str, Decimal], ...] = (),
     recargo_comida_pct: Decimal = Decimal("0"),
+    recargo_viatico_pct: Decimal = Decimal("0"),
+    recargo_codigo: str = "RESIDUOS_5_3_11",
+    recargo_descripcion: str = "recolección de residuos",
 ) -> ResultadoLiquidacion:
     """Recibo de la rama general con incidencias explícitas del CCT 40/89.
 
@@ -221,14 +224,20 @@ def armar_recibo_camioneros_general(
         ))
         if tipo == TipoConcepto.REMUNERATIVO:
             remunerativos_variables = remunerativos_variables + variable.importe
-        if variable.codigo == "COMIDA_4_1_12" and Decimal(str(recargo_comida_pct)):
-            recargo_pct = Decimal(str(recargo_comida_pct))
+        porcentaje_recargo = (
+            Decimal(str(recargo_comida_pct)) if variable.codigo == "COMIDA_4_1_12"
+            else Decimal(str(recargo_viatico_pct)) if variable.codigo == "VIATICO_ESPECIAL_4_1_13"
+            else Decimal("0")
+        )
+        if porcentaje_recargo:
+            recargo_pct = porcentaje_recargo
             if recargo_pct <= 0 or recargo_pct > Decimal("1"):
-                raise ValueError("el recargo de comida Camioneros no es válido")
+                raise ValueError("el recargo de viáticos Camioneros no es válido")
             recargo = variable.importe.porcentaje(recargo_pct).redondear()
+            tipo_variable = "COMIDA" if variable.codigo == "COMIDA_4_1_12" else "VIATICO"
             conceptos.append(Concepto(
-                "RECARGO_COMIDA_RESIDUOS_5_3_11",
-                "Adicional de comida · recolección de residuos",
+                f"RECARGO_{tipo_variable}_{recargo_codigo}",
+                f"Adicional de {tipo_variable.casefold()} · {recargo_descripcion}",
                 TipoConcepto.NO_REMUNERATIVO, recargo,
                 cantidad=variable.cantidad, base_calculo=variable.importe,
                 unidad=f"{recargo_pct * 100}% sobre comida",
