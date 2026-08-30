@@ -407,11 +407,29 @@ class LiquidarPeriodo:
                     try:
                         detalle_cam = nv.get("camioneros_detalle") or {}
                         rama = str(detalle_cam.get("rama") or "general")
-                        if rama != "general":
+                        if rama not in {"general", "larga_distancia"}:
                             raise ValueError(
                                 f"la rama {rama.replace('_', ' ')} conserva adicionales específicos pendientes de integrar"
                             )
                         novedad_cam = novedades_camioneros_desde_dict(detalle_cam)
+                        campos_larga_distancia = (
+                            "kilometros_extra", "kilometros_viatico", "dias_en_viaje",
+                            "viajes_cordilleranos", "permanencias", "simples_presencias",
+                            "permanencias_sur", "simples_presencias_sur", "cruces_frontera",
+                            "ingresos_egresos_tdf", "traslados_unidad_descarga",
+                        )
+                        if rama == "general" and any(
+                            Decimal(str(detalle_cam.get(campo) or 0)) > 0
+                            for campo in campos_larga_distancia
+                        ):
+                            raise ValueError("los kilómetros, permanencias y traslados requieren rama larga distancia")
+                        if rama == "larga_distancia" and any(
+                            Decimal(str(detalle_cam.get(campo) or 0)) > 0
+                            for campo in ("dias_comida", "dias_viatico_especial", "pernoctadas")
+                        ):
+                            raise ValueError(
+                                "larga distancia no usa comida, viático especial ni pernoctada de los ítems 4.1"
+                            )
                         if novedad_cam.zona != escala.zona:
                             raise ValueError(
                                 "la zona de la novedad no coincide con la zona del establecimiento"
@@ -441,6 +459,7 @@ class LiquidarPeriodo:
                             parametros.fraccion("APORTE_OBRA_SOCIAL"),
                             parametros.fraccion("CONTRIB_JUBILACION"),
                             parametros.fraccion("CONTRIB_OBRA_SOCIAL"),
+                            Decimal(str(detalle_cam.get("traslados_unidad_descarga") or 0)),
                         )
                     except (AttributeError, KeyError, TypeError, ValueError) as exc:
                         bloqueos.append({
