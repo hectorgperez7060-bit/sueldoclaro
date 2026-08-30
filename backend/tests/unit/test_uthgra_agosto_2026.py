@@ -43,10 +43,10 @@ def test_matriz_oficial_tiene_33_combinaciones_y_no_fabrica_homologacion():
 
 
 def test_agosto_conserva_basico_y_segunda_cuota_exactos_del_anexo():
-    assert "('D',1, 990555, 68000)" in SQL
-    assert "('B',7,1538297,105000)" in SQL
-    assert "('A',7,1840959,126000)" in SQL
-    assert "('ESP',7,1970475,134000)" in SQL
+    assert "('D',1, 990555::numeric, 68000::numeric)" in SQL
+    assert "('B',7,1538297::numeric,105000::numeric)" in SQL
+    assert "('A',7,1840959::numeric,126000::numeric)" in SQL
+    assert "('ESP',7,1970475::numeric,134000::numeric)" in SQL
 
 
 def test_motor_aplica_antiguedad_asistencia_y_servicio_sobre_basico():
