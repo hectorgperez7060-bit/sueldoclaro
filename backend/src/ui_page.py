@@ -471,9 +471,11 @@ HTML = r"""<!DOCTYPE html>
             <b>Variables de viaje y rama — Camioneros CCT 40/89</b>
             <p style="font-size:.82rem;color:#6b7280;margin:5px 0 10px">Cargá solo hechos del período. Los ceros no generan conceptos y la app controla mínimos de 350 km por día y 700 km por viaje cordillerano.</p>
             <div class="fila">
-              <div><label>Rama de actividad</label><select id="camRama"><option value="general">General</option><option value="larga_distancia">Larga distancia</option><option value="logistica">Logística</option><option value="combustibles">Combustibles</option><option value="sustancias_peligrosas">Sustancias peligrosas</option><option value="pozos_petroliferos">Pozos petrolíferos</option><option value="materia_prima_lactea">Materia prima láctea</option><option value="auxilio">Auxilio mecánico</option><option value="residuos">Residuos</option><option value="taller">Taller</option><option value="caudales">Caudales</option><option value="diarios_revistas">Diarios y revistas</option><option value="clearing">Clearing</option><option value="expreso_mudanza">Expreso y mudanza</option><option value="aguas_gaseosas">Aguas gaseosas</option></select></div>
+              <div><label>Rama de actividad</label><select id="camRama"><option value="general">General</option><option value="larga_distancia">Larga distancia</option><option value="transporte_automoviles">Transporte de automóviles</option><option value="logistica">Logística</option><option value="combustibles">Combustibles</option><option value="sustancias_peligrosas">Sustancias peligrosas</option><option value="pozos_petroliferos">Pozos petrolíferos</option><option value="materia_prima_lactea">Materia prima láctea</option><option value="auxilio">Auxilio mecánico</option><option value="residuos">Residuos</option><option value="taller">Taller</option><option value="caudales">Caudales</option><option value="diarios_revistas">Diarios y revistas</option><option value="clearing">Clearing</option><option value="expreso_mudanza">Expreso y mudanza</option><option value="aguas_gaseosas">Aguas gaseosas</option></select></div>
               <div><label>Zona salarial</label><select id="camZona"><option value="BASE">Base</option><option value="COEF_1_20">Coeficiente 1,20</option><option value="COEF_1_40">Coeficiente 1,40</option></select></div>
               <div><label>Grupo de taller</label><select id="camGrupoTaller"><option value="">No corresponde</option><option value="I">Grupo I</option><option value="II">Grupo II</option><option value="III">Grupo III</option></select><small style="color:#6b7280">Completalo para personal de taller.</small></div>
+              <label><input type="checkbox" id="camCuencaPetrolifera"> Trabajo en cuenca petrolífera</label>
+              <label><input type="checkbox" id="camLaPampaMendoza"> Servicio petrolero en La Pampa o Mendoza</label>
               <label><input id="camFrio" type="checkbox"> Trabajo habitual en cámara de frío</label>
             </div>
             <div class="fila" style="margin-top:10px">
@@ -492,6 +494,7 @@ HTML = r"""<!DOCTYPE html>
               <div><label>Ingresos/egresos T. del Fuego</label><input id="camTdf" type="number" min="0" step="1" value="0"></div>
               <div><label>Días plus vacacional</label><input id="camVacaciones" type="number" min="0" step="1" value="0"></div>
               <div><label>Traslados de unidad para descarga</label><input id="camTrasladosDescarga" type="number" min="0" step="1" value="0"><small style="color:#6b7280">Larga distancia · un jornal por traslado (ítem 4.2.6).</small></div>
+              <div><label>Viajes transportando automóviles</label><input id="camViajesAutomoviles" type="number" min="0" step="1" value="0"><small style="color:#6b7280">Un jornal por viaje (ítem 4.2.9).</small></div>
               <div><label>Unidades bitrenes</label><input id="camBitrenes" type="number" min="0" step="1" value="0"></div>
             </div>
             <small style="color:#92400e">La carga queda auditada. El recibo se habilita únicamente cuando las bases e incidencias de cada rama estén verificadas; la app no presume ni prorratea reglas faltantes.</small>
@@ -1147,20 +1150,20 @@ function actualizarAdicionalesConvenio(){
   $('novCamioneros').style.display=emp && emp.cct_numero==='40/89'?'block':'none';
   $('novUom').style.display=emp && emp.cct_numero==='260/75'?'block':'none';
 }
-const camposCamioneros={dias_comida:'camDiasComida',dias_viatico_especial:'camDiasViatico',pernoctadas:'camPernoctadas',kilometros_extra:'camKmExtra',kilometros_viatico:'camKmViatico',dias_en_viaje:'camDiasViaje',viajes_cordilleranos:'camCordillera',permanencias:'camPermanencias',simples_presencias:'camPresencias',permanencias_sur:'camPermanenciasSur',simples_presencias_sur:'camPresenciasSur',cruces_frontera:'camFrontera',ingresos_egresos_tdf:'camTdf',dias_plus_vacacional:'camVacaciones',traslados_unidad_descarga:'camTrasladosDescarga',unidades_bitrenes:'camBitrenes'};
+const camposCamioneros={dias_comida:'camDiasComida',dias_viatico_especial:'camDiasViatico',pernoctadas:'camPernoctadas',kilometros_extra:'camKmExtra',kilometros_viatico:'camKmViatico',dias_en_viaje:'camDiasViaje',viajes_cordilleranos:'camCordillera',permanencias:'camPermanencias',simples_presencias:'camPresencias',permanencias_sur:'camPermanenciasSur',simples_presencias_sur:'camPresenciasSur',cruces_frontera:'camFrontera',ingresos_egresos_tdf:'camTdf',dias_plus_vacacional:'camVacaciones',traslados_unidad_descarga:'camTrasladosDescarga',viajes_transporte_automoviles:'camViajesAutomoviles',unidades_bitrenes:'camBitrenes'};
 function datosCamioneros(){
   const emp=empleadosCache[$('novEmpleado').value];
   if(!emp || emp.cct_numero!=='40/89') return {};
-  const datos={rama:$('camRama').value,zona:$('camZona').value,grupo_taller:$('camGrupoTaller').value,camara_frio:$('camFrio').checked};
+  const datos={rama:$('camRama').value,zona:$('camZona').value,grupo_taller:$('camGrupoTaller').value,camara_frio:$('camFrio').checked,cuenca_petrolifera:$('camCuencaPetrolifera').checked,la_pampa_mendoza:$('camLaPampaMendoza').checked};
   Object.entries(camposCamioneros).forEach(([campo,id])=>datos[campo]=numeroNov(id));
   return datos;
 }
 function limpiarCamioneros(){
-  $('camRama').value='general'; $('camZona').value='BASE'; $('camGrupoTaller').value=''; $('camFrio').checked=false;
+  $('camRama').value='general'; $('camZona').value='BASE'; $('camGrupoTaller').value=''; $('camFrio').checked=false; $('camCuencaPetrolifera').checked=false; $('camLaPampaMendoza').checked=false;
   Object.values(camposCamioneros).forEach(id=>$(id).value='0');
 }
 function cargarCamioneros(datos={}){
-  limpiarCamioneros(); $('camRama').value=datos.rama||'general'; $('camZona').value=datos.zona||'BASE'; $('camGrupoTaller').value=datos.grupo_taller||''; $('camFrio').checked=Boolean(datos.camara_frio);
+  limpiarCamioneros(); $('camRama').value=datos.rama||'general'; $('camZona').value=datos.zona||'BASE'; $('camGrupoTaller').value=datos.grupo_taller||''; $('camFrio').checked=Boolean(datos.camara_frio); $('camCuencaPetrolifera').checked=Boolean(datos.cuenca_petrolifera); $('camLaPampaMendoza').checked=Boolean(datos.la_pampa_mendoza);
   Object.entries(camposCamioneros).forEach(([campo,id])=>$(id).value=datos[campo]??0);
 }
 function datosUom(){
