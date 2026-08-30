@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, replace
 from decimal import Decimal
-from typing import Optional
+from typing import Optional, Sequence
 
 from domain.entities.parametros import EscalaSalarial
 from domain.entities.concepto import Concepto, TipoConcepto
@@ -108,9 +108,13 @@ def armar_recibo_uom(
     jubilacion_pct: Decimal, inssjp_pct: Decimal, obra_social_pct: Decimal,
     contrib_seguridad_pct: Decimal, contrib_obra_social_pct: Decimal,
     seguro_trabajador: Dinero, seguro_empleador: Dinero,
+    adicionales: Sequence[tuple[str, str, ResultadoAdicionalUom]] = (),
 ) -> ResultadoLiquidacion:
     """Resultado UOM con bases explícitas; no presume cuota sindical ni extras."""
-    base_rem = (base.basico + imgr.complemento).redondear()
+    total_adicionales = sum(
+        (adicional.importe.monto for _, _, adicional in adicionales), Decimal("0")
+    )
+    base_rem = (base.basico + imgr.complemento + Dinero(total_adicionales)).redondear()
     base_os = (base_rem + gratificacion_nr + compensacion_nr).redondear()
     conceptos = [
         Concepto("BASICO_UOM", "Básico UOM", TipoConcepto.REMUNERATIVO, base.basico,
@@ -121,6 +125,16 @@ def armar_recibo_uom(
         conceptos.append(Concepto("COMPLEMENTO_IMGR_UOM", "Complemento IMGR", TipoConcepto.REMUNERATIVO,
                                   imgr.complemento, base_calculo=imgr.garantia_proporcional,
                                   unidad="garantía menos ingresos computables"))
+    for codigo, descripcion, adicional in adicionales:
+        conceptos.append(Concepto(
+            codigo, descripcion, TipoConcepto.REMUNERATIVO, adicional.importe,
+            cantidad=adicional.cantidad, base_calculo=adicional.valor_unitario,
+            unidad={
+                "FIJO_MENSUAL": "mensual",
+                "POR_HORA": "hora",
+                "POR_EVENTO": "evento",
+            }[adicional.modalidad],
+        ))
     if gratificacion_nr.monto:
         conceptos.append(Concepto("GRATIFICACION_NR_UOM", "Gratificación extraordinaria no remunerativa",
                                   TipoConcepto.NO_REMUNERATIVO, gratificacion_nr))

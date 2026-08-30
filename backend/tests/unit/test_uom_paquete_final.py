@@ -98,6 +98,21 @@ def test_acuerdo_oficial_no_remunerativos_y_recibo_uom():
     assert recibo.concepto("SEGURO_VIDA_SEPELIO_UOM").importe.monto == Decimal("8045.65")
 
 
+def test_adicional_uom_integra_remunerativo_y_bases_de_aportes():
+    base = calcular_base_uom(escala("5000", "HORA"), Decimal("160"))
+    adicional = calcular_adicional_uom(Dinero(Decimal("1000")), "POR_EVENTO", Decimal("2"))
+    recibo = armar_recibo_uom(
+        "20323243315", Periodo(2026, 8), base, Dinero.cero(), Dinero.cero(),
+        calcular_complemento_imgr(Dinero(Decimal("800000")), Dinero(Decimal("800000"))),
+        Decimal("0.11"), Decimal("0.03"), Decimal("0.03"), Decimal("0.18"), Decimal("0.06"),
+        Dinero.cero(), Dinero.cero(),
+        [("UOM_ADIC_PRUEBA", "Adicional de prueba", adicional)],
+    )
+    assert recibo.concepto("UOM_ADIC_PRUEBA").importe.monto == Decimal("2000.00")
+    assert recibo.total_remunerativo.monto == Decimal("802000.00")
+    assert recibo.concepto("APORTE_JUBILACION").base_calculo.monto == Decimal("802000.00")
+
+
 def test_fuentes_oficiales_uom_quedan_identificadas_por_hash():
     fuentes = json.loads((ROOT / "normativa/uom_260_75_fuentes_2026.json").read_text(encoding="utf-8"))
     assert {f["tipo"] for f in fuentes["fuentes"]} == {
@@ -116,6 +131,15 @@ def test_uom_calcula_como_borrador_pendiente_de_contador():
     assert '"APROBACION_CONTADOR_UOM"' in caso
     assert "PENDIENTE DE REVISIÓN Y APROBACIÓN POR CONTADOR PÚBLICO" in pdf
     assert 'cct.numero == "260/75"' in convenios
+
+
+def test_habilitacion_uom_exige_matriz_completa_sin_cambiar_importes():
+    sql = (ROOT / "migrations/040_habilitar_motor_uom_agosto_2026.sql").read_text(encoding="utf-8")
+    assert "categorias_activas <> 247" in sql
+    assert "escalas_verificadas <> 247" in sql
+    assert "parametros_uom < 84" in sql
+    assert "SET habilitada_liquidacion=true" in sql
+    assert "SET basico" not in sql and "INSERT INTO" not in sql
 
 
 def test_novedad_uom_valida_persiste_y_se_edita_desde_interfaz():

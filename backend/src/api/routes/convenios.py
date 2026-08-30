@@ -135,12 +135,18 @@ async def gestor_normativo(
                 e.categoria == nombre and e.is_verified and (e.fuente or '').strip()
                 for e in historicas
             ))
-        esc_ok = sum(1 for e in esc if e.is_verified and e.fuente.strip())
-        esc_habilitadas = sum(
-            1 for e in esc
+        # Una categoría puede conservar más de una versión histórica/solapada.
+        # El semáforo cuenta coberturas únicas, no filas físicas, para no mostrar
+        # 248/247 ni bloquear un motor por un duplicado legado.
+        esc_ok = len({
+            (e.categoria, getattr(e, "zona", "") or "") for e in esc
+            if e.is_verified and e.fuente.strip()
+        })
+        esc_habilitadas = len({
+            (e.categoria, getattr(e, "zona", "") or "") for e in esc
             if e.is_verified and e.fuente.strip()
             and getattr(e, "habilitada_liquidacion", True)
-        )
+        })
         estructura_completa = estructura_registrada and bool(nombres_categorias) and cats_ok == len(nombres_categorias) and bool(regs) and all(
             r.is_verified and r.fuente.strip() for r in regs
         )
@@ -168,7 +174,8 @@ async def gestor_normativo(
                 "completa": estructura_completa,
             },
             "periodo_actual": {
-                "escalas": len(esc), "escalas_verificadas": esc_ok,
+                "escalas": len({(e.categoria, getattr(e, "zona", "") or "") for e in esc}),
+                "escalas_verificadas": esc_ok,
                 "escalas_habilitadas": esc_habilitadas,
                 "escalas_esperadas": escalas_esperadas,
                 "parametros": len(par), "completa": escala_completa,
