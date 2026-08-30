@@ -63,7 +63,9 @@ class NovedadesVariablesCamioneros:
 CAMPOS_CANTIDAD_CAMIONEROS = tuple(
     nombre for nombre in NovedadesVariablesCamioneros.__dataclass_fields__ if nombre != "zona"
 )
-CLAVES_DETALLE_CAMIONEROS = {"rama", "camara_frio", "zona", *CAMPOS_CANTIDAD_CAMIONEROS}
+CLAVES_DETALLE_CAMIONEROS = {
+    "rama", "camara_frio", "zona", "grupo_taller", *CAMPOS_CANTIDAD_CAMIONEROS
+}
 
 CODIGOS_VIATICO_NO_REMUNERATIVO = {
     "COMIDA_4_1_12", "VIATICO_ESPECIAL_4_1_13", "PERNOCTADA_4_1_14",
@@ -86,6 +88,9 @@ def novedades_camioneros_desde_dict(datos: dict) -> NovedadesVariablesCamioneros
     camara_frio = datos.get("camara_frio", False)
     if not isinstance(camara_frio, bool):
         raise ValueError("Cámara de frío debe informarse como sí o no")
+    grupo_taller = str(datos.get("grupo_taller") or "")
+    if grupo_taller not in {"", "I", "II", "III"}:
+        raise ValueError("El grupo de taller debe ser I, II o III")
     novedades = NovedadesVariablesCamioneros(
         zona=str(datos.get("zona", "BASE")),
         **{campo: Decimal(str(datos.get(campo, 0))) for campo in CAMPOS_CANTIDAD_CAMIONEROS},
@@ -170,7 +175,8 @@ def armar_recibo_camioneros_general(
     contrib_seguridad_pct: Decimal,
     contrib_obra_social_pct: Decimal,
     traslados_unidad_descarga: Decimal = Decimal("0"),
-    adicional_rama: tuple[str, str, Decimal] | None = None,
+    adicionales_rama: tuple[tuple[str, str, Decimal], ...] = (),
+    recargo_comida_pct: Decimal = Decimal("0"),
 ) -> ResultadoLiquidacion:
     """Recibo de la rama general con incidencias explícitas del CCT 40/89.
 
@@ -191,8 +197,7 @@ def armar_recibo_camioneros_general(
         basico_proporcional, base_calculo=basico, unidad="mes",
     )]
     remunerativos_variables = Dinero.cero()
-    if adicional_rama is not None:
-        codigo_rama, descripcion_rama, porcentaje_rama = adicional_rama
+    for codigo_rama, descripcion_rama, porcentaje_rama in adicionales_rama:
         porcentaje = Decimal(str(porcentaje_rama))
         if porcentaje <= 0 or porcentaje > Decimal("1"):
             raise ValueError("el porcentaje de rama Camioneros no es válido")
@@ -216,6 +221,18 @@ def armar_recibo_camioneros_general(
         ))
         if tipo == TipoConcepto.REMUNERATIVO:
             remunerativos_variables = remunerativos_variables + variable.importe
+        if variable.codigo == "COMIDA_4_1_12" and Decimal(str(recargo_comida_pct)):
+            recargo_pct = Decimal(str(recargo_comida_pct))
+            if recargo_pct <= 0 or recargo_pct > Decimal("1"):
+                raise ValueError("el recargo de comida Camioneros no es válido")
+            recargo = variable.importe.porcentaje(recargo_pct).redondear()
+            conceptos.append(Concepto(
+                "RECARGO_COMIDA_RESIDUOS_5_3_11",
+                "Adicional de comida · recolección de residuos",
+                TipoConcepto.NO_REMUNERATIVO, recargo,
+                cantidad=variable.cantidad, base_calculo=variable.importe,
+                unidad=f"{recargo_pct * 100}% sobre comida",
+            ))
 
     traslados = Decimal(str(traslados_unidad_descarga))
     if traslados < 0 or traslados != traslados.to_integral_value():

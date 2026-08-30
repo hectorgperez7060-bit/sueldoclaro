@@ -428,7 +428,10 @@ class LiquidarPeriodo:
                                 "Adicional transporte de sustancias peligrosas", "primera",
                             ),
                         }
-                        if rama not in {"general", "larga_distancia", *ramas_porcentuales}:
+                        if rama not in {
+                            "general", "larga_distancia", "residuos", "taller", "caudales",
+                            *ramas_porcentuales,
+                        }:
                             raise ValueError(
                                 f"la rama {rama.replace('_', ' ')} conserva adicionales específicos pendientes de integrar"
                             )
@@ -451,17 +454,81 @@ class LiquidarPeriodo:
                             raise ValueError(
                                 "larga distancia no usa comida, viático especial ni pernoctada de los ítems 4.1"
                             )
-                        adicional_rama = None
+                        adicionales_rama = []
+                        recargo_comida_pct = Decimal("0")
                         if rama in ramas_porcentuales:
                             codigo_pct, descripcion_pct, requisito = ramas_porcentuales[rama]
-                            categoria_normalizada = emp.categoria.casefold()
+                            categoria_normalizada = emp.categoria.translate(
+                                str.maketrans("ÁÉÍÓÚÜÑáéíóúüñ", "AEIOUUNaeiouun")
+                            ).casefold()
                             if "conductor" not in categoria_normalizada:
                                 raise ValueError("esta rama requiere una categoría de conductor")
                             if requisito == "primera" and "primera" not in categoria_normalizada:
                                 raise ValueError("esta rama se calcula sobre conductor de primera categoría")
-                            adicional_rama = (
+                            adicionales_rama.append((
                                 codigo_pct, descripcion_pct, params_emp.fraccion(codigo_pct)
-                            )
+                            ))
+                        categoria = emp.categoria.translate(
+                            str.maketrans("ÁÉÍÓÚÜÑáéíóúüñ", "AEIOUUNaeiouun")
+                        ).casefold()
+                        es_oficial = (
+                            "oficial" in categoria and "medio oficial" not in categoria
+                            and "gomero" not in categoria
+                        )
+                        es_medio = "medio oficial" in categoria and "gomero" not in categoria
+                        es_lavador = any(x in categoria for x in ("lavador", "engrasador", "ayudante de taller"))
+                        grupo_taller = str(detalle_cam.get("grupo_taller") or "")
+                        if rama == "taller":
+                            if not (es_oficial or es_medio):
+                                raise ValueError("la rama taller requiere categoría oficial o medio oficial")
+                            if grupo_taller not in {"I", "III"}:
+                                raise ValueError("el adicional de taller corresponde únicamente a grupos I y III")
+                            codigo = "CAM_TALLER_OFICIAL_PCT" if es_oficial else "CAM_TALLER_MEDIO_PCT"
+                            descripcion = "Adicional oficial de taller" if es_oficial else "Adicional medio oficial de taller"
+                            adicionales_rama.append((codigo, descripcion, params_emp.fraccion(codigo)))
+                        if rama == "residuos":
+                            if any(x in categoria for x in ("conductor", "recolector", "peon")):
+                                codigo = "CAM_RESIDUOS_OPERATIVO_PCT"
+                                adicionales_rama.append((
+                                    codigo, "Adicional personal operativo de residuos",
+                                    params_emp.fraccion(codigo),
+                                ))
+                                recargo_comida_pct = params_emp.fraccion("CAM_RESIDUOS_COMIDA_PCT")
+                            elif es_oficial or es_medio or es_lavador:
+                                codigo_mult = "CAM_MULTIPLICIDAD_OFICIAL_PCT" if es_oficial else "CAM_MULTIPLICIDAD_OTROS_PCT"
+                                adicionales_rama.append((
+                                    codigo_mult, "Adicional multiplicidad taller de residuos",
+                                    params_emp.fraccion(codigo_mult),
+                                ))
+                                if (es_oficial or es_medio) and grupo_taller in {"I", "III"}:
+                                    codigo_t = "CAM_TALLER_OFICIAL_PCT" if es_oficial else "CAM_TALLER_MEDIO_PCT"
+                                    adicionales_rama.append((
+                                        codigo_t, "Adicional por grupo de taller",
+                                        params_emp.fraccion(codigo_t),
+                                    ))
+                            else:
+                                raise ValueError("la categoría no está alcanzada por las reglas modeladas de residuos")
+                        if rama == "caudales":
+                            if "custodia de camion de caudales" in categoria:
+                                codigo = "CAM_CAUDALES_CUSTODIO_PCT"
+                                adicionales_rama.append((
+                                    codigo, "Adicional custodio de unidad blindada",
+                                    params_emp.fraccion(codigo),
+                                ))
+                            elif es_oficial or es_medio or es_lavador:
+                                codigo_mult = "CAM_MULTIPLICIDAD_OFICIAL_PCT" if es_oficial else "CAM_MULTIPLICIDAD_OTROS_PCT"
+                                adicionales_rama.append((
+                                    codigo_mult, "Adicional multiplicidad taller de caudales",
+                                    params_emp.fraccion(codigo_mult),
+                                ))
+                                if (es_oficial or es_medio) and grupo_taller in {"I", "III"}:
+                                    codigo_t = "CAM_TALLER_OFICIAL_PCT" if es_oficial else "CAM_TALLER_MEDIO_PCT"
+                                    adicionales_rama.append((
+                                        codigo_t, "Adicional por grupo de taller",
+                                        params_emp.fraccion(codigo_t),
+                                    ))
+                            elif not any(x in categoria for x in ("chofer de camion blindado", "chofer con firma")):
+                                raise ValueError("la categoría no está alcanzada por las reglas modeladas de caudales")
                         if novedad_cam.zona != escala.zona:
                             raise ValueError(
                                 "la zona de la novedad no coincide con la zona del establecimiento"
@@ -492,7 +559,7 @@ class LiquidarPeriodo:
                             parametros.fraccion("CONTRIB_JUBILACION"),
                             parametros.fraccion("CONTRIB_OBRA_SOCIAL"),
                             Decimal(str(detalle_cam.get("traslados_unidad_descarga") or 0)),
-                            adicional_rama,
+                            tuple(adicionales_rama), recargo_comida_pct,
                         )
                     except (AttributeError, KeyError, TypeError, ValueError) as exc:
                         bloqueos.append({
