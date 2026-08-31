@@ -1017,7 +1017,9 @@ const IDENTIDAD_CONVENIO={
   '414/05':{actividad:'Farmacia comercial / comunitaria',sindicato:'ADEF',obraSocial:'OSADEF - Obra Social de las Asociaciones de Empleados de Farmacia'},
   '659/13':{actividad:'Farmacia comercial / comunitaria',sindicato:'FATFA',obraSocial:''},
   '122/75':{actividad:'Clínica, sanatorio o geriátrico con internación',sindicato:'FATSA',obraSocial:'OSPSA - Obra Social del Personal de la Sanidad Argentina'},
-  '130/75':{actividad:'Comercio',sindicato:'FAECYS',obraSocial:'OSECAC - Obra Social de Empleados de Comercio'}
+  '130/75':{actividad:'Comercio',sindicato:'FAECYS',obraSocial:'OSECAC - Obra Social de Empleados de Comercio'},
+  '749/18':{actividad:'Servicios funerarios / cocherías',sindicato:'SOECRA',obraSocial:''},
+  '761/19':{actividad:'Cementerios privados / crematorios',sindicato:'SOECRA',obraSocial:''}
 };
 function actividadConvenio(c){
   const conocida=IDENTIDAD_CONVENIO[c.numero];
