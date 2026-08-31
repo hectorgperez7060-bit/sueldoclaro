@@ -399,6 +399,28 @@ HTML = r"""<!DOCTYPE html>
               <p style="font-size:.78rem;color:#6b7280;margin:6px 0 0">No marcar para turno obligatorio, sereno ni vigilancia: el art. 17 los excluye del recargo del 100%.</p>
             </div>
           </div>
+          <div id="novFatfa" style="display:none;grid-column:1/-1;border:1px solid var(--borde);border-radius:8px;padding:12px">
+            <b>Adicionales FATFA — CCT 659/13</b>
+            <p style="font-size:.82rem;color:#6b7280;margin:5px 0 10px">Marcá solamente condiciones acreditadas. Los importes de título de agosto permanecen provisorios hasta su homologación.</p>
+            <label>Situación del título farmacéutico</label>
+            <select id="fatfaRolTitulo">
+              <option value="">Ninguna</option>
+              <option value="director">Director Técnico con bloqueo</option>
+              <option value="auxiliar_bloqueo">Auxiliar con bloqueo (sólo jurisdicción habilitada)</option>
+              <option value="titulo_60">Título farmacéutico sin bloqueo (60%)</option>
+            </select>
+            <div class="fila" style="margin-top:8px">
+              <label><input id="fatfaCapAuxiliar" type="checkbox"> Certificado de Auxiliar revalidado (10%)</label>
+              <label><input id="fatfaCapTecnico" type="checkbox"> Técnico en Gestión FATFA (20%)</label>
+              <label><input id="fatfaCapProfesional" type="checkbox"> Actualización profesional vigente (30%)</label>
+              <label><input id="fatfaTituloSecundario" type="checkbox"> Título secundario admitido (5%)</label>
+              <label><input id="fatfaAdministrativo" type="checkbox"> Tarea administrativa y 5 años (10%)</label>
+              <label><input id="fatfaPerfumeria" type="checkbox"> Tarea de perfumería y 5 años (10%)</label>
+              <label><input id="fatfaVehiculo" type="checkbox"> Vehículo propio requerido (15%)</label>
+              <label><input id="fatfaFallaCaja" type="checkbox"> Cajero permanente: fondo de falla de caja (20% NR)</label>
+              <div><label>Idiomas extranjeros requeridos</label><input id="fatfaIdiomas" type="number" min="0" step="1" value="0"></div>
+            </div>
+          </div>
           <div id="novSanidad" style="display:none;grid-column:1/-1;border:1px solid var(--borde);border-radius:8px;padding:12px">
             <b>Adicionales Sanidad — CCT 122/75</b>
             <p style="font-size:.82rem;color:#6b7280;margin:5px 0 10px">Marcá solamente condiciones efectivamente trabajadas. Los regímenes de sector son alternativos entre sí.</p>
