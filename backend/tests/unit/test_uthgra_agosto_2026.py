@@ -81,3 +81,18 @@ def test_motor_aplica_antiguedad_asistencia_y_servicio_sobre_basico():
     assert resultado.concepto("ASISTENCIA_PERFECTA").importe.monto == D("99055.50")
     assert resultado.concepto("COMPLEMENTO_SERVICIO").importe.monto == D("118866.60")
     assert resultado.concepto("UTHGRA_ACUERDO_2026_SEGUNDA_N1_D").importe.monto == D("68000.00")
+
+def test_uthgra_asistencia_requiere_confirmacion_y_complemento_es_automatico():
+    repo = (RAIZ / "src" / "infrastructure" / "database" / "repositories.py").read_text()
+    ui = (RAIZ / "src" / "ui_page.py").read_text()
+    assert 'codigo == "COMPLEMENTO_SERVICIO"' in repo
+    assert "uthgraAsistenciaPerfecta" in ui
+    assert "datosAdicionalesUthgra" in ui
+    assert "ASISTENCIA_PERFECTA" in ui
+
+
+def test_gestor_habilita_uthgra_solo_como_prueba_provisoria():
+    codigo = (RAIZ / "src" / "api" / "routes" / "convenios.py").read_text()
+    assert 'cct.numero in {"389/04", "659/13"}' in codigo
+    assert "Escala UTHGRA publicada" in codigo
+    assert "pendiente de homologación" in codigo
