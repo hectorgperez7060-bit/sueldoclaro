@@ -440,6 +440,19 @@ class LiquidarPeriodo:
                                 f"la rama {rama.replace('_', ' ')} conserva adicionales específicos pendientes de integrar"
                             )
                         detalle_cam = dict(detalle_cam)
+                        proporcion_bitren = Decimal(str(detalle_cam.get("unidades_bitrenes") or 0))
+                        if proporcion_bitren:
+                            categoria_bitren = emp.categoria.translate(
+                                str.maketrans("ÁÉÍÓÚÜÑáéíóúüñ", "AEIOUUNaeiouun")
+                            ).casefold()
+                            if "conductor" not in categoria_bitren or "primera" not in categoria_bitren:
+                                raise ValueError(
+                                    "el adicional bitrenes corresponde únicamente a Conductor de Primera Categoría"
+                                )
+                            if proporcion_bitren < 0 or proporcion_bitren > Decimal("1"):
+                                raise ValueError(
+                                    "la proporción mensual de conducción de bitrén debe estar entre 0 y 1"
+                                )
                         adicional_zafra_pct = Decimal("0")
                         if rama == "zafra":
                             categoria_zafra = emp.categoria.translate(
