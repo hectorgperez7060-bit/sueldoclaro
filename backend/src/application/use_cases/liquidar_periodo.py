@@ -433,11 +433,40 @@ class LiquidarPeriodo:
                             "general", "larga_distancia", "residuos", "taller", "caudales",
                             "clearing", "expreso_mudanza", "aguas_gaseosas",
                             "logistica", "pozos_petroliferos", "transporte_automoviles",
-                            "asfalto_caliente", "transporte_pesado",
+                            "asfalto_caliente", "transporte_pesado", "zafra",
                             *ramas_porcentuales,
                         }:
                             raise ValueError(
                                 f"la rama {rama.replace('_', ' ')} conserva adicionales específicos pendientes de integrar"
+                            )
+                        detalle_cam = dict(detalle_cam)
+                        adicional_zafra_pct = Decimal("0")
+                        if rama == "zafra":
+                            categoria_zafra = emp.categoria.translate(
+                                str.maketrans("ÁÉÍÓÚÜÑáéíóúüñ", "AEIOUUNaeiouun")
+                            ).casefold()
+                            if "conductor" not in categoria_zafra or "primera" not in categoria_zafra:
+                                raise ValueError(
+                                    "la integración de zafra requiere Conductor de Primera Categoría"
+                                )
+                            radio_zafra = str(detalle_cam.get("radio_zafra") or "")
+                            codigo_garantia = {
+                                "hasta_45": "CAM_ZAFRA_GARANTIA_HASTA_45_KM",
+                                "mas_45": "CAM_ZAFRA_GARANTIA_MAS_45_KM",
+                            }.get(radio_zafra)
+                            if not codigo_garantia:
+                                raise ValueError("debe indicar el radio de operación de zafra")
+                            garantia_km = params_emp.cantidad(codigo_garantia, "km")
+                            detalle_cam["kilometros_extra"] = max(
+                                Decimal(str(detalle_cam.get("kilometros_extra") or 0)),
+                                garantia_km,
+                            )
+                            detalle_cam["kilometros_viatico"] = max(
+                                Decimal(str(detalle_cam.get("kilometros_viatico") or 0)),
+                                garantia_km,
+                            )
+                            adicional_zafra_pct = params_emp.fraccion(
+                                "CAM_ZAFRA_ADICIONAL_TOTAL_PCT"
                             )
                         novedad_cam = novedades_camioneros_desde_dict(detalle_cam)
                         campos_larga_distancia = (
@@ -457,7 +486,7 @@ class LiquidarPeriodo:
                         dias_asfalto = Decimal(str(detalle_cam.get("dias_asfalto_caliente") or 0))
                         if rama != "asfalto_caliente" and dias_asfalto:
                             raise ValueError("los días de asfalto requieren la rama asfalto caliente")
-                        if rama == "larga_distancia" and any(
+                        if rama in {"larga_distancia", "zafra"} and any(
                             Decimal(str(detalle_cam.get(campo) or 0)) > 0
                             for campo in ("dias_comida", "dias_viatico_especial", "pernoctadas")
                         ):
@@ -715,6 +744,7 @@ class LiquidarPeriodo:
                             Decimal(str(detalle_cam.get("dias_asfalto_caliente") or 0)),
                             params_emp.fraccion("CAM_ASFALTO_JORNALES_POR_DIA")
                             if rama == "asfalto_caliente" else Decimal("1"),
+                            adicional_zafra_pct,
                         )
                     except (AttributeError, KeyError, TypeError, ValueError) as exc:
                         bloqueos.append({
