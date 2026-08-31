@@ -110,17 +110,31 @@ def test_recibo_general_separa_viaticos_de_remuneracion_y_cargas():
     assert recibo.concepto("APORTE_JUBILACION").base_calculo.monto == Decimal("1020855.05")
 
 
-def test_bitrenes_no_se_liquida_hasta_documentar_hecho_generador():
+def test_bitrenes_liquida_monto_mensual_remunerativo():
     variables = calcular_variables_camioneros(valores(), NovedadesVariablesCamioneros(
         unidades_bitrenes=1,
     ))
-    with pytest.raises(ValueError, match="bitrenes"):
-        armar_recibo_camioneros_general(
-            "20123456789", Periodo(2026, 8),
-            Dinero.de("1000000"), 0, Decimal("1"), variables,
-            Decimal("0.11"), Decimal("0.03"), Decimal("0.03"),
-            Decimal("0.18"), Decimal("0.05"),
-        )
+    recibo = armar_recibo_camioneros_general(
+        "20123456789", Periodo(2026, 8),
+        Dinero.de("1000000"), 0, Decimal("1"), variables,
+        Decimal("0.11"), Decimal("0.03"), Decimal("0.03"),
+        Decimal("0.18"), Decimal("0.05"),
+    )
+    adicional = recibo.concepto("ADICIONAL_BITRENES")
+    assert adicional.importe.monto == Decimal("677108.16")
+    assert adicional.tipo.value == "remunerativo"
+    assert recibo.concepto("APORTE_JUBILACION").base_calculo.monto == Decimal("1677108.16")
+
+
+def test_bitrenes_admite_proporcion_y_rechaza_mas_de_un_mes():
+    variables = calcular_variables_camioneros(valores(), NovedadesVariablesCamioneros(
+        unidades_bitrenes=Decimal("0.5"),
+    ))
+    assert variables[0].importe.monto == Decimal("338554.08")
+    with pytest.raises(ValueError, match="proporción mensual"):
+        calcular_variables_camioneros(valores(), NovedadesVariablesCamioneros(
+            unidades_bitrenes=Decimal("2"),
+        ))
 
 
 def test_larga_distancia_suma_un_jornal_remunerativo_por_traslado():

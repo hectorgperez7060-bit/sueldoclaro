@@ -119,6 +119,8 @@ def novedades_camioneros_desde_dict(datos: dict) -> NovedadesVariablesCamioneros
         raise ValueError("La zona Camioneros debe ser BASE, COEF_1_20 o COEF_1_40")
     if any(Decimal(str(getattr(novedades, campo))) < 0 for campo in CAMPOS_CANTIDAD_CAMIONEROS):
         raise ValueError("Las novedades Camioneros no pueden ser negativas")
+    if Decimal(str(novedades.unidades_bitrenes)) > Decimal("1"):
+        raise ValueError("la proporción mensual de bitrén debe estar entre 0 y 1")
     return novedades
 
 
@@ -209,16 +211,13 @@ def armar_recibo_camioneros_general(
     """Recibo de la rama general con incidencias explícitas del CCT 40/89.
 
     Los viáticos enumerados por el ítem 4.2.11 no integran remuneración ni
-    cargas sociales. Horas extraordinarias por kilometraje y plus vacacional
-    sí integran la base. Bitrenes continúa bloqueado porque su hecho generador
-    aún no está documentado en el paquete normativo.
+    cargas sociales. Horas extraordinarias por kilometraje, plus vacacional
+    y el adicional mensual o proporcional por conducción de bitrén sí integran
+    la base remunerativa.
     """
     proporcion = Decimal(str(proporcion_jornada))
     if not Decimal("0") < proporcion <= Decimal("1"):
         raise ValueError("la proporción de jornada debe ser mayor que cero y no superar uno")
-    if any(v.codigo == "ADICIONAL_BITRENES" for v in variables):
-        raise ValueError("el adicional bitrenes todavía requiere documentar su hecho generador")
-
     basico_proporcional = basico.porcentaje(proporcion).redondear()
     conceptos = [Concepto(
         "BASICO", "Sueldo básico Camioneros", TipoConcepto.REMUNERATIVO,
