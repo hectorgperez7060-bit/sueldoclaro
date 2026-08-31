@@ -399,6 +399,28 @@ HTML = r"""<!DOCTYPE html>
               <p style="font-size:.78rem;color:#6b7280;margin:6px 0 0">No marcar para turno obligatorio, sereno ni vigilancia: el art. 17 los excluye del recargo del 100%.</p>
             </div>
           </div>
+          <div id="novFatfa" style="display:none;grid-column:1/-1;border:1px solid var(--borde);border-radius:8px;padding:12px">
+            <b>Adicionales FATFA — CCT 659/13</b>
+            <p style="font-size:.82rem;color:#6b7280;margin:5px 0 10px">Marcá solamente condiciones acreditadas. Los importes de título de agosto permanecen provisorios hasta su homologación.</p>
+            <label>Situación del título farmacéutico</label>
+            <select id="fatfaRolTitulo">
+              <option value="">Ninguna</option>
+              <option value="director">Director Técnico con bloqueo</option>
+              <option value="auxiliar_bloqueo">Auxiliar con bloqueo (sólo jurisdicción habilitada)</option>
+              <option value="titulo_60">Título farmacéutico sin bloqueo (60%)</option>
+            </select>
+            <div class="fila" style="margin-top:8px">
+              <label><input id="fatfaCapAuxiliar" type="checkbox"> Certificado de Auxiliar revalidado (10%)</label>
+              <label><input id="fatfaCapTecnico" type="checkbox"> Técnico en Gestión FATFA (20%)</label>
+              <label><input id="fatfaCapProfesional" type="checkbox"> Actualización profesional vigente (30%)</label>
+              <label><input id="fatfaTituloSecundario" type="checkbox"> Título secundario admitido (5%)</label>
+              <label><input id="fatfaAdministrativo" type="checkbox"> Tarea administrativa y 5 años (10%)</label>
+              <label><input id="fatfaPerfumeria" type="checkbox"> Tarea de perfumería y 5 años (10%)</label>
+              <label><input id="fatfaVehiculo" type="checkbox"> Vehículo propio requerido (15%)</label>
+              <label><input id="fatfaFallaCaja" type="checkbox"> Cajero permanente: fondo de falla de caja (20% NR)</label>
+              <div><label>Idiomas extranjeros requeridos</label><input id="fatfaIdiomas" type="number" min="0" step="1" value="0"></div>
+            </div>
+          </div>
           <div id="novSanidad" style="display:none;grid-column:1/-1;border:1px solid var(--borde);border-radius:8px;padding:12px">
             <b>Adicionales Sanidad — CCT 122/75</b>
             <p style="font-size:.82rem;color:#6b7280;margin:5px 0 10px">Marcá solamente condiciones efectivamente trabajadas. Los regímenes de sector son alternativos entre sí.</p>
@@ -1141,6 +1163,16 @@ function actualizarAdicionalesFarmacia(){
   const emp=empleadosCache[$('novEmpleado').value];
   $('novFarmacia').style.display=emp && emp.cct_numero==='414/05'?'block':'none';
 }
+const checksFatfa=['fatfaCapAuxiliar','fatfaCapTecnico','fatfaCapProfesional','fatfaTituloSecundario','fatfaAdministrativo','fatfaPerfumeria','fatfaVehiculo','fatfaFallaCaja'];
+function actualizarAdicionalesFatfa(){
+  const emp=empleadosCache[$('novEmpleado').value];
+  $('novFatfa').style.display=emp && emp.cct_numero==='659/13'?'block':'none';
+}
+function limpiarAdicionalesFatfa(){
+  $('fatfaRolTitulo').value='';
+  $('fatfaIdiomas').value='0';
+  checksFatfa.forEach(id=>$(id).checked=false);
+}
 const checksSanidad=['novElectricistaSanidad','novOperadorSanidad','novLaboratorioSanidad','novRayosSanidad'];
 function actualizarAdicionalesSanidad(){
   const emp=empleadosCache[$('novEmpleado').value];
@@ -1148,6 +1180,7 @@ function actualizarAdicionalesSanidad(){
 }
 function actualizarAdicionalesConvenio(){
   actualizarAdicionalesFarmacia();
+  actualizarAdicionalesFatfa();
   actualizarAdicionalesSanidad();
   const emp=empleadosCache[$('novEmpleado').value];
   $('novUocra').style.display=emp && emp.cct_numero==='76/75'?'block':'none';
@@ -1285,6 +1318,29 @@ function datosAdicionalesFarmacia(){
   }
   return {adicionales_convencionales:codigos,cantidades_adicionales:cantidades};
 }
+function datosAdicionalesFatfa(){
+  const emp=empleadosCache[$('novEmpleado').value];
+  if(!emp || emp.cct_numero!=='659/13') return {adicionales_convencionales:[],cantidades_adicionales:{}};
+  const codigos=[]; const cantidades={};
+  const rol=$('fatfaRolTitulo').value;
+  if(rol==='director') codigos.push('FATFA_BLOQUEO_DT','FATFA_BLOQUEO_DT_NR');
+  if(rol==='auxiliar_bloqueo') codigos.push('FATFA_AUX_BLOQUEO','FATFA_AUX_BLOQUEO_NR');
+  if(rol==='titulo_60') codigos.push('FATFA_TITULO_60','FATFA_TITULO_60_NR');
+  const opciones={
+    fatfaCapAuxiliar:'FATFA_CAP_AUXILIAR',
+    fatfaCapTecnico:'FATFA_CAP_TECNICO',
+    fatfaCapProfesional:'FATFA_CAP_PROFESIONAL',
+    fatfaTituloSecundario:'FATFA_TITULO_SECUNDARIO',
+    fatfaAdministrativo:'FATFA_ADMINISTRATIVO',
+    fatfaPerfumeria:'FATFA_PERFUMERIA',
+    fatfaVehiculo:'FATFA_VEHICULO',
+    fatfaFallaCaja:'FATFA_FALLA_CAJA'
+  };
+  Object.entries(opciones).forEach(([id,codigo])=>{if($(id).checked) codigos.push(codigo);});
+  const idiomas=numeroNov('fatfaIdiomas');
+  if(idiomas>0){codigos.push('FATFA_IDIOMA'); cantidades.FATFA_IDIOMA=idiomas;}
+  return {adicionales_convencionales:codigos,cantidades_adicionales:cantidades};
+}
 function datosAdicionalesSanidad(){
   const emp=empleadosCache[$('novEmpleado').value];
   if(!emp || emp.cct_numero!=='122/75') return {adicionales_convencionales:[],cantidades_adicionales:{}};
@@ -1303,6 +1359,7 @@ function datosAdicionalesSanidad(){
 function datosAdicionalesConvenio(){
   const emp=empleadosCache[$('novEmpleado').value];
   if(emp && emp.cct_numero==='414/05') return datosAdicionalesFarmacia();
+  if(emp && emp.cct_numero==='659/13') return datosAdicionalesFatfa();
   if(emp && emp.cct_numero==='122/75') return datosAdicionalesSanidad();
   return {adicionales_convencionales:[],cantidades_adicionales:{}};
 }
@@ -1321,6 +1378,7 @@ function limpiarNovedad(){
   $('novObservaciones').value='';
   $('novTipoPremio').value='pendiente';
   limpiarAdicionalesFarmacia();
+  limpiarAdicionalesFatfa();
   limpiarAdicionalesSanidad();
   limpiarCamioneros();
   limpiarUom();
@@ -1779,6 +1837,7 @@ function editarNovedad(id){
   $('novTipoPremio').value=n.tipo_premio||'pendiente';
   $('novDescuentos').value=n.descuentos_adicionales; $('novObservaciones').value=n.observaciones||'';
   limpiarAdicionalesFarmacia();
+  limpiarAdicionalesFatfa();
   limpiarAdicionalesSanidad();
   const adicionales=new Set(n.adicionales_convencionales||[]);
   if(adicionales.has('DIRECCION_TECNICA')) $('novRolFarmacia').value='director';
@@ -1791,6 +1850,21 @@ function editarNovedad(id){
   $('novHorasNocturnas').value=(n.cantidades_adicionales||{}).NOCTURNO_VOLUNTARIO||0;
   $('novHorasTotales').value=(n.cantidades_adicionales||{}).HORAS_TOTALES_PERIODO||0;
   $('novFaltanteCaja').value=(n.cantidades_adicionales||{}).FALLA_CAJA||0;
+  if(adicionales.has('FATFA_BLOQUEO_DT')) $('fatfaRolTitulo').value='director';
+  else if(adicionales.has('FATFA_AUX_BLOQUEO')) $('fatfaRolTitulo').value='auxiliar_bloqueo';
+  else if(adicionales.has('FATFA_TITULO_60')) $('fatfaRolTitulo').value='titulo_60';
+  const opcionesFatfa={
+    fatfaCapAuxiliar:'FATFA_CAP_AUXILIAR',
+    fatfaCapTecnico:'FATFA_CAP_TECNICO',
+    fatfaCapProfesional:'FATFA_CAP_PROFESIONAL',
+    fatfaTituloSecundario:'FATFA_TITULO_SECUNDARIO',
+    fatfaAdministrativo:'FATFA_ADMINISTRATIVO',
+    fatfaPerfumeria:'FATFA_PERFUMERIA',
+    fatfaVehiculo:'FATFA_VEHICULO',
+    fatfaFallaCaja:'FATFA_FALLA_CAJA'
+  };
+  Object.entries(opcionesFatfa).forEach(([id,codigo])=>$(id).checked=adicionales.has(codigo));
+  $('fatfaIdiomas').value=(n.cantidades_adicionales||{}).FATFA_IDIOMA||0;
   const sectoresSanidad=['TERAPIA_8H','MUCAMA_SECTOR_ESPECIAL','MENTAL_ENFERMERIA','MENTAL_TERAPIA','MENTAL_OTRAS_TAREAS'];
   $('novSectorSanidad').value=sectoresSanidad.find(codigo=>adicionales.has(codigo))||'';
   const opcionesSanidad={novElectricistaSanidad:'ELECTRICISTA_TITULO',novOperadorSanidad:'OPERADOR_MAQUINAS_CONTABLES',novLaboratorioSanidad:'LAB_AREA_CERRADA',novRayosSanidad:'RAYOS_LAB_48H'};

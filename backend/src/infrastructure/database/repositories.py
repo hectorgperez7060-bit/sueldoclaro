@@ -30,6 +30,7 @@ from domain.entities.farmacia_414_05 import (
     configurar_adicionales_farmacia,
 )
 from domain.entities.sanidad_122_75 import CCT_SANIDAD, configurar_adicionales_sanidad
+from domain.entities.fatfa_659_13 import configurar_adicionales_fatfa
 from domain.entities.zonificacion_salarial import normalizar_provincia
 from domain.payroll_engine.config import CctConfig, ReglaAdicionalConfig
 from domain.value_objects.dinero import Dinero
@@ -533,18 +534,50 @@ class ParametrosRepo:
         elif cct_numero == CCT_SANIDAD:
             adicionales = configurar_adicionales_sanidad()
         elif cct_numero == "659/13":
+            fecha = fecha or date.today()
             r = await self.s.execute(select(m.CctReglaEstructural).where(
                 m.CctReglaEstructural.cct_numero == cct_numero,
                 m.CctReglaEstructural.activa.is_(True),
-                m.CctReglaEstructural.is_verified.is_(True),
-                m.CctReglaEstructural.codigo == "ANTIGUEDAD_ESCALONADA",
+                m.CctReglaEstructural.codigo.in_((
+                    "ANTIGUEDAD_ESCALONADA", "TITULOS_FARMACEUTICOS_2026_08",
+                )),
             ))
-            regla = r.scalar_one_or_none()
-            configuracion = (regla.configuracion or {}) if regla else {}
+            reglas = {regla.codigo: regla for regla in r.scalars().all()}
+            regla_antiguedad = reglas.get("ANTIGUEDAD_ESCALONADA")
+            configuracion = (
+                regla_antiguedad.configuracion or {}
+                if regla_antiguedad and regla_antiguedad.is_verified else {}
+            )
             if configuracion.get("escalones"):
                 escalones = tuple(
                     (int(item["desde"]), Decimal(str(item["porcentaje"])))
                     for item in configuracion["escalones"]
+                )
+            regla_titulos = reglas.get("TITULOS_FARMACEUTICOS_2026_08")
+            config_titulos = (regla_titulos.configuracion or {}) if regla_titulos else {}
+            vigente_titulos = (
+                config_titulos.get("vigencia_desde", "") <= fecha.isoformat()
+                <= config_titulos.get("vigencia_hasta", "")
+            )
+            escala_aprendiz = (await self.s.execute(
+                select(m.EscalaSalarial).where(
+                    m.EscalaSalarial.cct_numero == cct_numero,
+                    m.EscalaSalarial.categoria == "Aprendiz Ayudante",
+                    m.EscalaSalarial.valid_from <= fecha,
+                    (m.EscalaSalarial.valid_to.is_(None))
+                    | (m.EscalaSalarial.valid_to >= fecha),
+                ).order_by(m.EscalaSalarial.valid_from.desc())
+            )).scalars().first()
+            claves_titulo = (
+                "BLOQUEO_DT", "BLOQUEO_DT_NR", "AUX_BLOQUEO",
+                "AUX_BLOQUEO_NR", "TITULO_60", "TITULO_60_NR",
+            )
+            if escala_aprendiz is not None and vigente_titulos and all(
+                clave in config_titulos for clave in claves_titulo
+            ):
+                adicionales, referencias = configurar_adicionales_fatfa(
+                    Decimal(escala_aprendiz.basico),
+                    {clave: Decimal(str(config_titulos[clave])) for clave in claves_titulo},
                 )
         elif cct_numero == "389/04":
             r = await self.s.execute(select(m.CctReglaEstructural).where(

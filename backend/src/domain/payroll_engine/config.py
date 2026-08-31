@@ -30,6 +30,10 @@ class ReglaAdicionalConfig:
     # Los adicionales generales del convenio se aplican sin que el usuario
     # tenga que cargarlos como novedad mensual (p.ej. asistencia UTHGRA).
     aplica_automaticamente: bool = False
+    # Naturaleza del concepto en el recibo. La mayoría son remunerativos;
+    # algunos convenios definen expresamente adicionales no remunerativos.
+    naturaleza: str = "remunerativo"
+    aporte_sindicato: bool = False
 
 
 @dataclass(frozen=True)
