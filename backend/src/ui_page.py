@@ -497,6 +497,7 @@ HTML = r"""<!DOCTYPE html>
               <div><label>Viajes transportando automóviles</label><input id="camViajesAutomoviles" type="number" min="0" step="1" value="0"><small style="color:#6b7280">Un jornal por viaje (ítem 4.2.9).</small></div>
               <div><label>Días operando con asfalto caliente</label><input id="camDiasAsfalto" type="number" min="0" step="1" value="0"><small style="color:#6b7280">Un jornal por día de operación (ítem 5.5.2).</small></div>
               <div><label>Carga útil del transporte pesado (toneladas)</label><input id="camToneladasPesado" type="number" min="0" step="0.01" value="0"><small style="color:#6b7280">Conductor de primera: 12% hasta 50 t, 15% hasta 100 t y 20% por encima (ítem 5.8.1.2.a).</small></div>
+              <div><label>Función en transporte pesado</label><select id="camModalidadPesado"><option value="conductor">Conductor del vehículo de arrastre</option><option value="auxiliar_mecanico">Auxiliar · carretón mecánico</option><option value="auxiliar_hidraulico">Auxiliar · carretón hidráulico</option></select><small style="color:#6b7280">Los auxiliares requieren categoría Operarios Especializados.</small></div>
               <div><label>Unidades bitrenes</label><input id="camBitrenes" type="number" min="0" step="1" value="0"></div>
             </div>
             <small style="color:#92400e">La carga queda auditada. El recibo se habilita únicamente cuando las bases e incidencias de cada rama estén verificadas; la app no presume ni prorratea reglas faltantes.</small>
@@ -1156,16 +1157,16 @@ const camposCamioneros={dias_comida:'camDiasComida',dias_viatico_especial:'camDi
 function datosCamioneros(){
   const emp=empleadosCache[$('novEmpleado').value];
   if(!emp || emp.cct_numero!=='40/89') return {};
-  const datos={rama:$('camRama').value,zona:$('camZona').value,grupo_taller:$('camGrupoTaller').value,camara_frio:$('camFrio').checked,cuenca_petrolifera:$('camCuencaPetrolifera').checked,la_pampa_mendoza:$('camLaPampaMendoza').checked,toneladas_transporte_pesado:numeroNov('camToneladasPesado')};
+  const datos={rama:$('camRama').value,zona:$('camZona').value,grupo_taller:$('camGrupoTaller').value,camara_frio:$('camFrio').checked,cuenca_petrolifera:$('camCuencaPetrolifera').checked,la_pampa_mendoza:$('camLaPampaMendoza').checked,toneladas_transporte_pesado:numeroNov('camToneladasPesado'),modalidad_transporte_pesado:$('camModalidadPesado').value};
   Object.entries(camposCamioneros).forEach(([campo,id])=>datos[campo]=numeroNov(id));
   return datos;
 }
 function limpiarCamioneros(){
-  $('camRama').value='general'; $('camZona').value='BASE'; $('camGrupoTaller').value=''; $('camFrio').checked=false; $('camCuencaPetrolifera').checked=false; $('camLaPampaMendoza').checked=false; $('camToneladasPesado').value='0';
+  $('camRama').value='general'; $('camZona').value='BASE'; $('camGrupoTaller').value=''; $('camFrio').checked=false; $('camCuencaPetrolifera').checked=false; $('camLaPampaMendoza').checked=false; $('camToneladasPesado').value='0'; $('camModalidadPesado').value='conductor';
   Object.values(camposCamioneros).forEach(id=>$(id).value='0');
 }
 function cargarCamioneros(datos={}){
-  limpiarCamioneros(); $('camRama').value=datos.rama||'general'; $('camZona').value=datos.zona||'BASE'; $('camGrupoTaller').value=datos.grupo_taller||''; $('camFrio').checked=Boolean(datos.camara_frio); $('camCuencaPetrolifera').checked=Boolean(datos.cuenca_petrolifera); $('camLaPampaMendoza').checked=Boolean(datos.la_pampa_mendoza); $('camToneladasPesado').value=datos.toneladas_transporte_pesado??0;
+  limpiarCamioneros(); $('camRama').value=datos.rama||'general'; $('camZona').value=datos.zona||'BASE'; $('camGrupoTaller').value=datos.grupo_taller||''; $('camFrio').checked=Boolean(datos.camara_frio); $('camCuencaPetrolifera').checked=Boolean(datos.cuenca_petrolifera); $('camLaPampaMendoza').checked=Boolean(datos.la_pampa_mendoza); $('camToneladasPesado').value=datos.toneladas_transporte_pesado??0; $('camModalidadPesado').value=datos.modalidad_transporte_pesado||'conductor';
   Object.entries(camposCamioneros).forEach(([campo,id])=>$(id).value=datos[campo]??0);
 }
 function datosUom(){
