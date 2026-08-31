@@ -137,3 +137,55 @@ def test_recibo_real_separa_aporte_adef_remunerativo_y_no_remunerativo():
     assert aporte_nr.importe.monto == D("1082.01")
     assert aporte_rem.destino_pago == "ADEF"
     assert aporte_rem.codigo_boleta == "ADEF_APORTES"
+
+
+def test_agosto_2026_adef_liquida_rosalia_sin_sumas_unicas_vencidas():
+    desde = date(2026, 8, 1)
+    parametros = ParametroSet([
+        ParametroLegal("APORTE_JUBILACION", D("0.11"), "%", "empleado", desde),
+        ParametroLegal("APORTE_LEY19032", D("0.03"), "%", "empleado", desde),
+        ParametroLegal("APORTE_OBRA_SOCIAL", D("0.03"), "%", "empleado", desde),
+        ParametroLegal("APORTE_MODERNIZACION", D("0"), "%", "empleado", desde),
+        ParametroLegal("CONTRIB_JUBILACION", D("0.18"), "%", "empleador", desde),
+        ParametroLegal("CONTRIB_OBRA_SOCIAL", D("0.05"), "%", "empleador", desde),
+        ParametroLegal(
+            "APORTE_ADEF_REM_414/05", D("0.02"), "%", "ded_todos", desde,
+            cct_numero="414/05", incidencias={
+                "base_deduccion": "remunerativa",
+                "destino_pago": "ADEF",
+                "codigo_boleta": "ADEF_APORTES",
+            },
+        ),
+    ])
+    empleado = Empleado(
+        "Rosalía", "Ocampos", Cuil("27240320520"), date(2018, 4, 9),
+        "414/05", "Empleado Especializado de Farmacia", "138",
+    )
+    escala = EscalaSalarial(
+        "414/05", empleado.categoria, Dinero(D("1828730.75")),
+        desde, date(2026, 8, 31), True,
+        "ADEF escala oficial julio 2026 + ultraactividad art. 2",
+    )
+    config = CctConfig(
+        "414/05", D("0"), D("12"), D("200"),
+        aplica_presentismo=False, aplica_cuota_sindical=False,
+        antiguedad_escalones=(
+            (1, D("0.05")), (2, D("0.10")), (5, D("0.20")),
+            (10, D("0.30")), (15, D("0.35")), (20, D("0.40")),
+            (25, D("0.50")),
+        ),
+    )
+
+    resultado = MotorLiquidacion(parametros, AmparoSet()).liquidar_mensual(
+        empleado, Periodo(2026, 8), escala, config,
+        a_fecha=date(2026, 8, 31),
+    )
+
+    codigos = {concepto.codigo for concepto in resultado.conceptos}
+    assert resultado.concepto("BASICO").importe.monto == D("1828730.75")
+    assert resultado.concepto("ANTIGUEDAD").importe.monto == D("365746.15")
+    assert resultado.concepto("APORTE_ADEF_REM_414/05").importe.monto == D("43889.54")
+    assert resultado.bruto.monto == D("2194476.90")
+    assert resultado.total_deducciones.monto == D("416950.62")
+    assert resultado.neto.monto == D("1777526.28")
+    assert not any(codigo.startswith("FARMACIA_NR") for codigo in codigos)
