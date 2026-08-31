@@ -485,17 +485,41 @@ class LiquidarPeriodo:
                             categoria_normalizada = emp.categoria.translate(
                                 str.maketrans("ÁÉÍÓÚÜÑáéíóúüñ", "AEIOUUNaeiouun")
                             ).casefold()
-                            if "conductor" not in categoria_normalizada or "primera" not in categoria_normalizada:
-                                raise ValueError(
-                                    "el tramo habilitado de transporte pesado requiere conductor de primera categoría"
+                            modalidad_pesado = str(
+                                detalle_cam.get("modalidad_transporte_pesado") or "conductor"
+                            )
+                            if modalidad_pesado == "conductor":
+                                if "conductor" not in categoria_normalizada or "primera" not in categoria_normalizada:
+                                    raise ValueError(
+                                        "transporte pesado como conductor requiere conductor de primera categoría"
+                                    )
+                                toneladas = Decimal(str(
+                                    detalle_cam.get("toneladas_transporte_pesado") or 0
+                                ))
+                                codigo_pesado = tramo_transporte_pesado(toneladas)
+                                descripcion_pesado = (
+                                    f"Adicional transporte pesado ({toneladas} toneladas)"
                                 )
-                            toneladas = Decimal(str(
-                                detalle_cam.get("toneladas_transporte_pesado") or 0
-                            ))
-                            codigo_pesado = tramo_transporte_pesado(toneladas)
+                            elif modalidad_pesado in {"auxiliar_mecanico", "auxiliar_hidraulico"}:
+                                if "operario" not in categoria_normalizada or "especializado" not in categoria_normalizada:
+                                    raise ValueError(
+                                        "el auxiliar de carretón requiere la categoría Operarios Especializados"
+                                    )
+                                codigo_pesado = (
+                                    "CAM_PESADO_AUX_MECANICO_PCT"
+                                    if modalidad_pesado == "auxiliar_mecanico"
+                                    else "CAM_PESADO_AUX_HIDRAULICO_PCT"
+                                )
+                                descripcion_pesado = (
+                                    "Auxiliar especializado de carretón mecánico"
+                                    if modalidad_pesado == "auxiliar_mecanico"
+                                    else "Auxiliar especializado de carretón hidráulico"
+                                )
+                            else:
+                                raise ValueError("la modalidad de transporte pesado no es válida")
                             adicionales_rama.append((
                                 codigo_pesado,
-                                f"Adicional transporte pesado ({toneladas} toneladas)",
+                                descripcion_pesado,
                                 params_emp.fraccion(codigo_pesado),
                             ))
                         categoria = emp.categoria.translate(
