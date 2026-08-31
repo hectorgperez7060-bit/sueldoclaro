@@ -14,6 +14,42 @@ SET nombre='Farmacias alcanzadas por FATFA-COFA',
     activo=true
 WHERE numero='659/13';
 
+-- Normaliza el catálogo previo: las instalaciones antiguas podían tener
+-- "Cadete" en singular u otros nombres heredados de la escala histórica.
+UPDATE public.cct_categoria
+SET activa=false
+WHERE cct_numero='659/13';
+
+INSERT INTO public.cct_categoria
+  (id,cct_numero,codigo,nombre,orden,activa,fuente,
+   estado_fuente,is_verified,version)
+VALUES
+ (gen_random_uuid(),'659/13','CADETE','Cadetes',10,true,
+  'CCT 659/13 art. 10; escala oficial FATFA agosto 2026',
+  'VERIFICADA_OFICIAL',true,1),
+ (gen_random_uuid(),'659/13','APRENDIZ_AYUDANTE','Aprendiz Ayudante',20,true,
+  'CCT 659/13 art. 8; escala oficial FATFA agosto 2026',
+  'VERIFICADA_OFICIAL',true,1),
+ (gen_random_uuid(),'659/13','AUXILIAR_INTERNO_EXTERNO','Personal Auxiliar Interno y Externo',30,true,
+  'CCT 659/13 art. 10; escala oficial FATFA agosto 2026',
+  'VERIFICADA_OFICIAL',true,1),
+ (gen_random_uuid(),'659/13','ASIGNACION_ESPECIFICA','Personal con Asignación Específica',40,true,
+  'CCT 659/13 art. 9; escala oficial FATFA agosto 2026',
+  'VERIFICADA_OFICIAL',true,1),
+ (gen_random_uuid(),'659/13','AYUDANTE_GESTION','Ayudante en Gestión de Farmacia',50,true,
+  'CCT 659/13 art. 8; escala oficial FATFA agosto 2026',
+  'VERIFICADA_OFICIAL',true,1),
+ (gen_random_uuid(),'659/13','PERSONAL_GESTION','Personal en Gestión de Farmacia',60,true,
+  'CCT 659/13 art. 8; escala oficial FATFA agosto 2026',
+  'VERIFICADA_OFICIAL',true,1),
+ (gen_random_uuid(),'659/13','FARMACEUTICO','Farmacéutico',70,true,
+  'CCT 659/13 art. 7; escala oficial FATFA agosto 2026',
+  'VERIFICADA_OFICIAL',true,1)
+ON CONFLICT (cct_numero,codigo,version) DO UPDATE SET
+  nombre=EXCLUDED.nombre,orden=EXCLUDED.orden,activa=true,
+  fuente=EXCLUDED.fuente,estado_fuente=EXCLUDED.estado_fuente,
+  is_verified=EXCLUDED.is_verified;
+
 INSERT INTO public.cct_regla_estructural
   (id,cct_numero,codigo,tipo,descripcion,articulo,configuracion,
    fuente,estado_fuente,is_verified,version,activa)
