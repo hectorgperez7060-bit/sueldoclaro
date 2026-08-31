@@ -249,3 +249,23 @@ def test_transporte_pesado_selecciona_tramo_por_carga_util(toneladas, codigo):
 def test_transporte_pesado_rechaza_carga_no_positiva():
     with pytest.raises(ValueError, match="mayor que cero"):
         tramo_transporte_pesado(Decimal("0"))
+
+
+@pytest.mark.parametrize(("codigo", "porcentaje", "importe"), [
+    ("CAM_PESADO_AUX_MECANICO_PCT", "0.10", "100000.00"),
+    ("CAM_PESADO_AUX_HIDRAULICO_PCT", "0.13", "130000.00"),
+])
+def test_auxiliar_transporte_pesado_aplica_porcentaje_sobre_categoria(
+    codigo, porcentaje, importe
+):
+    recibo = armar_recibo_camioneros_general(
+        "20123456789", Periodo(2026, 8), Dinero.de("1000000"), 0,
+        Decimal("1"), (), Decimal("0.11"), Decimal("0.03"), Decimal("0.03"),
+        Decimal("0.18"), Decimal("0.05"), Decimal("0"),
+        ((codigo, "Auxiliar transporte pesado", Decimal(porcentaje)),),
+    )
+    assert recibo.concepto(codigo).importe.monto == Decimal(importe)
+    assert recibo.concepto(codigo).tipo.value == "remunerativo"
+    assert recibo.concepto("APORTE_JUBILACION").base_calculo.monto == (
+        Decimal("1000000") + Decimal(importe)
+    )
