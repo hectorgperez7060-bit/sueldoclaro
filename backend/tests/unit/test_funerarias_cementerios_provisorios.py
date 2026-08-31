@@ -53,6 +53,7 @@ def test_migracion_no_disfraza_datos_como_homologados():
     assert "NORMA_HOMOLOGADA" not in sql
     assert "PENDIENTE_HOMOLOGACION" not in sql
     assert "habilitada_liquidacion" in sql
+    assert sql.count("VALUES (gen_random_uuid(),") == 2
 
 
 def test_encuadra_funebre_y_cementerio_privado_sin_aplicacion_automatica():

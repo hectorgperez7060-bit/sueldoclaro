@@ -3,7 +3,7 @@
 
 BEGIN;
 
-INSERT INTO public.cct (numero,nombre,sindicato,activo) VALUES ('749/18','Cocherías, pompas fúnebres y salas velatorias','Sindicato de Obreros y Empleados de los Cementerios de la República Argentina (SOECRA)',true) ON CONFLICT (numero) DO UPDATE SET nombre=EXCLUDED.nombre,sindicato=EXCLUDED.sindicato,activo=true;
+INSERT INTO public.cct (id,numero,nombre,sindicato,activo) VALUES (gen_random_uuid(),'749/18','Cocherías, pompas fúnebres y salas velatorias','Sindicato de Obreros y Empleados de los Cementerios de la República Argentina (SOECRA)',true) ON CONFLICT (numero) DO UPDATE SET nombre=EXCLUDED.nombre,sindicato=EXCLUDED.sindicato,activo=true;
 
 INSERT INTO public.cct_categoria (cct_numero,codigo,nombre,orden,fuente,estado_fuente,is_verified,version,activa) VALUES ('749/18','A_1_JEFE','Agrupamiento A - Categoría Primera - Jefe',10,'CCT 749/18 art. 10 y escala salarial adjunta al acta del 17/07/2026 (RE-2026-70537365-APN-DTD#JGM)','PROVISORIA',false,1,true) ON CONFLICT (cct_numero,codigo,version) DO UPDATE SET nombre=EXCLUDED.nombre,orden=EXCLUDED.orden,fuente=EXCLUDED.fuente,estado_fuente=EXCLUDED.estado_fuente,is_verified=EXCLUDED.is_verified,activa=true;
 
@@ -124,7 +124,7 @@ COMMIT;
 
 BEGIN;
 
-INSERT INTO public.cct (numero,nombre,sindicato,activo) VALUES ('761/19','Cementerios privados y concesionados, parques cementerio, crematorios, panteones y salas velatorias','Sindicato de Obreros y Empleados de los Cementerios de la República Argentina (SOECRA)',true) ON CONFLICT (numero) DO UPDATE SET nombre=EXCLUDED.nombre,sindicato=EXCLUDED.sindicato,activo=true;
+INSERT INTO public.cct (id,numero,nombre,sindicato,activo) VALUES (gen_random_uuid(),'761/19','Cementerios privados y concesionados, parques cementerio, crematorios, panteones y salas velatorias','Sindicato de Obreros y Empleados de los Cementerios de la República Argentina (SOECRA)',true) ON CONFLICT (numero) DO UPDATE SET nombre=EXCLUDED.nombre,sindicato=EXCLUDED.sindicato,activo=true;
 
 INSERT INTO public.cct_categoria (cct_numero,codigo,nombre,orden,fuente,estado_fuente,is_verified,version,activa) VALUES ('761/19','LUCRO_ADM_1','Con fines de lucro - Administrativo - Categoría 1ª - Jefe administrativo',10,'CCT 761/19 art. 10','PROVISORIA',false,1,true) ON CONFLICT (cct_numero,codigo,version) DO UPDATE SET nombre=EXCLUDED.nombre,orden=EXCLUDED.orden,fuente=EXCLUDED.fuente,estado_fuente=EXCLUDED.estado_fuente,is_verified=EXCLUDED.is_verified,activa=true;
 
