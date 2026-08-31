@@ -301,13 +301,26 @@ class MotorLiquidacion:
                     multiplicador
                 ).redondear()
             )
+            tipo_adicional = (
+                TipoConcepto.NO_REMUNERATIVO
+                if regla.naturaleza == "no_remunerativo"
+                else TipoConcepto.REMUNERATIVO
+            )
             conceptos.append(Concepto(
-                codigo, regla.descripcion, TipoConcepto.REMUNERATIVO,
+                codigo, regla.descripcion, tipo_adicional,
                 importe, cantidad=cantidad, base_calculo=base_adicional,
                 unidad=(f"{regla.porcentaje * 100}%"
                         if regla.modo_calculo == "multiplicador"
                         else regla.modo_calculo),
             ))
+            if tipo_adicional == TipoConcepto.NO_REMUNERATIVO:
+                nr.append((importe, {
+                    "integra_antiguedad": False,
+                    "integra_presentismo": False,
+                    "aporte_jubilacion": False,
+                    "aporte_obra_social": False,
+                    "aporte_sindicato": regla.aporte_sindicato,
+                }))
 
         # Presentismo: también se discrimina por naturaleza del concepto.
         if cct.aplica_presentismo:
