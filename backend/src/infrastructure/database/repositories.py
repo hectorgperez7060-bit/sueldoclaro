@@ -610,7 +610,12 @@ class ParametrosRepo:
                         porcentaje=Decimal(str(configuracion["porcentaje"])),
                         base="basico_categoria",
                         articulo=articulo,
-                        aplica_automaticamente=True,
+                        # El complemento de servicio corresponde a todo el
+                        # personal. La asistencia perfecta sólo se agrega si
+                        # fue confirmada en la novedad mensual.
+                        aplica_automaticamente=(
+                            codigo == "COMPLEMENTO_SERVICIO"
+                        ),
                     ))
             adicionales = tuple(adicionales_uthgra)
 
