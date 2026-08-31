@@ -269,3 +269,22 @@ def test_auxiliar_transporte_pesado_aplica_porcentaje_sobre_categoria(
     assert recibo.concepto("APORTE_JUBILACION").base_calculo.monto == (
         Decimal("1000000") + Decimal(importe)
     )
+
+
+def test_zafra_aplica_diez_por_ciento_sobre_remunerativos_y_viatico():
+    variables = calcular_variables_camioneros(
+        valores(),
+        NovedadesVariablesCamioneros(
+            kilometros_extra=Decimal("2500"),
+            kilometros_viatico=Decimal("2500"),
+        ),
+    )
+    recibo = armar_recibo_camioneros_general(
+        "20123456789", Periodo(2026, 8), Dinero.de("1000000"), 0,
+        Decimal("1"), variables, Decimal("0.11"), Decimal("0.03"), Decimal("0.03"),
+        Decimal("0.18"), Decimal("0.05"), adicional_zafra_pct=Decimal("0.10"),
+    )
+    adicional = recibo.concepto("ADICIONAL_ZAFRA_5_9_3")
+    assert adicional.base_calculo.monto == Decimal("1419141.26")
+    assert adicional.importe.monto == Decimal("141914.13")
+    assert recibo.concepto("APORTE_JUBILACION").base_calculo.monto == Decimal("1351484.76")
