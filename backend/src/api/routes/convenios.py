@@ -205,7 +205,7 @@ async def gestor_normativo(
                 "motor_habilitado": motor_periodo_habilitado,
                 "vista_previa_habilitada": vista_previa_habilitada,
                 "mensaje_motor": (
-                    "Disponibles: general, larga distancia, lácteos, auxilio, diarios, combustibles, asfalto caliente, peligrosas, residuos, taller, caudales, clearing, expreso/mudanzas, aguas gaseosas, logística, pozos petrolíferos, transporte de automóviles y transporte pesado; zafra pendiente"
+                    "Disponibles: general, larga distancia, lácteos, auxilio, diarios, combustibles, asfalto caliente, peligrosas, residuos, taller, caudales, clearing, expreso/mudanzas, aguas gaseosas, logística, pozos petrolíferos, transporte de automóviles, transporte pesado y zafra azucarera"
                     if cct.numero == "40/89" and vista_previa_habilitada else None
                 ),
             },
