@@ -1,0 +1,893 @@
+{
+  "version_paquete": "0.2.0-PROVISORIO",
+  "fuente_manifest": "Auditoría Sueldo Claro agosto 2026 · CCT 749/18 (SOECRA – FADEDSFYA – FADAF). Texto convencional publicado por la parte sindical firmante y acta salarial RE-2026-70537365-APN-DTD#JGM. Sin escala homologada para 2026-08.",
+  "cct": "749/18",
+  "identidad": {
+    "numero": "749/18",
+    "nombre": "Cocherías, pompas fúnebres y salas velatorias",
+    "sindicato": "Sindicato de Obreros y Empleados de los Cementerios de la República Argentina (SOECRA)"
+  },
+  "partes": {
+    "sindical": "Sindicato de Obreros y Empleados de los Cementerios de la República Argentina (SOECRA)",
+    "empleadora": [
+      "Federación Argentina de Entidades de Servicios Fúnebres y Afines (FADEDSFYA)",
+      "Federación Argentina de Asociaciones Funerarias (FADAF)"
+    ],
+    "camara_para_encuadramiento": "FADEDSFYA y FADAF. La afiliación de la empresa a una cámara NO es condición del encuadramiento: el convenio es de actividad."
+  },
+  "ambito_territorial": {
+    "alcance": "NACIONAL",
+    "detalle": "Todo el territorio de la República Argentina, conforme el ámbito de representación de las partes.",
+    "estado_fuente": "PROVISORIA",
+    "verificado": false
+  },
+  "vigencias": {
+    "cct_base": {
+      "numero": "749/18",
+      "sucede_a": [
+        "726/15",
+        "534/08",
+        "465/06"
+      ],
+      "acto_homologatorio": "NO LOCALIZADO EN FUENTE OFICIAL. Existencia y vigencia del CCT 749/18 confirmadas indirectamente por DI-2026-82-APN-DNRYRT#MCH (Disposición 82/2026), que homologa un acuerdo 'en el marco del Convenio Colectivo de Trabajo Nº 749/18'.",
+      "estado_a_2026_08": "VIGENTE POR ULTRAACTIVIDAD (art. 6 Ley 14.250). Plazo original: dos años desde la homologación."
+    },
+    "ultimo_acuerdo_homologado_localizado": {
+      "acto": "Disposición 82/2026 (DI-2026-82-APN-DNRYRT#MCH), 15/01/2026",
+      "expediente": "EX-2024-67843414-APN-DGD#MT",
+      "documento_acuerdo": "IF-2024-67842699-APN-DGD#MT",
+      "publicacion_bora": "03/06/2026, BO N° 35922, pág. 89",
+      "observacion": "El acuerdo homologado proviene de un expediente iniciado en 2024. NO cubre agosto de 2026. Las escalas están en anexo publicado sólo en la edición web del BORA y no fueron leídas en esta auditoría."
+    },
+    "ultimo_acuerdo_publicado_no_homologado": {
+      "acta": "Presentación conjunta SOECRA / FADEDSFYA / FADAF ante la Secretaría de Trabajo, Empleo y Seguridad Social, CABA, 17/07/2026",
+      "documento_gede": "RE-2026-70537365-APN-DTD#JGM",
+      "url": "https://soecra.com.ar/wp-content/uploads/2026/07/ESCALA-COCHERIA-FADAF-FADEDSFYA-749-18-JULIO-2026.pdf",
+      "estado": "NO HOMOLOGADO. El punto 10 del acta dice expresamente: 'Las partes solicitan la homologación del presente acuerdo'.",
+      "cubre": "julio, agosto y septiembre de 2026"
+    }
+  },
+  "estructura": {
+    "zonas": [
+      ""
+    ],
+    "categorias": [
+      {
+        "codigo": "A_1_JEFE",
+        "nombre": "Agrupamiento A - Categoría Primera - Jefe",
+        "orden": 10,
+        "fuente": "CCT 749/18 art. 10 y escala salarial adjunta al acta del 17/07/2026 (RE-2026-70537365-APN-DTD#JGM)",
+        "estado_fuente": "PROVISORIA",
+        "verificado": false
+      },
+      {
+        "codigo": "A_2_ADM_POLIVALENTE_A",
+        "nombre": "Agrupamiento A - Categoría Segunda - Administrativo Polivalente A",
+        "orden": 20,
+        "fuente": "CCT 749/18 art. 10 y escala salarial adjunta al acta del 17/07/2026",
+        "estado_fuente": "PROVISORIA",
+        "verificado": false
+      },
+      {
+        "codigo": "A_3_ADM_POLIVALENTE_B",
+        "nombre": "Agrupamiento A - Categoría Tercera - Administrativo Polivalente B",
+        "orden": 30,
+        "fuente": "CCT 749/18 art. 10 y escala salarial adjunta al acta del 17/07/2026",
+        "estado_fuente": "PROVISORIA",
+        "verificado": false
+      },
+      {
+        "codigo": "A_4_ADM_POLIVALENTE_C",
+        "nombre": "Agrupamiento A - Categoría Cuarta - Administrativo Polivalente C",
+        "orden": 40,
+        "fuente": "CCT 749/18 art. 10 y escala salarial adjunta al acta del 17/07/2026",
+        "estado_fuente": "PROVISORIA",
+        "verificado": false
+      },
+      {
+        "codigo": "A_5_CADETE",
+        "nombre": "Agrupamiento A - Categoría Quinta - Cadete",
+        "orden": 50,
+        "fuente": "CCT 749/18 art. 10 y escala salarial adjunta al acta del 17/07/2026",
+        "estado_fuente": "PROVISORIA",
+        "verificado": false
+      },
+      {
+        "codigo": "B_1_TANATOPRACTOR",
+        "nombre": "Agrupamiento B - Categoría Primera - Tanatopractor",
+        "orden": 60,
+        "fuente": "CCT 749/18 art. 10 y escala salarial adjunta al acta del 17/07/2026",
+        "estado_fuente": "PROVISORIA",
+        "verificado": false
+      },
+      {
+        "codigo": "B_2_AUX_POLIVALENTE_SF_A",
+        "nombre": "Agrupamiento B - Categoría Segunda - Auxiliar Polivalente de Servicio Fúnebre A",
+        "orden": 70,
+        "fuente": "CCT 749/18 art. 10 y escala salarial adjunta al acta del 17/07/2026",
+        "estado_fuente": "PROVISORIA",
+        "verificado": false
+      },
+      {
+        "codigo": "B_3_AUX_POLIVALENTE_SF_B",
+        "nombre": "Agrupamiento B - Categoría Tercera - Auxiliar Polivalente de Servicio Fúnebre B",
+        "orden": 80,
+        "fuente": "CCT 749/18 art. 10 y escala salarial adjunta al acta del 17/07/2026",
+        "estado_fuente": "PROVISORIA",
+        "verificado": false
+      },
+      {
+        "codigo": "B_4_AUX_POLIVALENTE_SF_C",
+        "nombre": "Agrupamiento B - Categoría Cuarta - Auxiliar Polivalente de Servicio Fúnebre C",
+        "orden": 90,
+        "fuente": "CCT 749/18 art. 10 y escala salarial adjunta al acta del 17/07/2026",
+        "estado_fuente": "PROVISORIA",
+        "verificado": false
+      },
+      {
+        "codigo": "B_5_AUX_POLIVALENTE_SF_D",
+        "nombre": "Agrupamiento B - Categoría Quinta - Auxiliar Polivalente de Servicio Fúnebre D",
+        "orden": 100,
+        "fuente": "CCT 749/18 art. 10 y escala salarial adjunta al acta del 17/07/2026",
+        "estado_fuente": "PROVISORIA",
+        "verificado": false
+      },
+      {
+        "codigo": "C_1_REPRESENTANTE_ASESOR",
+        "nombre": "Agrupamiento C - Categoría Primera - Representante o Asesor",
+        "orden": 110,
+        "fuente": "CCT 749/18 arts. 10 y 11 y escala salarial adjunta al acta del 17/07/2026",
+        "estado_fuente": "PROVISORIA",
+        "verificado": false
+      }
+    ],
+    "reglas": [
+      {
+        "codigo": "AMBITO_ACTIVIDAD",
+        "tipo": "ambito",
+        "descripcion": "Se aplica a empresas que prestan servicios de cochería, pompas fúnebres y/o casas velatorias, incluido el personal de promoción y comercialización de esos bienes y servicios. NO se aplica por el solo hecho de que la empresa venda planes o servicios: la actividad principal del establecimiento debe ser la prestación fúnebre.",
+        "articulo": "2",
+        "configuracion": {
+          "actividad_principal": [
+            "cocheria",
+            "pompas_funebres",
+            "casa_velatoria"
+          ],
+          "incluye_personal_de": [
+            "promocion",
+            "comercializacion"
+          ],
+          "no_aplica_si": [
+            "cementerio_privado",
+            "parque_cementerio",
+            "crematorio",
+            "cementerio_municipal",
+            "sala_velatoria_dentro_de_cementerio_o_crematorio"
+          ],
+          "convenio_alternativo_para_cementerios_y_crematorios": "761/19"
+        },
+        "fuente": "CCT 749/18 art. 2, texto publicado por SOECRA: https://soecra.com.ar/convenios_y_arreglos/cocherias/CCT_NRO749_18_cocherias.pdf",
+        "estado_fuente": "PROVISORIA",
+        "verificado": false
+      },
+      {
+        "codigo": "ANTIGUEDAD",
+        "tipo": "adicional",
+        "descripcion": "Bonificación del 1% de la remuneración básica por cada año (aniversario) de antigüedad.",
+        "articulo": "13",
+        "configuracion": {
+          "porcentaje_por_anio": 0.01,
+          "base": "basico_convenio",
+          "acumulativo": true
+        },
+        "fuente": "CCT 749/18 art. 13",
+        "estado_fuente": "PROVISORIA",
+        "verificado": false
+      },
+      {
+        "codigo": "PRESENTISMO",
+        "tipo": "adicional",
+        "descripcion": "10% sobre el básico para quien no registre ausencias ni más de tres llegadas tarde injustificadas en el mes.",
+        "articulo": "14",
+        "configuracion": {
+          "porcentaje": 0.1,
+          "base_declarada_en_texto": "basico",
+          "base_declarada_en_lectura_alternativa": "basico_mas_antiguedad",
+          "requiere_confirmacion_de_base": true,
+          "condicion": {
+            "ausencias_injustificadas_max": 0,
+            "llegadas_tarde_injustificadas_max": 3
+          }
+        },
+        "fuente": "CCT 749/18 art. 14",
+        "estado_fuente": "PROVISORIA",
+        "verificado": false
+      },
+      {
+        "codigo": "JORNADA",
+        "tipo": "jornada",
+        "descripcion": "Jornada regida por la Ley 11.544. Tope convencional de 44 horas semanales; un domingo libre por mes como mínimo. El tanatopractor tiene tope de 44 horas.",
+        "articulo": "29",
+        "configuracion": {
+          "horas_semanales_convencionales": 44,
+          "tope_legal_semanal": 48,
+          "domingo_libre_minimo_mensual": 1
+        },
+        "fuente": "CCT 749/18 art. 29",
+        "estado_fuente": "PROVISORIA",
+        "verificado": false
+      },
+      {
+        "codigo": "RECARGO_HORAS_45_48",
+        "tipo": "hora_extra",
+        "descripcion": "Las horas que exceden las 44 semanales y hasta 48 se abonan con recargo del 20%. El excedente de 48 horas semanales se abona con los recargos del art. 201 LCT (50% / 100%).",
+        "articulo": "29",
+        "configuracion": {
+          "tramo_44_a_48": {
+            "recargo": 0.2
+          },
+          "excedente_48": {
+            "remite_a": "art. 201 LCT"
+          }
+        },
+        "fuente": "CCT 749/18 art. 29",
+        "estado_fuente": "PROVISORIA",
+        "verificado": false
+      },
+      {
+        "codigo": "POLIFUNCIONALIDAD",
+        "tipo": "organizacion",
+        "descripcion": "El empleador puede requerir tareas de cualquier función; la polifuncionalidad no habilita reducción salarial. La tarea efectiva no cambia por sí sola el convenio aplicable, sólo la categoría.",
+        "articulo": "6",
+        "configuracion": {
+          "reduccion_salarial_prohibida": true,
+          "afecta": "categoria",
+          "no_afecta": "encuadramiento_convencional"
+        },
+        "fuente": "CCT 749/18 art. 6",
+        "estado_fuente": "PROVISORIA",
+        "verificado": false
+      },
+      {
+        "codigo": "REMUNERACION_REPRESENTANTE",
+        "tipo": "remuneracion_variable",
+        "descripcion": "El representante o asesor percibe una remuneración fija equivalente a una categoría del Agrupamiento B más comisiones por servicios vendidos. La categoría exacta de equivalencia NO pudo confirmarse contra texto oficial y queda bloqueada.",
+        "articulo": "11",
+        "configuracion": {
+          "componente_fijo": "PENDIENTE_DOCUMENTACION",
+          "componente_variable": "comisiones sobre servicios vendidos",
+          "piso": "salario mínimo vital y móvil (art. 10)",
+          "bloqueado": true
+        },
+        "fuente": "CCT 749/18 arts. 10 y 11",
+        "estado_fuente": "PENDIENTE_DOCUMENTACION",
+        "verificado": false
+      },
+      {
+        "codigo": "ACUERDO_JUL_SEP_2026",
+        "tipo": "acuerdo_salarial",
+        "descripcion": "Acta del 17/07/2026: mejoras de carácter NO REMUNERATIVO para julio, agosto y septiembre de 2026. Julio: 1,9% sobre los básicos conformados de junio 2026. Agosto: porcentaje igual al IPC Nivel General INDEC de julio 2026 sobre los básicos conformados de julio 2026. Septiembre: IPC de agosto 2026 sobre los básicos conformados de agosto 2026. A dichas sumas se adicionan los adicionales convencionales. NO HOMOLOGADO.",
+        "articulo": "acta 17/07/2026, puntos 1, 2, 3 y 4",
+        "configuracion": {
+          "caracter": "no_remunerativo",
+          "julio_2026": {
+            "porcentaje": 0.019,
+            "base": "basicos_conformados_junio_2026"
+          },
+          "agosto_2026": {
+            "porcentaje_regla": "IPC_NG_INDEC_julio_2026",
+            "porcentaje_valor": 0.021,
+            "base": "basicos_conformados_julio_2026"
+          },
+          "septiembre_2026": {
+            "porcentaje_regla": "IPC_NG_INDEC_agosto_2026",
+            "base": "basicos_conformados_agosto_2026"
+          },
+          "aportes_y_contribuciones": "Se deben los arts. 55, 56 y 61 del CCT 749/18 pese al carácter no remunerativo (punto 4 del acta)",
+          "escalas_publicadas_hasta": "2026-07",
+          "homologado": false
+        },
+        "fuente": "Acta SOECRA/FADEDSFYA/FADAF 17/07/2026, RE-2026-70537365-APN-DTD#JGM; IPC julio 2026 = 2,1% según INDEC, informe del 13/08/2026 (https://www.indec.gob.ar/uploads/informesdeprensa/ipc_08_2642C82F62AE.pdf)",
+        "estado_fuente": "PROVISORIA",
+        "verificado": false
+      },
+      {
+        "codigo": "INCORPORACIONES_NO_REM_A_BASICO",
+        "tipo": "acuerdo_salarial",
+        "descripcion": "Las sumas no remunerativas de febrero y marzo 2026 se incorporan a los básicos desde julio 2026. Las de abril y mayo 2026 se incorporan desde agosto y septiembre 2026 respectivamente. El bono no remunerativo mensual de $10.000 abonado en el trimestre abril-junio 2026 se incorpora al básico de cada trabajador en julio 2026, con independencia de la categoría.",
+        "articulo": "acta 17/07/2026, puntos 5, 6 y 7",
+        "configuracion": {
+          "incorpora_en_2026_07": [
+            "no_rem_febrero_2026",
+            "no_rem_marzo_2026",
+            "bono_10000_abril_junio_2026"
+          ],
+          "incorpora_en_2026_08": [
+            "no_rem_abril_2026"
+          ],
+          "incorpora_en_2026_09": [
+            "no_rem_mayo_2026"
+          ],
+          "bono_mensual_incorporado": 10000,
+          "impacto": "El básico de agosto 2026 NO es el de julio 2026: incorpora la no remunerativa de abril 2026 antes de aplicar el 2,1%."
+        },
+        "fuente": "Acta SOECRA/FADEDSFYA/FADAF 17/07/2026, RE-2026-70537365-APN-DTD#JGM",
+        "estado_fuente": "PROVISORIA",
+        "verificado": false
+      },
+      {
+        "codigo": "APORTES_ART_55_56_61",
+        "tipo": "aporte_contribucion",
+        "descripcion": "BLOQUEADO POR CONTRADICCIÓN DOCUMENTAL. Dos lecturas del mismo PDF del CCT arrojan atribuciones distintas: (a) art. 55 = contribución patronal del 1% al fondo de fallecimiento y art. 56 = cuota sindical del afiliado 1,5%; (b) art. 55 = beneficio de subsidio por fallecimiento equivalente a dos básicos de la categoría B.2, art. 56 = retención/depósito del 1% para el fondo de fallecimiento. Ambas coinciden en que el art. 61 es una contribución convencional del 1,5% mensual a cargo del empleador sobre remuneraciones sujetas a aportes (art. 9 Ley 23.551). No se cargan porcentajes hasta leer el texto homologado.",
+        "articulo": "55, 56 y 61",
+        "configuracion": {
+          "bloqueado": true,
+          "motivo": "contradiccion_entre_lecturas_del_texto_convencional",
+          "unico_dato_coincidente": {
+            "art_61_contribucion_empleador": 0.015,
+            "base": "remuneraciones_sujetas_a_aportes",
+            "requiere_confirmacion": true
+          },
+          "confirmado_por_acta": "El acta del 17/07/2026 punto 4 confirma que los arts. 55, 56 y 61 se deben aun sobre las sumas no remunerativas.",
+          "cuota_sindical_de_afiliado": "No se asume. Requiere confirmación de afiliación individual y del texto convencional o estatutario."
+        },
+        "fuente": "CCT 749/18 arts. 55, 56 y 61; acta 17/07/2026 punto 4",
+        "estado_fuente": "PENDIENTE_DOCUMENTACION",
+        "verificado": false
+      },
+      {
+        "codigo": "OBRA_SOCIAL",
+        "tipo": "obra_social",
+        "descripcion": "Obra Social del Personal de Cementerios y Cocherías de la República Argentina (OSPCRA). Número de RNOS no localizado en fuente oficial.",
+        "articulo": "no localizado",
+        "configuracion": {
+          "sigla": "OSPCRA",
+          "rnos": "PENDIENTE_DOCUMENTACION",
+          "sitio": "https://ospcra.org/"
+        },
+        "fuente": "https://soecra.com.ar/obra-social/",
+        "estado_fuente": "PENDIENTE_DOCUMENTACION",
+        "verificado": false
+      },
+      {
+        "codigo": "CANAL_PAGO_SINDICAL",
+        "tipo": "boleta",
+        "descripcion": "Declaraciones juradas de empleadores y pago de obligaciones sindicales por la plataforma CuotaQ de SOECRA. Requiere clave provista por el sindicato.",
+        "articulo": "operativo",
+        "configuracion": {
+          "url_pago": "https://www.cuotaq.com/soecra",
+          "contacto": "pagos@soecra.org / empresas@soecra.com.ar",
+          "vencimiento_declarado_en_cct": "dentro de los 15 días posteriores al mes vencido (requiere confirmación)"
+        },
+        "fuente": "https://soecra.com.ar/ddjj-empresas/",
+        "estado_fuente": "PROVISORIA",
+        "verificado": false
+      }
+    ]
+  },
+  "periodos": [
+    {
+      "periodo": "2026-08",
+      "matriz_completa": true,
+      "escalas": [
+        {
+          "categoria": "Agrupamiento A - Categoría Primera - Jefe",
+          "zona": "",
+          "basico": "1313058.89",
+          "unidad": "MENSUAL",
+          "fuente": "Acta SOECRA/FADEDSFYA/FADAF 17/07/2026 (RE-2026-70537365-APN-DTD#JGM), escala de julio 2026 leida del PDF oficial https://soecra.com.ar/wp-content/uploads/2026/07/ESCALA-COCHERIA-FADAF-FADEDSFYA-749-18-JULIO-2026.pdf, pagina 3; agosto reconstruido con el IPC nivel general INDEC de julio 2026 (2,1%) segun el punto 2 del acta. ACUERDO NO HOMOLOGADO. Fila 1 de la tabla. Basico julio 1270211.69 + no remunerativa de abril 42847.20.",
+          "estado_fuente": "PROVISORIA",
+          "verificado": false,
+          "provisoria": true,
+          "habilitada": false
+        },
+        {
+          "categoria": "Agrupamiento A - Categoría Segunda - Administrativo Polivalente A",
+          "zona": "",
+          "basico": "1280935.75",
+          "unidad": "MENSUAL",
+          "fuente": "Acta SOECRA/FADEDSFYA/FADAF 17/07/2026 (RE-2026-70537365-APN-DTD#JGM), escala de julio 2026 leida del PDF oficial https://soecra.com.ar/wp-content/uploads/2026/07/ESCALA-COCHERIA-FADAF-FADEDSFYA-749-18-JULIO-2026.pdf, pagina 3; agosto reconstruido con el IPC nivel general INDEC de julio 2026 (2,1%) segun el punto 2 del acta. ACUERDO NO HOMOLOGADO. Fila 2 de la tabla. Basico julio 1239144.83 + no remunerativa de abril 41790.92.",
+          "estado_fuente": "PROVISORIA",
+          "verificado": false,
+          "provisoria": true,
+          "habilitada": false
+        },
+        {
+          "categoria": "Agrupamiento A - Categoría Tercera - Administrativo Polivalente B",
+          "zona": "",
+          "basico": "1276484.56",
+          "unidad": "MENSUAL",
+          "fuente": "Acta SOECRA/FADEDSFYA/FADAF 17/07/2026 (RE-2026-70537365-APN-DTD#JGM), escala de julio 2026 leida del PDF oficial https://soecra.com.ar/wp-content/uploads/2026/07/ESCALA-COCHERIA-FADAF-FADEDSFYA-749-18-JULIO-2026.pdf, pagina 3; agosto reconstruido con el IPC nivel general INDEC de julio 2026 (2,1%) segun el punto 2 del acta. ACUERDO NO HOMOLOGADO. Fila 3 de la tabla. Basico julio 1234840.00 + no remunerativa de abril 41644.56.",
+          "estado_fuente": "PROVISORIA",
+          "verificado": false,
+          "provisoria": true,
+          "habilitada": false
+        },
+        {
+          "categoria": "Agrupamiento A - Categoría Cuarta - Administrativo Polivalente C",
+          "zona": "",
+          "basico": "1272034.58",
+          "unidad": "MENSUAL",
+          "fuente": "Acta SOECRA/FADEDSFYA/FADAF 17/07/2026 (RE-2026-70537365-APN-DTD#JGM), escala de julio 2026 leida del PDF oficial https://soecra.com.ar/wp-content/uploads/2026/07/ESCALA-COCHERIA-FADAF-FADEDSFYA-749-18-JULIO-2026.pdf, pagina 3; agosto reconstruido con el IPC nivel general INDEC de julio 2026 (2,1%) segun el punto 2 del acta. ACUERDO NO HOMOLOGADO. Fila 4 de la tabla. Basico julio 1230536.34 + no remunerativa de abril 41498.24.",
+          "estado_fuente": "PROVISORIA",
+          "verificado": false,
+          "provisoria": true,
+          "habilitada": false
+        },
+        {
+          "categoria": "Agrupamiento A - Categoría Quinta - Cadete",
+          "zona": "",
+          "basico": "1266821.74",
+          "unidad": "MENSUAL",
+          "fuente": "Acta SOECRA/FADEDSFYA/FADAF 17/07/2026 (RE-2026-70537365-APN-DTD#JGM), escala de julio 2026 leida del PDF oficial https://soecra.com.ar/wp-content/uploads/2026/07/ESCALA-COCHERIA-FADAF-FADEDSFYA-749-18-JULIO-2026.pdf, pagina 3; agosto reconstruido con el IPC nivel general INDEC de julio 2026 (2,1%) segun el punto 2 del acta. ACUERDO NO HOMOLOGADO. Fila 5 de la tabla. Basico julio 1225494.91 + no remunerativa de abril 41326.83.",
+          "estado_fuente": "PROVISORIA",
+          "verificado": false,
+          "provisoria": true,
+          "habilitada": false
+        },
+        {
+          "categoria": "Agrupamiento B - Categoría Primera - Tanatopractor",
+          "zona": "",
+          "basico": "1296562.15",
+          "unidad": "MENSUAL",
+          "fuente": "Acta SOECRA/FADEDSFYA/FADAF 17/07/2026 (RE-2026-70537365-APN-DTD#JGM), escala de julio 2026 leida del PDF oficial https://soecra.com.ar/wp-content/uploads/2026/07/ESCALA-COCHERIA-FADAF-FADEDSFYA-749-18-JULIO-2026.pdf, pagina 3; agosto reconstruido con el IPC nivel general INDEC de julio 2026 (2,1%) segun el punto 2 del acta. ACUERDO NO HOMOLOGADO. Fila 6 de la tabla. Basico julio 1254257.40 + no remunerativa de abril 42304.75.",
+          "estado_fuente": "PROVISORIA",
+          "verificado": false,
+          "provisoria": true,
+          "habilitada": false
+        },
+        {
+          "categoria": "Agrupamiento B - Categoría Segunda - Auxiliar Polivalente de Servicio Fúnebre A",
+          "zona": "",
+          "basico": "1279846.08",
+          "unidad": "MENSUAL",
+          "fuente": "Acta SOECRA/FADEDSFYA/FADAF 17/07/2026 (RE-2026-70537365-APN-DTD#JGM), escala de julio 2026 leida del PDF oficial https://soecra.com.ar/wp-content/uploads/2026/07/ESCALA-COCHERIA-FADAF-FADEDSFYA-749-18-JULIO-2026.pdf, pagina 3; agosto reconstruido con el IPC nivel general INDEC de julio 2026 (2,1%) segun el punto 2 del acta. ACUERDO NO HOMOLOGADO. Fila 7 de la tabla. Basico julio 1238090.99 + no remunerativa de abril 41755.09.",
+          "estado_fuente": "PROVISORIA",
+          "verificado": false,
+          "provisoria": true,
+          "habilitada": false
+        },
+        {
+          "categoria": "Agrupamiento B - Categoría Tercera - Auxiliar Polivalente de Servicio Fúnebre B",
+          "zona": "",
+          "basico": "1274441.40",
+          "unidad": "MENSUAL",
+          "fuente": "Acta SOECRA/FADEDSFYA/FADAF 17/07/2026 (RE-2026-70537365-APN-DTD#JGM), escala de julio 2026 leida del PDF oficial https://soecra.com.ar/wp-content/uploads/2026/07/ESCALA-COCHERIA-FADAF-FADEDSFYA-749-18-JULIO-2026.pdf, pagina 3; agosto reconstruido con el IPC nivel general INDEC de julio 2026 (2,1%) segun el punto 2 del acta. ACUERDO NO HOMOLOGADO. Fila 8 de la tabla. Basico julio 1232864.02 + no remunerativa de abril 41577.38.",
+          "estado_fuente": "PROVISORIA",
+          "verificado": false,
+          "provisoria": true,
+          "habilitada": false
+        },
+        {
+          "categoria": "Agrupamiento B - Categoría Cuarta - Auxiliar Polivalente de Servicio Fúnebre C",
+          "zona": "",
+          "basico": "1273843.88",
+          "unidad": "MENSUAL",
+          "fuente": "Acta SOECRA/FADEDSFYA/FADAF 17/07/2026 (RE-2026-70537365-APN-DTD#JGM), escala de julio 2026 leida del PDF oficial https://soecra.com.ar/wp-content/uploads/2026/07/ESCALA-COCHERIA-FADAF-FADEDSFYA-749-18-JULIO-2026.pdf, pagina 3; agosto reconstruido con el IPC nivel general INDEC de julio 2026 (2,1%) segun el punto 2 del acta. ACUERDO NO HOMOLOGADO. Fila 9 de la tabla. Basico julio 1232286.15 + no remunerativa de abril 41557.73.",
+          "estado_fuente": "PROVISORIA",
+          "verificado": false,
+          "provisoria": true,
+          "habilitada": false
+        },
+        {
+          "categoria": "Agrupamiento B - Categoría Quinta - Auxiliar Polivalente de Servicio Fúnebre D",
+          "zona": "",
+          "basico": "1271163.05",
+          "unidad": "MENSUAL",
+          "fuente": "Acta SOECRA/FADEDSFYA/FADAF 17/07/2026 (RE-2026-70537365-APN-DTD#JGM), escala de julio 2026 leida del PDF oficial https://soecra.com.ar/wp-content/uploads/2026/07/ESCALA-COCHERIA-FADAF-FADEDSFYA-749-18-JULIO-2026.pdf, pagina 3; agosto reconstruido con el IPC nivel general INDEC de julio 2026 (2,1%) segun el punto 2 del acta. ACUERDO NO HOMOLOGADO. Fila 10 de la tabla. Basico julio 1229693.47 + no remunerativa de abril 41469.58.",
+          "estado_fuente": "PROVISORIA",
+          "verificado": false,
+          "provisoria": true,
+          "habilitada": false
+        },
+        {
+          "categoria": "Agrupamiento C - Categoría Primera - Representante o Asesor",
+          "zona": "",
+          "basico": "1296562.19",
+          "unidad": "MENSUAL",
+          "fuente": "Acta SOECRA/FADEDSFYA/FADAF 17/07/2026 (RE-2026-70537365-APN-DTD#JGM), escala de julio 2026 leida del PDF oficial https://soecra.com.ar/wp-content/uploads/2026/07/ESCALA-COCHERIA-FADAF-FADEDSFYA-749-18-JULIO-2026.pdf, pagina 3; agosto reconstruido con el IPC nivel general INDEC de julio 2026 (2,1%) segun el punto 2 del acta. ACUERDO NO HOMOLOGADO. Fila 11 de la tabla. Basico julio 1254257.44 + no remunerativa de abril 42304.75.",
+          "estado_fuente": "PROVISORIA",
+          "verificado": false,
+          "provisoria": true,
+          "habilitada": false
+        }
+      ],
+      "parametros": [
+        {
+          "codigo": "NO_REM_2026_08_749_A_1_JEFE",
+          "valor": "117504.44",
+          "unidad": "ARS",
+          "ambito": "no_rem",
+          "fuente": "Acta SOECRA/FADEDSFYA/FADAF 17/07/2026 (RE-2026-70537365-APN-DTD#JGM), escala de julio 2026 leida del PDF oficial https://soecra.com.ar/wp-content/uploads/2026/07/ESCALA-COCHERIA-FADAF-FADEDSFYA-749-18-JULIO-2026.pdf, pagina 3; agosto reconstruido con el IPC nivel general INDEC de julio 2026 (2,1%) segun el punto 2 del acta. ACUERDO NO HOMOLOGADO. Suma de las no remunerativas vigentes en agosto: mayo 33879.53 + junio 28075.71 + julio 26125.27 + agosto 29423.93 (2,1% sobre el conformado de julio 1401139.40).",
+          "estado_fuente": "PROVISORIA",
+          "verificado": false,
+          "incidencias": {
+            "categoria": "Agrupamiento A - Categoría Primera - Jefe",
+            "detalle": {
+              "no_rem_mayo": "33879.53",
+              "no_rem_junio": "28075.71",
+              "no_rem_julio": "26125.27",
+              "no_rem_agosto": "29423.93"
+            },
+            "total_conformado_agosto": "1430563.33",
+            "base_aportes_seguridad_social": false,
+            "base_arts_55_56_61": true,
+            "requiere_confirmacion_expresa": true
+          }
+        },
+        {
+          "codigo": "NO_REM_2026_08_749_A_2_ADM_POLIVALENTE_A",
+          "valor": "114617.66",
+          "unidad": "ARS",
+          "ambito": "no_rem",
+          "fuente": "Acta SOECRA/FADEDSFYA/FADAF 17/07/2026 (RE-2026-70537365-APN-DTD#JGM), escala de julio 2026 leida del PDF oficial https://soecra.com.ar/wp-content/uploads/2026/07/ESCALA-COCHERIA-FADAF-FADEDSFYA-749-18-JULIO-2026.pdf, pagina 3; agosto reconstruido con el IPC nivel general INDEC de julio 2026 (2,1%) segun el punto 2 del acta. ACUERDO NO HOMOLOGADO. Suma de las no remunerativas vigentes en agosto: mayo 33044.33 + junio 27383.58 + julio 25485.91 + agosto 28703.84 (2,1% sobre el conformado de julio 1366849.57).",
+          "estado_fuente": "PROVISORIA",
+          "verificado": false,
+          "incidencias": {
+            "categoria": "Agrupamiento A - Categoría Segunda - Administrativo Polivalente A",
+            "detalle": {
+              "no_rem_mayo": "33044.33",
+              "no_rem_junio": "27383.58",
+              "no_rem_julio": "25485.91",
+              "no_rem_agosto": "28703.84"
+            },
+            "total_conformado_agosto": "1395553.41",
+            "base_aportes_seguridad_social": false,
+            "base_arts_55_56_61": true,
+            "requiere_confirmacion_expresa": true
+          }
+        },
+        {
+          "codigo": "NO_REM_2026_08_749_A_3_ADM_POLIVALENTE_B",
+          "valor": "114217.66",
+          "unidad": "ARS",
+          "ambito": "no_rem",
+          "fuente": "Acta SOECRA/FADEDSFYA/FADAF 17/07/2026 (RE-2026-70537365-APN-DTD#JGM), escala de julio 2026 leida del PDF oficial https://soecra.com.ar/wp-content/uploads/2026/07/ESCALA-COCHERIA-FADAF-FADEDSFYA-749-18-JULIO-2026.pdf, pagina 3; agosto reconstruido con el IPC nivel general INDEC de julio 2026 (2,1%) segun el punto 2 del acta. ACUERDO NO HOMOLOGADO. Suma de las no remunerativas vigentes en agosto: mayo 32928.60 + junio 27287.68 + julio 25397.32 + agosto 28604.06 (2,1% sobre el conformado de julio 1362098.16).",
+          "estado_fuente": "PROVISORIA",
+          "verificado": false,
+          "incidencias": {
+            "categoria": "Agrupamiento A - Categoría Tercera - Administrativo Polivalente B",
+            "detalle": {
+              "no_rem_mayo": "32928.60",
+              "no_rem_junio": "27287.68",
+              "no_rem_julio": "25397.32",
+              "no_rem_agosto": "28604.06"
+            },
+            "total_conformado_agosto": "1390702.22",
+            "base_aportes_seguridad_social": false,
+            "base_arts_55_56_61": true,
+            "requiere_confirmacion_expresa": true
+          }
+        },
+        {
+          "codigo": "NO_REM_2026_08_749_A_4_ADM_POLIVALENTE_C",
+          "valor": "113817.76",
+          "unidad": "ARS",
+          "ambito": "no_rem",
+          "fuente": "Acta SOECRA/FADEDSFYA/FADAF 17/07/2026 (RE-2026-70537365-APN-DTD#JGM), escala de julio 2026 leida del PDF oficial https://soecra.com.ar/wp-content/uploads/2026/07/ESCALA-COCHERIA-FADAF-FADEDSFYA-749-18-JULIO-2026.pdf, pagina 3; agosto reconstruido con el IPC nivel general INDEC de julio 2026 (2,1%) segun el punto 2 del acta. ACUERDO NO HOMOLOGADO. Suma de las no remunerativas vigentes en agosto: mayo 32812.90 + junio 27191.80 + julio 25308.75 + agosto 28504.31 (2,1% sobre el conformado de julio 1357348.03).",
+          "estado_fuente": "PROVISORIA",
+          "verificado": false,
+          "incidencias": {
+            "categoria": "Agrupamiento A - Categoría Cuarta - Administrativo Polivalente C",
+            "detalle": {
+              "no_rem_mayo": "32812.90",
+              "no_rem_junio": "27191.80",
+              "no_rem_julio": "25308.75",
+              "no_rem_agosto": "28504.31"
+            },
+            "total_conformado_agosto": "1385852.34",
+            "base_aportes_seguridad_social": false,
+            "base_arts_55_56_61": true,
+            "requiere_confirmacion_expresa": true
+          }
+        },
+        {
+          "codigo": "NO_REM_2026_08_749_A_5_CADETE",
+          "valor": "113349.30",
+          "unidad": "ARS",
+          "ambito": "no_rem",
+          "fuente": "Acta SOECRA/FADEDSFYA/FADAF 17/07/2026 (RE-2026-70537365-APN-DTD#JGM), escala de julio 2026 leida del PDF oficial https://soecra.com.ar/wp-content/uploads/2026/07/ESCALA-COCHERIA-FADAF-FADEDSFYA-749-18-JULIO-2026.pdf, pagina 3; agosto reconstruido con el IPC nivel general INDEC de julio 2026 (2,1%) segun el punto 2 del acta. ACUERDO NO HOMOLOGADO. Suma de las no remunerativas vigentes en agosto: mayo 32677.37 + junio 27079.48 + julio 25204.99 + agosto 28387.46 (2,1% sobre el conformado de julio 1351783.58).",
+          "estado_fuente": "PROVISORIA",
+          "verificado": false,
+          "incidencias": {
+            "categoria": "Agrupamiento A - Categoría Quinta - Cadete",
+            "detalle": {
+              "no_rem_mayo": "32677.37",
+              "no_rem_junio": "27079.48",
+              "no_rem_julio": "25204.99",
+              "no_rem_agosto": "28387.46"
+            },
+            "total_conformado_agosto": "1380171.04",
+            "base_aportes_seguridad_social": false,
+            "base_arts_55_56_61": true,
+            "requiere_confirmacion_expresa": true
+          }
+        },
+        {
+          "codigo": "NO_REM_2026_08_749_B_1_TANATOPRACTOR",
+          "valor": "116021.95",
+          "unidad": "ARS",
+          "ambito": "no_rem",
+          "fuente": "Acta SOECRA/FADEDSFYA/FADAF 17/07/2026 (RE-2026-70537365-APN-DTD#JGM), escala de julio 2026 leida del PDF oficial https://soecra.com.ar/wp-content/uploads/2026/07/ESCALA-COCHERIA-FADAF-FADEDSFYA-749-18-JULIO-2026.pdf, pagina 3; agosto reconstruido con el IPC nivel general INDEC de julio 2026 (2,1%) segun el punto 2 del acta. ACUERDO NO HOMOLOGADO. Suma de las no remunerativas vigentes en agosto: mayo 33450.62 + junio 27720.27 + julio 25796.93 + agosto 29054.13 (2,1% sobre el conformado de julio 1383529.97).",
+          "estado_fuente": "PROVISORIA",
+          "verificado": false,
+          "incidencias": {
+            "categoria": "Agrupamiento B - Categoría Primera - Tanatopractor",
+            "detalle": {
+              "no_rem_mayo": "33450.62",
+              "no_rem_junio": "27720.27",
+              "no_rem_julio": "25796.93",
+              "no_rem_agosto": "29054.13"
+            },
+            "total_conformado_agosto": "1412584.10",
+            "base_aportes_seguridad_social": false,
+            "base_arts_55_56_61": true,
+            "requiere_confirmacion_expresa": true
+          }
+        },
+        {
+          "codigo": "NO_REM_2026_08_749_B_2_AUX_POLIVALENTE_SF_A",
+          "valor": "114519.73",
+          "unidad": "ARS",
+          "ambito": "no_rem",
+          "fuente": "Acta SOECRA/FADEDSFYA/FADAF 17/07/2026 (RE-2026-70537365-APN-DTD#JGM), escala de julio 2026 leida del PDF oficial https://soecra.com.ar/wp-content/uploads/2026/07/ESCALA-COCHERIA-FADAF-FADEDSFYA-749-18-JULIO-2026.pdf, pagina 3; agosto reconstruido con el IPC nivel general INDEC de julio 2026 (2,1%) segun el punto 2 del acta. ACUERDO NO HOMOLOGADO. Suma de las no remunerativas vigentes en agosto: mayo 33016.00 + junio 27360.10 + julio 25464.22 + agosto 28679.41 (2,1% sobre el conformado de julio 1365686.40).",
+          "estado_fuente": "PROVISORIA",
+          "verificado": false,
+          "incidencias": {
+            "categoria": "Agrupamiento B - Categoría Segunda - Auxiliar Polivalente de Servicio Fúnebre A",
+            "detalle": {
+              "no_rem_mayo": "33016.00",
+              "no_rem_junio": "27360.10",
+              "no_rem_julio": "25464.22",
+              "no_rem_agosto": "28679.41"
+            },
+            "total_conformado_agosto": "1394365.81",
+            "base_aportes_seguridad_social": false,
+            "base_arts_55_56_61": true,
+            "requiere_confirmacion_expresa": true
+          }
+        },
+        {
+          "codigo": "NO_REM_2026_08_749_B_3_AUX_POLIVALENTE_SF_B",
+          "valor": "114034.04",
+          "unidad": "ARS",
+          "ambito": "no_rem",
+          "fuente": "Acta SOECRA/FADEDSFYA/FADAF 17/07/2026 (RE-2026-70537365-APN-DTD#JGM), escala de julio 2026 leida del PDF oficial https://soecra.com.ar/wp-content/uploads/2026/07/ESCALA-COCHERIA-FADAF-FADEDSFYA-749-18-JULIO-2026.pdf, pagina 3; agosto reconstruido con el IPC nivel general INDEC de julio 2026 (2,1%) segun el punto 2 del acta. ACUERDO NO HOMOLOGADO. Suma de las no remunerativas vigentes en agosto: mayo 32875.48 + junio 27243.65 + julio 25356.65 + agosto 28558.26 (2,1% sobre el conformado de julio 1359917.18).",
+          "estado_fuente": "PROVISORIA",
+          "verificado": false,
+          "incidencias": {
+            "categoria": "Agrupamiento B - Categoría Tercera - Auxiliar Polivalente de Servicio Fúnebre B",
+            "detalle": {
+              "no_rem_mayo": "32875.48",
+              "no_rem_junio": "27243.65",
+              "no_rem_julio": "25356.65",
+              "no_rem_agosto": "28558.26"
+            },
+            "total_conformado_agosto": "1388475.44",
+            "base_aportes_seguridad_social": false,
+            "base_arts_55_56_61": true,
+            "requiere_confirmacion_expresa": true
+          }
+        },
+        {
+          "codigo": "NO_REM_2026_08_749_B_4_AUX_POLIVALENTE_SF_C",
+          "valor": "113980.35",
+          "unidad": "ARS",
+          "ambito": "no_rem",
+          "fuente": "Acta SOECRA/FADEDSFYA/FADAF 17/07/2026 (RE-2026-70537365-APN-DTD#JGM), escala de julio 2026 leida del PDF oficial https://soecra.com.ar/wp-content/uploads/2026/07/ESCALA-COCHERIA-FADAF-FADEDSFYA-749-18-JULIO-2026.pdf, pagina 3; agosto reconstruido con el IPC nivel general INDEC de julio 2026 (2,1%) segun el punto 2 del acta. ACUERDO NO HOMOLOGADO. Suma de las no remunerativas vigentes en agosto: mayo 32859.94 + junio 27230.78 + julio 25344.76 + agosto 28544.87 (2,1% sobre el conformado de julio 1359279.36).",
+          "estado_fuente": "PROVISORIA",
+          "verificado": false,
+          "incidencias": {
+            "categoria": "Agrupamiento B - Categoría Cuarta - Auxiliar Polivalente de Servicio Fúnebre C",
+            "detalle": {
+              "no_rem_mayo": "32859.94",
+              "no_rem_junio": "27230.78",
+              "no_rem_julio": "25344.76",
+              "no_rem_agosto": "28544.87"
+            },
+            "total_conformado_agosto": "1387824.23",
+            "base_aportes_seguridad_social": false,
+            "base_arts_55_56_61": true,
+            "requiere_confirmacion_expresa": true
+          }
+        },
+        {
+          "codigo": "NO_REM_2026_08_749_B_5_AUX_POLIVALENTE_SF_D",
+          "valor": "113739.43",
+          "unidad": "ARS",
+          "ambito": "no_rem",
+          "fuente": "Acta SOECRA/FADEDSFYA/FADAF 17/07/2026 (RE-2026-70537365-APN-DTD#JGM), escala de julio 2026 leida del PDF oficial https://soecra.com.ar/wp-content/uploads/2026/07/ESCALA-COCHERIA-FADAF-FADEDSFYA-749-18-JULIO-2026.pdf, pagina 3; agosto reconstruido con el IPC nivel general INDEC de julio 2026 (2,1%) segun el punto 2 del acta. ACUERDO NO HOMOLOGADO. Suma de las no remunerativas vigentes en agosto: mayo 32790.24 + junio 27173.02 + julio 25291.40 + agosto 28484.77 (2,1% sobre el conformado de julio 1356417.71).",
+          "estado_fuente": "PROVISORIA",
+          "verificado": false,
+          "incidencias": {
+            "categoria": "Agrupamiento B - Categoría Quinta - Auxiliar Polivalente de Servicio Fúnebre D",
+            "detalle": {
+              "no_rem_mayo": "32790.24",
+              "no_rem_junio": "27173.02",
+              "no_rem_julio": "25291.40",
+              "no_rem_agosto": "28484.77"
+            },
+            "total_conformado_agosto": "1384902.48",
+            "base_aportes_seguridad_social": false,
+            "base_arts_55_56_61": true,
+            "requiere_confirmacion_expresa": true
+          }
+        },
+        {
+          "codigo": "NO_REM_2026_08_749_C_1_REPRESENTANTE_ASESOR",
+          "valor": "116021.95",
+          "unidad": "ARS",
+          "ambito": "no_rem",
+          "fuente": "Acta SOECRA/FADEDSFYA/FADAF 17/07/2026 (RE-2026-70537365-APN-DTD#JGM), escala de julio 2026 leida del PDF oficial https://soecra.com.ar/wp-content/uploads/2026/07/ESCALA-COCHERIA-FADAF-FADEDSFYA-749-18-JULIO-2026.pdf, pagina 3; agosto reconstruido con el IPC nivel general INDEC de julio 2026 (2,1%) segun el punto 2 del acta. ACUERDO NO HOMOLOGADO. Suma de las no remunerativas vigentes en agosto: mayo 33450.62 + junio 27720.27 + julio 25796.93 + agosto 29054.13 (2,1% sobre el conformado de julio 1383530.01).",
+          "estado_fuente": "PROVISORIA",
+          "verificado": false,
+          "incidencias": {
+            "categoria": "Agrupamiento C - Categoría Primera - Representante o Asesor",
+            "detalle": {
+              "no_rem_mayo": "33450.62",
+              "no_rem_junio": "27720.27",
+              "no_rem_julio": "25796.93",
+              "no_rem_agosto": "29054.13"
+            },
+            "total_conformado_agosto": "1412584.14",
+            "base_aportes_seguridad_social": false,
+            "base_arts_55_56_61": true,
+            "requiere_confirmacion_expresa": true
+          }
+        }
+      ]
+    }
+  ],
+  "incidencias": {
+    "sumas_no_remunerativas_2026_08": {
+      "base_sac": "PENDIENTE_DOCUMENTACION",
+      "base_obra_social": "PENDIENTE_DOCUMENTACION",
+      "base_sindical": "SÍ - el acta punto 4 obliga a los arts. 55, 56 y 61 sobre las sumas no remunerativas",
+      "base_aportes_seguridad_social": "NO por definición convencional; sujeto a la calificación que haga la autoridad al homologar"
+    }
+  },
+  "estado_fuente": "PROVISORIA",
+  "verificado": false,
+  "bloqueos": [
+    "El acuerdo del 17/07/2026 no esta homologado (punto 10 del acta solicita la homologacion). Los importes pueden cambiar.",
+    "Los aportes y contribuciones de los arts. 55, 56 y 61 siguen BLOQUEADOS por contradiccion documental: no se carga ningun porcentaje.",
+    "La equivalencia de categoria del Agrupamiento C (art. 11) sigue sin confirmar.",
+    "La base del presentismo (basico o basico mas antiguedad) sigue sin confirmar.",
+    "El basico de la categoria C_1 en la escala de julio es 1.254.257,44 mientras que el de B_1 es 1.254.257,40: diferencia de 4 centavos en el documento original, con todas las columnas no remunerativas identicas. Se transcribe tal cual, sin corregir.",
+    "No se sabe si los adicionales convencionales (antiguedad, presentismo) deben calcularse tambien sobre las sumas no remunerativas. Los puntos 1 y 2 del acta lo sugieren; requiere validacion profesional."
+  ],
+  "motor": {
+    "estado": "VISTA_PREVIA",
+    "entradas_requeridas": [
+      "actividad_principal_establecimiento",
+      "categoria",
+      "periodo",
+      "fecha_ingreso",
+      "afiliacion_sindical",
+      "asistencia_del_mes",
+      "horas_semanales_trabajadas",
+      "comisiones_del_mes_si_es_representante"
+    ],
+    "pruebas_regresion": [
+      {
+        "codigo": "749_RECIBO_REAL_JUN2026_NO_REM",
+        "descripcion": "Categoria A_2_ADM_POLIVALENTE_A, basico de junio 1.160.839,85: la asignacion no remunerativa de junio debe dar 180.523,81 (feb+mar 68.304,98 + abr 41.790,92 + may 33.044,33 + jun 27.383,58 + bono 10.000)",
+        "entrada": {
+          "categoria": "A_2_ADM_POLIVALENTE_A",
+          "periodo": "2026-06",
+          "basico": "1160839.85"
+        },
+        "resultado_esperado": {
+          "asignacion_no_remunerativa": "180523.81"
+        }
+      },
+      {
+        "codigo": "749_RECIBO_REAL_JUN2026_ANTIG",
+        "descripcion": "25 anos de antiguedad sobre basico 1.160.839,85",
+        "entrada": {
+          "anios_antiguedad": 25,
+          "basico": "1160839.85"
+        },
+        "resultado_esperado": {
+          "antiguedad": "290209.96"
+        }
+      },
+      {
+        "codigo": "749_RECIBO_REAL_JUN2026_SAC",
+        "descripcion": "SAC primer semestre: 50% de la mayor remuneracion mensual devengada POR TODO CONCEPTO (basico + antiguedad), no 50% del basico",
+        "entrada": {
+          "basico": "1160839.85",
+          "antiguedad": "290209.96"
+        },
+        "resultado_esperado": {
+          "sac": "725524.91",
+          "sac_incorrecto_a_detectar": "580419.93",
+          "diferencia": "145104.98"
+        }
+      },
+      {
+        "codigo": "749_RECIBO_REAL_JUN2026_BASES",
+        "descripcion": "Bases de aportes personales con SAC corregido; el tope de junio 2026 es 4.414.652,38 y no se supera",
+        "entrada": {
+          "base": "2176574.72"
+        },
+        "resultado_esperado": {
+          "jubilacion_11": "239423.22",
+          "ley_19032_3": "65297.24",
+          "obra_social_3": "65297.24",
+          "tope_aplicado": false
+        }
+      },
+      {
+        "codigo": "749_AGO2026_A2_BASICO",
+        "descripcion": "Basico de agosto 2026 de la categoria A_2: basico de julio 1.239.144,83 + no remunerativa de abril 41.790,92",
+        "resultado_esperado": {
+          "basico": "1280935.75"
+        }
+      },
+      {
+        "codigo": "749_AGO2026_CONFORMADO",
+        "descripcion": "El conformado de agosto debe ser exactamente el conformado de julio por 1,021 en las once categorias",
+        "resultado_esperado": "identidad verificada"
+      },
+      {
+        "codigo": "749_SIN_CONFIRMACION",
+        "descripcion": "Sin confirmacion expresa del usuario, el periodo 2026-08 no debe liquidar",
+        "resultado_esperado": "BLOQUEO"
+      },
+      {
+        "codigo": "749_APORTES_BLOQUEADOS",
+        "descripcion": "Cualquier intento de retener por arts. 55/56/61 debe bloquear",
+        "resultado_esperado": "BLOQUEO"
+      }
+    ],
+    "modo": "PROVISORIO_CON_CONFIRMACION_EXPRESA",
+    "confirmacion_requerida": "El usuario debe confirmar expresamente que acepta liquidar con una escala publicada por las partes y NO homologada. Sin esa confirmacion el periodo 2026-08 no se liquida."
+  },
+  "fuentes": [
+    {
+      "tipo": "cct_texto",
+      "descripcion": "CCT 749/18, texto publicado por la parte sindical firmante",
+      "url": "https://soecra.com.ar/convenios_y_arreglos/cocherias/CCT_NRO749_18_cocherias.pdf",
+      "estado_fuente": "PROVISORIA"
+    },
+    {
+      "tipo": "acto_homologatorio_relacionado",
+      "descripcion": "Disposición 82/2026 (DI-2026-82-APN-DNRYRT#MCH) homologa acuerdo en el marco del CCT 749/18",
+      "url": "https://www.argentina.gob.ar/normativa/nacional/norma-426346/texto",
+      "expediente": "EX-2024-67843414-APN-DGD#MT",
+      "estado_fuente": "VERIFICADA_OFICIAL"
+    },
+    {
+      "tipo": "acto_homologatorio_relacionado",
+      "descripcion": "Disposición 148/2026 homologa acuerdo SOECRA / FADAF / FADEDSFYA (expediente 2021)",
+      "url": "https://www.argentina.gob.ar/normativa/nacional/norma-426644",
+      "expediente": "EX-2021-124850841-APN-DGD#MT",
+      "estado_fuente": "VERIFICADA_OFICIAL"
+    },
+    {
+      "tipo": "antecedente",
+      "descripcion": "Resolución ST 664/2006 homologa el CCT 465/06 (SOECRA – FADEDSFYA), antecedente directo de la rama cocherías",
+      "url": "https://servicios.infoleg.gob.ar/infolegInternet/anexos/120000-124999/121211/norma.htm",
+      "estado_fuente": "VERIFICADA_OFICIAL"
+    },
+    {
+      "tipo": "antecedente",
+      "descripcion": "Resolución 447/2016 homologa acuerdo en el marco del CCT 726/15 (antecesor del 749/18)",
+      "url": "https://servicios.infoleg.gob.ar/infolegInternet/anexos/260000-264999/263583/norma.htm",
+      "estado_fuente": "VERIFICADA_OFICIAL"
+    },
+    {
+      "tipo": "acta_salarial_no_homologada",
+      "descripcion": "Acta 17/07/2026, escalas julio 2026, RE-2026-70537365-APN-DTD#JGM",
+      "url": "https://soecra.com.ar/wp-content/uploads/2026/07/ESCALA-COCHERIA-FADAF-FADEDSFYA-749-18-JULIO-2026.pdf",
+      "estado_fuente": "PROVISORIA"
+    },
+    {
+      "tipo": "indice_oficial",
+      "descripcion": "INDEC, IPC Nivel General julio 2026 = 2,1% mensual (informe del 13/08/2026)",
+      "url": "https://www.indec.gob.ar/uploads/informesdeprensa/ipc_08_2642C82F62AE.pdf",
+      "estado_fuente": "VERIFICADA_OFICIAL"
+    }
+  ]
+}
