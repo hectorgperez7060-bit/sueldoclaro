@@ -179,6 +179,10 @@ async def gestor_normativo(
         escalas_esperadas = len(nombres_categorias) * max(cantidad_zonas, 1)
         escala_completa = bool(nombres_categorias) and esc_ok == escalas_esperadas
         motor_periodo_habilitado = escala_completa and esc_habilitadas == escalas_esperadas
+        # ADEF conserva la liquidación básica disponible, pero no se declara
+        # completo hasta integrar los adicionales condicionales de los arts. 17–19.
+        if cct.numero == "414/05":
+            motor_periodo_habilitado = False
         vista_previa_habilitada = False
         if cct.numero in {"260/75", "40/89"} and estructura_completa and escala_completa:
             vista_previa_habilitada = not motor_periodo_habilitado
@@ -206,7 +210,10 @@ async def gestor_normativo(
                 "vista_previa_habilitada": vista_previa_habilitada,
                 "mensaje_motor": (
                     "Disponibles: general, larga distancia, lácteos, auxilio, diarios, combustibles, asfalto caliente, peligrosas, residuos, taller, caudales, clearing, expreso/mudanzas, aguas gaseosas, logística, pozos petrolíferos, transporte de automóviles, transporte pesado, zafra azucarera y bitrenes"
-                    if cct.numero == "40/89" and vista_previa_habilitada else None
+                    if cct.numero == "40/89" and vista_previa_habilitada
+                    else "Seis categorías con básico oficial de julio ultraactivo y confirmable en agosto; adicionales condicionales de los arts. 17–19 pendientes de integrar"
+                    if cct.numero == "414/05" and escala_completa
+                    else None
                 ),
             },
         })
