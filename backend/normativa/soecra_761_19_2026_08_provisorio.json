@@ -1,0 +1,1519 @@
+{
+  "version_paquete": "0.2.0-PROVISORIO",
+  "fuente_manifest": "Auditoría Sueldo Claro agosto 2026 · CCT 761/19 (SOECRA – CACEPRI – Cementerio Británico – Congregación Evangélica Alemana – Coop. La Unión). Texto convencional publicado por la parte sindical firmante y acta salarial RE-2026-70482358-APN-DTD#JGM. Sin escala homologada para 2026-08.",
+  "cct": "761/19",
+  "identidad": {
+    "numero": "761/19",
+    "nombre": "Cementerios privados y concesionados, parques cementerio, crematorios, panteones y salas velatorias",
+    "sindicato": "Sindicato de Obreros y Empleados de los Cementerios de la República Argentina (SOECRA)"
+  },
+  "partes": {
+    "sindical": "Sindicato de Obreros y Empleados de los Cementerios de la República Argentina (SOECRA)",
+    "empleadora": [
+      "Cámara Argentina de Cementerios Parques Privados (CACEPRI)",
+      "Asociación Civil Corporación del Cementerio Británico de Buenos Aires",
+      "Congregación Evangélica Alemana en Buenos Aires",
+      "Cooperativa de Trabajo Cuidadores de Sepulcros de Cementerios 'La Unión' Ltda. (adherente)"
+    ],
+    "observacion": "El CCT tiene unidades de negociación salarial separadas: CACEPRI por un lado y las entidades sin fines de lucro (Cementerio Británico y Congregación Evangélica Alemana) por otro. Las escalas NO son intercambiables."
+  },
+  "ambito_territorial": {
+    "alcance": "NACIONAL",
+    "detalle": "Todos los trabajadores que se desempeñan habitualmente dentro del ámbito territorial de los cementerios o crematorios, en toda la República Argentina (art. 2).",
+    "estado_fuente": "PROVISORIA",
+    "verificado": false
+  },
+  "vigencias": {
+    "cct_base": {
+      "numero": "761/19",
+      "sucede_a": [
+        "695/14",
+        "437/06",
+        "332/01",
+        "205/93",
+        "129/90"
+      ],
+      "acto_homologatorio": "Resolución 2652/2019 de la Secretaría de Trabajo (02/12/2019), expediente EX-2019-40384754-APN-DGDMT#MPYT, publicada en BO del 12/09/2022, N° 35002, pág. 77.",
+      "plazo_original": "Tres años desde la homologación (art. 4), con ultraactividad.",
+      "estado_a_2026_08": "VIGENTE POR ULTRAACTIVIDAD (art. 6 Ley 14.250)."
+    },
+    "ultimos_acuerdos_homologados_localizados": [
+      {
+        "unidad": "CACEPRI",
+        "acto": "Disposición 2017/2025 (28/08/2025)",
+        "expediente": "EX-2022-127451238-APN-DGD#MT",
+        "acuerdo_de_fecha": "07/12/2022",
+        "publicacion_bora": "28/11/2025, BO N° 35800, pág. 94"
+      },
+      {
+        "unidad": "Sin fines de lucro",
+        "acto": "Disposición 830/2025 (14/04/2025)",
+        "expediente": "EX-2024-26993488-APN-DGD#MT",
+        "acuerdo_de_fecha": "21/02/2024 y 02/09/2024",
+        "publicacion_bora": "11/07/2025, BO N° 35704, pág. 86"
+      },
+      {
+        "unidad": "Sin fines de lucro",
+        "acto": "Disposición 829/2025 (14/04/2025)",
+        "publicacion_bora": "11/07/2025, BO N° 35704, pág. 86"
+      },
+      {
+        "unidad": "Sin fines de lucro",
+        "acto": "Disposición 253/2025 y 280/2025",
+        "expediente": "EX-2023-34666252-APN-DGD#MT",
+        "publicacion_bora": "05/06/2025, BO N° 35681"
+      }
+    ],
+    "ultimo_acuerdo_publicado_no_homologado": {
+      "acta": "Presentación conjunta SOECRA / CACEPRI ante la Secretaría de Trabajo, CABA, 17/07/2026 (documento GEDO del 21/07/2026)",
+      "documento_gede": "RE-2026-70482358-APN-DTD#JGM",
+      "url": "https://soecra.com.ar/wp-content/uploads/2026/07/ESCALA-CEMENTERIO-CACEPRI-761-19-JULIO-2026.pdf",
+      "estado": "NO HOMOLOGADO. Punto 6 del acta: 'Ambas representaciones solicitan la correspondiente homologación del presente acuerdo'.",
+      "cubre": "trimestre julio/septiembre 2026, dentro de la paritaria abril 2026 – marzo 2027",
+      "excluye": "las categorías del Capítulo V (entidades sin fines de lucro)"
+    }
+  },
+  "estructura": {
+    "zonas": [
+      "ZONA 1",
+      "ZONA 2",
+      "ZONA INHOSPITA"
+    ],
+    "categorias": [
+      {
+        "codigo": "LUCRO_ADM_1",
+        "nombre": "Con fines de lucro - Administrativo - Categoría 1ª - Jefe administrativo",
+        "orden": 10,
+        "fuente": "CCT 761/19 art. 10",
+        "estado_fuente": "PROVISORIA",
+        "verificado": false
+      },
+      {
+        "codigo": "LUCRO_ADM_2",
+        "nombre": "Con fines de lucro - Administrativo - Categoría 2ª - Personal jerárquico",
+        "orden": 20,
+        "fuente": "CCT 761/19 art. 10",
+        "estado_fuente": "PROVISORIA",
+        "verificado": false
+      },
+      {
+        "codigo": "LUCRO_ADM_3",
+        "nombre": "Con fines de lucro - Administrativo - Categoría 3ª - Administrativo especializado o técnico",
+        "orden": 30,
+        "fuente": "CCT 761/19 art. 10",
+        "estado_fuente": "PROVISORIA",
+        "verificado": false
+      },
+      {
+        "codigo": "LUCRO_ADM_4",
+        "nombre": "Con fines de lucro - Administrativo - Categoría 4ª - Administrativo calificado",
+        "orden": 40,
+        "fuente": "CCT 761/19 art. 10",
+        "estado_fuente": "PROVISORIA",
+        "verificado": false
+      },
+      {
+        "codigo": "LUCRO_ADM_5",
+        "nombre": "Con fines de lucro - Administrativo - Categoría 5ª - Administrativo general",
+        "orden": 50,
+        "fuente": "CCT 761/19 art. 10",
+        "estado_fuente": "PROVISORIA",
+        "verificado": false
+      },
+      {
+        "codigo": "LUCRO_PARQUE_1",
+        "nombre": "Con fines de lucro - Parque y crematorio - Categoría 1ª - Supervisor jefe",
+        "orden": 60,
+        "fuente": "CCT 761/19 art. 10",
+        "estado_fuente": "PROVISORIA",
+        "verificado": false
+      },
+      {
+        "codigo": "LUCRO_PARQUE_2",
+        "nombre": "Con fines de lucro - Parque y crematorio - Categoría 2ª - Capataz",
+        "orden": 70,
+        "fuente": "CCT 761/19 art. 10",
+        "estado_fuente": "PROVISORIA",
+        "verificado": false
+      },
+      {
+        "codigo": "LUCRO_PARQUE_3",
+        "nombre": "Con fines de lucro - Parque y crematorio - Categoría 3ª - Trabajador especializado o técnico",
+        "orden": 80,
+        "fuente": "CCT 761/19 art. 10",
+        "estado_fuente": "PROVISORIA",
+        "verificado": false
+      },
+      {
+        "codigo": "LUCRO_PARQUE_4",
+        "nombre": "Con fines de lucro - Parque y crematorio - Categoría 4ª - Trabajador calificado",
+        "orden": 90,
+        "fuente": "CCT 761/19 art. 10",
+        "estado_fuente": "PROVISORIA",
+        "verificado": false
+      },
+      {
+        "codigo": "LUCRO_PARQUE_5",
+        "nombre": "Con fines de lucro - Parque y crematorio - Categoría 5ª - Trabajador general",
+        "orden": 100,
+        "fuente": "CCT 761/19 art. 10",
+        "estado_fuente": "PROVISORIA",
+        "verificado": false
+      },
+      {
+        "codigo": "LUCRO_COM_REPRESENTANTE",
+        "nombre": "Con fines de lucro - Comercialización y cobranzas - Representante o asesor comercial",
+        "orden": 110,
+        "fuente": "CCT 761/19 art. 12",
+        "estado_fuente": "PROVISORIA",
+        "verificado": false
+      },
+      {
+        "codigo": "LUCRO_COM_COBRADOR",
+        "nombre": "Con fines de lucro - Comercialización y cobranzas - Cobrador a domicilio",
+        "orden": 120,
+        "fuente": "CCT 761/19 art. 12",
+        "estado_fuente": "PROVISORIA",
+        "verificado": false
+      },
+      {
+        "codigo": "SFL_1",
+        "nombre": "Capítulo V sin fines de lucro - Categoría 1ª - Personal jerárquico",
+        "orden": 210,
+        "fuente": "CCT 761/19 art. 19",
+        "estado_fuente": "PROVISORIA",
+        "verificado": false
+      },
+      {
+        "codigo": "SFL_2",
+        "nombre": "Capítulo V sin fines de lucro - Categoría 2ª - Trabajador polivalente especializado",
+        "orden": 220,
+        "fuente": "CCT 761/19 art. 19",
+        "estado_fuente": "PROVISORIA",
+        "verificado": false
+      },
+      {
+        "codigo": "SFL_3",
+        "nombre": "Capítulo V sin fines de lucro - Categoría 3ª - Trabajador polivalente genérico",
+        "orden": 230,
+        "fuente": "CCT 761/19 art. 19",
+        "estado_fuente": "PROVISORIA",
+        "verificado": false
+      },
+      {
+        "codigo": "SFL_4",
+        "nombre": "Capítulo V sin fines de lucro - Categoría 4ª - Trabajador polivalente inicial",
+        "orden": 240,
+        "fuente": "CCT 761/19 art. 19",
+        "estado_fuente": "PROVISORIA",
+        "verificado": false
+      }
+    ],
+    "reglas": [
+      {
+        "codigo": "AMBITO_ACTIVIDAD",
+        "tipo": "ambito",
+        "descripcion": "Obligatorio en cementerios, crematorios, salas velatorias y panteones privados o concesionados, y para todo trabajador que se desempeñe habitualmente dentro del ámbito territorial del cementerio o crematorio, incluidos promoción, comercialización y cobranza. NO alcanza al personal comprendido en escalafón municipal.",
+        "articulo": "2 y 3",
+        "configuracion": {
+          "actividad_principal": [
+            "cementerio_parque_privado",
+            "cementerio_concesionado",
+            "crematorio_privado",
+            "crematorio_concesionado",
+            "panteon_privado",
+            "panteon_concesionado",
+            "sala_velatoria_dentro_del_ambito"
+          ],
+          "criterio_dominante": "ambito_territorial_del_establecimiento",
+          "excluye": [
+            "personal_de_escalafon_municipal",
+            "maximo_responsable_administrativo"
+          ],
+          "convenio_alternativo_para_cocherias": "749/18"
+        },
+        "fuente": "CCT 761/19 arts. 2 y 3, texto publicado por SOECRA: https://soecra.com.ar/convenios_y_arreglos/cementerios/CCT_761_19_cementerios.pdf",
+        "estado_fuente": "PROVISORIA",
+        "verificado": false
+      },
+      {
+        "codigo": "UNIDADES_DE_NEGOCIACION",
+        "tipo": "ambito",
+        "descripcion": "El CCT tiene escalas separadas por unidad de negociación: CACEPRI (empresas con fines de lucro) y entidades sin fines de lucro del Capítulo V. El acuerdo julio/septiembre 2026 excluye expresamente las categorías del Capítulo V.",
+        "articulo": "Capítulo V y acta 17/07/2026",
+        "configuracion": {
+          "unidades": [
+            "CACEPRI",
+            "SIN_FINES_DE_LUCRO_CAP_V",
+            "COOPERATIVA_ADHERENTE"
+          ],
+          "seleccion_requiere_dato": "tipo_de_empleador",
+          "cooperativa": "Los asociados de una cooperativa de trabajo no son dependientes; sólo el personal en relación de dependencia queda comprendido."
+        },
+        "fuente": "CCT 761/19 Capítulo V; acta 17/07/2026 (RE-2026-70482358-APN-DTD#JGM); Resolución 2652/2019",
+        "estado_fuente": "PROVISORIA",
+        "verificado": false
+      },
+      {
+        "codigo": "ZONIFICACION_ESCALA",
+        "tipo": "zona",
+        "descripcion": "La escala CACEPRI está segmentada por zonas y por agrupamiento (Parque / Administración / Comercialización). La cantidad de zonas, su definición geográfica y sus valores NO pudieron leerse del PDF escaneado y quedan pendientes.",
+        "articulo": "anexo de escalas",
+        "configuracion": {
+          "zonas_detectadas": "al menos 3 bloques rotulados ZONA en la escala de julio 2026",
+          "definicion_geografica": "PENDIENTE_DOCUMENTACION",
+          "bloqueado": true
+        },
+        "fuente": "Escala CACEPRI julio 2026, RE-2026-70482358-APN-DTD#JGM",
+        "estado_fuente": "PENDIENTE_DOCUMENTACION",
+        "verificado": false
+      },
+      {
+        "codigo": "ANTIGUEDAD",
+        "tipo": "adicional",
+        "descripcion": "Bonificación del 1% de la remuneración básica por cada año de antigüedad.",
+        "articulo": "29",
+        "configuracion": {
+          "porcentaje_por_anio": 0.01,
+          "base": "basico_convenio"
+        },
+        "fuente": "CCT 761/19 art. 29",
+        "estado_fuente": "PROVISORIA",
+        "verificado": false
+      },
+      {
+        "codigo": "PRESENTISMO",
+        "tipo": "adicional",
+        "descripcion": "10% sobre el básico sin ausencias o con hasta tres llegadas tarde injustificadas en el mes.",
+        "articulo": "40",
+        "configuracion": {
+          "porcentaje": 0.1,
+          "base_declarada": "basico",
+          "base_alternativa_leida": "basico_mas_antiguedad",
+          "requiere_confirmacion_de_base": true,
+          "condicion": {
+            "ausencias_injustificadas_max": 0,
+            "llegadas_tarde_injustificadas_max": 3
+          }
+        },
+        "fuente": "CCT 761/19 art. 40",
+        "estado_fuente": "PROVISORIA",
+        "verificado": false
+      },
+      {
+        "codigo": "JORNADA",
+        "tipo": "jornada",
+        "descripcion": "Jornada de hasta 44 horas semanales. Prestación en sábados de 13 a 18 y domingos de 8 a 18 con compensación de descanso 1:1 en días hábiles posteriores. Pausa de 20 minutos en jornada continua.",
+        "articulo": "32, 33 y 36",
+        "configuracion": {
+          "horas_semanales": 44,
+          "descanso_compensatorio": "1:1",
+          "pausa_diaria_minutos": 20
+        },
+        "fuente": "CCT 761/19 arts. 32, 33 y 36",
+        "estado_fuente": "PROVISORIA",
+        "verificado": false
+      },
+      {
+        "codigo": "HORAS_EXTRA",
+        "tipo": "hora_extra",
+        "descripcion": "Se abonan las horas que excedan la jornada convencional. El convenio no fija recargos propios distintos de la LCT: se aplican los del art. 201 LCT.",
+        "articulo": "34",
+        "configuracion": {
+          "remite_a": "art. 201 LCT",
+          "recargos_convencionales_propios": false
+        },
+        "fuente": "CCT 761/19 art. 34",
+        "estado_fuente": "PROVISORIA",
+        "verificado": false
+      },
+      {
+        "codigo": "ADICIONAL_TITULO",
+        "tipo": "adicional",
+        "descripcion": "5% por título universitario o terciario habilitante relacionado con la tarea.",
+        "articulo": "41",
+        "configuracion": {
+          "porcentaje": 0.05,
+          "requiere_dato": "titulo_habilitante"
+        },
+        "fuente": "CCT 761/19 art. 41",
+        "estado_fuente": "PROVISORIA",
+        "verificado": false
+      },
+      {
+        "codigo": "VIATICOS",
+        "tipo": "no_remunerativo",
+        "descripcion": "Viáticos y gastos según acreditación. No se fija importe convencional: no se puede liquidar un valor por defecto.",
+        "articulo": "42",
+        "configuracion": {
+          "modalidad": "con_comprobante",
+          "importe_convencional": null
+        },
+        "fuente": "CCT 761/19 art. 42",
+        "estado_fuente": "PROVISORIA",
+        "verificado": false
+      },
+      {
+        "codigo": "ADICIONAL_COBRANZA",
+        "tipo": "adicional",
+        "descripcion": "5% por tareas de cobranza y transporte de dinero.",
+        "articulo": "43",
+        "configuracion": {
+          "porcentaje": 0.05,
+          "requiere_dato": "realiza_cobranza_o_transporte_de_dinero"
+        },
+        "fuente": "CCT 761/19 art. 43",
+        "estado_fuente": "PROVISORIA",
+        "verificado": false
+      },
+      {
+        "codigo": "ADICIONAL_ALTURA",
+        "tipo": "adicional",
+        "descripcion": "5% por trabajos entre dos y cinco metros de altura; 10% por más de cinco metros, sobre básico más antigüedad.",
+        "articulo": "44",
+        "configuracion": {
+          "tramo_2_a_5_m": 0.05,
+          "tramo_mayor_5_m": 0.1,
+          "base": "basico_mas_antiguedad",
+          "requiere_dato": "trabajo_en_altura"
+        },
+        "fuente": "CCT 761/19 art. 44",
+        "estado_fuente": "PROVISORIA",
+        "verificado": false
+      },
+      {
+        "codigo": "ADICIONAL_EXHUMACION",
+        "tipo": "adicional",
+        "descripcion": "5% del salario básico de la tercera categoría por cada exhumación. Es el adicional más cercano a 'manipulación de cadáveres' que existe en el convenio: no hay adicional convencional por riesgo ni por insalubridad.",
+        "articulo": "45",
+        "configuracion": {
+          "porcentaje": 0.05,
+          "base": "basico_categoria_tercera",
+          "unidad": "por_exhumacion",
+          "requiere_dato": "cantidad_de_exhumaciones_del_mes"
+        },
+        "fuente": "CCT 761/19 art. 45",
+        "estado_fuente": "PROVISORIA",
+        "verificado": false
+      },
+      {
+        "codigo": "ADICIONAL_ZONA_INHOSPITA",
+        "tipo": "zona",
+        "descripcion": "Adicional por zona inhóspita con escalonamiento 5% (2018), 10% (2019) y 15% desde 2020, no acumulativos. La delimitación geográfica exacta requiere lectura del texto homologado.",
+        "articulo": "46",
+        "configuracion": {
+          "porcentaje_desde_2020": 0.15,
+          "acumulativo": false,
+          "delimitacion_geografica": "PENDIENTE_DOCUMENTACION",
+          "requiere_dato": "localidad_y_provincia"
+        },
+        "fuente": "CCT 761/19 art. 46",
+        "estado_fuente": "PROVISORIA",
+        "verificado": false
+      },
+      {
+        "codigo": "SUBSIDIO_FALLECIMIENTO",
+        "tipo": "aporte_contribucion",
+        "descripcion": "Subsidio por fallecimiento equivalente a dos sueldos básicos de la categoría 3ª. Se financia con 1% a cargo del empleador y 1% a cargo del trabajador sobre remuneraciones, depositados junto con los aportes al SUSS.",
+        "articulo": "73",
+        "configuracion": {
+          "porcentaje_empleador": 0.01,
+          "porcentaje_trabajador": 0.01,
+          "beneficio": "dos básicos categoría 3ª",
+          "requiere_confirmacion_texto_homologado": true
+        },
+        "fuente": "CCT 761/19 art. 73",
+        "estado_fuente": "PROVISORIA",
+        "verificado": false
+      },
+      {
+        "codigo": "CONTRIBUCION_CAMARA",
+        "tipo": "contribucion_empleador",
+        "descripcion": "Contribución empresaria a CACEPRI: seis cuotas asociativas, más cuatro cuotas adicionales para empresas no adheridas. Es una obligación entre empresa y cámara, no una retención al trabajador.",
+        "articulo": "81 y 82",
+        "configuracion": {
+          "no_retener_al_trabajador": true,
+          "importe": "PENDIENTE_DOCUMENTACION"
+        },
+        "fuente": "CCT 761/19 arts. 81 y 82",
+        "estado_fuente": "PENDIENTE_DOCUMENTACION",
+        "verificado": false
+      },
+      {
+        "codigo": "ACUERDO_JUL_SEP_2026",
+        "tipo": "acuerdo_salarial",
+        "descripcion": "Acta SOECRA/CACEPRI del 17/07/2026, dentro de la paritaria abril 2026 – marzo 2027. Julio 2026: 1,9% sobre los básicos conformados de junio 2026. Agosto y septiembre 2026: porcentaje igual al IPC Nivel General INDEC del mes inmediatamente anterior, sobre los básicos conformados del mes anterior. Los aumentos son NO REMUNERATIVOS en el mes en que se hacen efectivos y pasan a los básicos de convenio al mes subsiguiente, adquiriendo carácter remunerativo. Excluye las categorías del Capítulo V. NO HOMOLOGADO.",
+        "articulo": "acta 17/07/2026, puntos 1, 2 y 3",
+        "configuracion": {
+          "caracter": "no_remunerativo_el_primer_mes_luego_remunerativo",
+          "julio_2026": {
+            "porcentaje": 0.019,
+            "base": "basicos_conformados_junio_2026"
+          },
+          "agosto_2026": {
+            "porcentaje_regla": "IPC_NG_INDEC_julio_2026",
+            "porcentaje_valor": 0.021,
+            "base": "basicos_conformados_julio_2026"
+          },
+          "septiembre_2026": {
+            "porcentaje_regla": "IPC_NG_INDEC_agosto_2026",
+            "base": "basicos_conformados_agosto_2026"
+          },
+          "excluye": "categorías del Capítulo V (entidades sin fines de lucro)",
+          "escalas_publicadas_hasta": "2026-07",
+          "homologado": false
+        },
+        "fuente": "Acta SOECRA/CACEPRI 17/07/2026, RE-2026-70482358-APN-DTD#JGM; IPC julio 2026 = 2,1% según INDEC, informe del 13/08/2026",
+        "estado_fuente": "PROVISORIA",
+        "verificado": false
+      },
+      {
+        "codigo": "OBRA_SOCIAL",
+        "tipo": "obra_social",
+        "descripcion": "Obra Social del Personal de Cementerios y Cocherías de la República Argentina (OSPCRA). Número de RNOS no localizado en fuente oficial.",
+        "articulo": "no localizado",
+        "configuracion": {
+          "sigla": "OSPCRA",
+          "rnos": "PENDIENTE_DOCUMENTACION",
+          "sitio": "https://ospcra.org/"
+        },
+        "fuente": "https://soecra.com.ar/obra-social/",
+        "estado_fuente": "PENDIENTE_DOCUMENTACION",
+        "verificado": false
+      },
+      {
+        "codigo": "CANAL_PAGO_SINDICAL",
+        "tipo": "boleta",
+        "descripcion": "Declaraciones juradas de empleadores y pago de obligaciones sindicales por la plataforma CuotaQ de SOECRA.",
+        "articulo": "operativo",
+        "configuracion": {
+          "url_pago": "https://www.cuotaq.com/soecra",
+          "contacto": "pagos@soecra.org / empresas@soecra.com.ar",
+          "vencimiento_cct": "dentro de los 15 días posteriores al mes vencido (art. 75) y junto con los aportes al SUSS (arts. 73 y 76)"
+        },
+        "fuente": "https://soecra.com.ar/ddjj-empresas/ y CCT 761/19 arts. 73, 75 y 76",
+        "estado_fuente": "PROVISORIA",
+        "verificado": false
+      }
+    ]
+  },
+  "periodos": [
+    {
+      "periodo": "2026-08",
+      "matriz_completa": false,
+      "escalas": [
+        {
+          "categoria": "Con fines de lucro - Parque y crematorio - Categoría 1ª - Supervisor jefe",
+          "zona": "ZONA 1",
+          "basico": "1470534.94",
+          "unidad": "MENSUAL",
+          "fuente": "Acta SOECRA/CACEPRI 17/07/2026 (RE-2026-70482358-APN-DTD#JGM), escala de julio 2026 leida del PDF oficial https://soecra.com.ar/wp-content/uploads/2026/07/ESCALA-CEMENTERIO-CACEPRI-761-19-JULIO-2026.pdf, pagina 3; agosto reconstruido con el IPC nivel general INDEC de julio 2026 (2,1%) segun los puntos 2 y 3 del acta. ACUERDO NO HOMOLOGADO. Bloque 1 (ZONA 1 - PERS. PARQUE Y CREMATORIO), fila 1. Basico julio 1443115.74 + no remunerativa de julio 27419.20, que pasa al basico en agosto.",
+          "estado_fuente": "PROVISORIA",
+          "verificado": false,
+          "provisoria": true,
+          "habilitada": false
+        },
+        {
+          "categoria": "Con fines de lucro - Parque y crematorio - Categoría 2ª - Capataz",
+          "zona": "ZONA 1",
+          "basico": "1368055.19",
+          "unidad": "MENSUAL",
+          "fuente": "Acta SOECRA/CACEPRI 17/07/2026 (RE-2026-70482358-APN-DTD#JGM), escala de julio 2026 leida del PDF oficial https://soecra.com.ar/wp-content/uploads/2026/07/ESCALA-CEMENTERIO-CACEPRI-761-19-JULIO-2026.pdf, pagina 3; agosto reconstruido con el IPC nivel general INDEC de julio 2026 (2,1%) segun los puntos 2 y 3 del acta. ACUERDO NO HOMOLOGADO. Bloque 1 (ZONA 1 - PERS. PARQUE Y CREMATORIO), fila 2. Basico julio 1342546.80 + no remunerativa de julio 25508.39, que pasa al basico en agosto.",
+          "estado_fuente": "PROVISORIA",
+          "verificado": false,
+          "provisoria": true,
+          "habilitada": false
+        },
+        {
+          "categoria": "Con fines de lucro - Parque y crematorio - Categoría 3ª - Trabajador especializado o técnico",
+          "zona": "ZONA 1",
+          "basico": "1228572.05",
+          "unidad": "MENSUAL",
+          "fuente": "Acta SOECRA/CACEPRI 17/07/2026 (RE-2026-70482358-APN-DTD#JGM), escala de julio 2026 leida del PDF oficial https://soecra.com.ar/wp-content/uploads/2026/07/ESCALA-CEMENTERIO-CACEPRI-761-19-JULIO-2026.pdf, pagina 3; agosto reconstruido con el IPC nivel general INDEC de julio 2026 (2,1%) segun los puntos 2 y 3 del acta. ACUERDO NO HOMOLOGADO. Bloque 1 (ZONA 1 - PERS. PARQUE Y CREMATORIO), fila 3. Basico julio 1205664.43 + no remunerativa de julio 22907.62, que pasa al basico en agosto.",
+          "estado_fuente": "PROVISORIA",
+          "verificado": false,
+          "provisoria": true,
+          "habilitada": false
+        },
+        {
+          "categoria": "Con fines de lucro - Parque y crematorio - Categoría 4ª - Trabajador calificado",
+          "zona": "ZONA 1",
+          "basico": "1188504.22",
+          "unidad": "MENSUAL",
+          "fuente": "Acta SOECRA/CACEPRI 17/07/2026 (RE-2026-70482358-APN-DTD#JGM), escala de julio 2026 leida del PDF oficial https://soecra.com.ar/wp-content/uploads/2026/07/ESCALA-CEMENTERIO-CACEPRI-761-19-JULIO-2026.pdf, pagina 3; agosto reconstruido con el IPC nivel general INDEC de julio 2026 (2,1%) segun los puntos 2 y 3 del acta. ACUERDO NO HOMOLOGADO. Bloque 1 (ZONA 1 - PERS. PARQUE Y CREMATORIO), fila 4. Basico julio 1166343.69 + no remunerativa de julio 22160.53, que pasa al basico en agosto.",
+          "estado_fuente": "PROVISORIA",
+          "verificado": false,
+          "provisoria": true,
+          "habilitada": false
+        },
+        {
+          "categoria": "Con fines de lucro - Parque y crematorio - Categoría 5ª - Trabajador general",
+          "zona": "ZONA 1",
+          "basico": "1140165.75",
+          "unidad": "MENSUAL",
+          "fuente": "Acta SOECRA/CACEPRI 17/07/2026 (RE-2026-70482358-APN-DTD#JGM), escala de julio 2026 leida del PDF oficial https://soecra.com.ar/wp-content/uploads/2026/07/ESCALA-CEMENTERIO-CACEPRI-761-19-JULIO-2026.pdf, pagina 3; agosto reconstruido con el IPC nivel general INDEC de julio 2026 (2,1%) segun los puntos 2 y 3 del acta. ACUERDO NO HOMOLOGADO. Bloque 1 (ZONA 1 - PERS. PARQUE Y CREMATORIO), fila 5. Basico julio 1118906.53 + no remunerativa de julio 21259.22, que pasa al basico en agosto.",
+          "estado_fuente": "PROVISORIA",
+          "verificado": false,
+          "provisoria": true,
+          "habilitada": false
+        },
+        {
+          "categoria": "Con fines de lucro - Administrativo - Categoría 1ª - Jefe administrativo",
+          "zona": "ZONA 1",
+          "basico": "1470534.94",
+          "unidad": "MENSUAL",
+          "fuente": "Acta SOECRA/CACEPRI 17/07/2026 (RE-2026-70482358-APN-DTD#JGM), escala de julio 2026 leida del PDF oficial https://soecra.com.ar/wp-content/uploads/2026/07/ESCALA-CEMENTERIO-CACEPRI-761-19-JULIO-2026.pdf, pagina 3; agosto reconstruido con el IPC nivel general INDEC de julio 2026 (2,1%) segun los puntos 2 y 3 del acta. ACUERDO NO HOMOLOGADO. Bloque 2 (ZONA 1 - PERS. ADMINISTRACION), fila 1. Basico julio 1443115.74 + no remunerativa de julio 27419.20, que pasa al basico en agosto.",
+          "estado_fuente": "PROVISORIA",
+          "verificado": false,
+          "provisoria": true,
+          "habilitada": false
+        },
+        {
+          "categoria": "Con fines de lucro - Administrativo - Categoría 2ª - Personal jerárquico",
+          "zona": "ZONA 1",
+          "basico": "1368055.19",
+          "unidad": "MENSUAL",
+          "fuente": "Acta SOECRA/CACEPRI 17/07/2026 (RE-2026-70482358-APN-DTD#JGM), escala de julio 2026 leida del PDF oficial https://soecra.com.ar/wp-content/uploads/2026/07/ESCALA-CEMENTERIO-CACEPRI-761-19-JULIO-2026.pdf, pagina 3; agosto reconstruido con el IPC nivel general INDEC de julio 2026 (2,1%) segun los puntos 2 y 3 del acta. ACUERDO NO HOMOLOGADO. Bloque 2 (ZONA 1 - PERS. ADMINISTRACION), fila 2. Basico julio 1342546.80 + no remunerativa de julio 25508.39, que pasa al basico en agosto.",
+          "estado_fuente": "PROVISORIA",
+          "verificado": false,
+          "provisoria": true,
+          "habilitada": false
+        },
+        {
+          "categoria": "Con fines de lucro - Administrativo - Categoría 3ª - Administrativo especializado o técnico",
+          "zona": "ZONA 1",
+          "basico": "1228572.05",
+          "unidad": "MENSUAL",
+          "fuente": "Acta SOECRA/CACEPRI 17/07/2026 (RE-2026-70482358-APN-DTD#JGM), escala de julio 2026 leida del PDF oficial https://soecra.com.ar/wp-content/uploads/2026/07/ESCALA-CEMENTERIO-CACEPRI-761-19-JULIO-2026.pdf, pagina 3; agosto reconstruido con el IPC nivel general INDEC de julio 2026 (2,1%) segun los puntos 2 y 3 del acta. ACUERDO NO HOMOLOGADO. Bloque 2 (ZONA 1 - PERS. ADMINISTRACION), fila 3. Basico julio 1205664.43 + no remunerativa de julio 22907.62, que pasa al basico en agosto.",
+          "estado_fuente": "PROVISORIA",
+          "verificado": false,
+          "provisoria": true,
+          "habilitada": false
+        },
+        {
+          "categoria": "Con fines de lucro - Administrativo - Categoría 4ª - Administrativo calificado",
+          "zona": "ZONA 1",
+          "basico": "1188504.22",
+          "unidad": "MENSUAL",
+          "fuente": "Acta SOECRA/CACEPRI 17/07/2026 (RE-2026-70482358-APN-DTD#JGM), escala de julio 2026 leida del PDF oficial https://soecra.com.ar/wp-content/uploads/2026/07/ESCALA-CEMENTERIO-CACEPRI-761-19-JULIO-2026.pdf, pagina 3; agosto reconstruido con el IPC nivel general INDEC de julio 2026 (2,1%) segun los puntos 2 y 3 del acta. ACUERDO NO HOMOLOGADO. Bloque 2 (ZONA 1 - PERS. ADMINISTRACION), fila 4. Basico julio 1166343.69 + no remunerativa de julio 22160.53, que pasa al basico en agosto.",
+          "estado_fuente": "PROVISORIA",
+          "verificado": false,
+          "provisoria": true,
+          "habilitada": false
+        },
+        {
+          "categoria": "Con fines de lucro - Administrativo - Categoría 5ª - Administrativo general",
+          "zona": "ZONA 1",
+          "basico": "1140165.75",
+          "unidad": "MENSUAL",
+          "fuente": "Acta SOECRA/CACEPRI 17/07/2026 (RE-2026-70482358-APN-DTD#JGM), escala de julio 2026 leida del PDF oficial https://soecra.com.ar/wp-content/uploads/2026/07/ESCALA-CEMENTERIO-CACEPRI-761-19-JULIO-2026.pdf, pagina 3; agosto reconstruido con el IPC nivel general INDEC de julio 2026 (2,1%) segun los puntos 2 y 3 del acta. ACUERDO NO HOMOLOGADO. Bloque 2 (ZONA 1 - PERS. ADMINISTRACION), fila 5. Basico julio 1118906.53 + no remunerativa de julio 21259.22, que pasa al basico en agosto.",
+          "estado_fuente": "PROVISORIA",
+          "verificado": false,
+          "provisoria": true,
+          "habilitada": false
+        },
+        {
+          "categoria": "Con fines de lucro - Administrativo - Categoría 1ª - Jefe administrativo",
+          "zona": "ZONA 2",
+          "basico": "1429145.78",
+          "unidad": "MENSUAL",
+          "fuente": "Acta SOECRA/CACEPRI 17/07/2026 (RE-2026-70482358-APN-DTD#JGM), escala de julio 2026 leida del PDF oficial https://soecra.com.ar/wp-content/uploads/2026/07/ESCALA-CEMENTERIO-CACEPRI-761-19-JULIO-2026.pdf, pagina 3; agosto reconstruido con el IPC nivel general INDEC de julio 2026 (2,1%) segun los puntos 2 y 3 del acta. ACUERDO NO HOMOLOGADO. Bloque 3 (ZONA 2 - PERS. ADMINISTRACION), fila 1. Basico julio 1402498.31 + no remunerativa de julio 26647.47, que pasa al basico en agosto.",
+          "estado_fuente": "PROVISORIA",
+          "verificado": false,
+          "provisoria": true,
+          "habilitada": false
+        },
+        {
+          "categoria": "Con fines de lucro - Administrativo - Categoría 2ª - Personal jerárquico",
+          "zona": "ZONA 2",
+          "basico": "1331002.63",
+          "unidad": "MENSUAL",
+          "fuente": "Acta SOECRA/CACEPRI 17/07/2026 (RE-2026-70482358-APN-DTD#JGM), escala de julio 2026 leida del PDF oficial https://soecra.com.ar/wp-content/uploads/2026/07/ESCALA-CEMENTERIO-CACEPRI-761-19-JULIO-2026.pdf, pagina 3; agosto reconstruido con el IPC nivel general INDEC de julio 2026 (2,1%) segun los puntos 2 y 3 del acta. ACUERDO NO HOMOLOGADO. Bloque 3 (ZONA 2 - PERS. ADMINISTRACION), fila 2. Basico julio 1306185.11 + no remunerativa de julio 24817.52, que pasa al basico en agosto.",
+          "estado_fuente": "PROVISORIA",
+          "verificado": false,
+          "provisoria": true,
+          "habilitada": false
+        },
+        {
+          "categoria": "Con fines de lucro - Administrativo - Categoría 3ª - Administrativo especializado o técnico",
+          "zona": "ZONA 2",
+          "basico": "1197447.43",
+          "unidad": "MENSUAL",
+          "fuente": "Acta SOECRA/CACEPRI 17/07/2026 (RE-2026-70482358-APN-DTD#JGM), escala de julio 2026 leida del PDF oficial https://soecra.com.ar/wp-content/uploads/2026/07/ESCALA-CEMENTERIO-CACEPRI-761-19-JULIO-2026.pdf, pagina 3; agosto reconstruido con el IPC nivel general INDEC de julio 2026 (2,1%) segun los puntos 2 y 3 del acta. ACUERDO NO HOMOLOGADO. Bloque 3 (ZONA 2 - PERS. ADMINISTRACION), fila 3. Basico julio 1175120.15 + no remunerativa de julio 22327.28, que pasa al basico en agosto.",
+          "estado_fuente": "PROVISORIA",
+          "verificado": false,
+          "provisoria": true,
+          "habilitada": false
+        },
+        {
+          "categoria": "Con fines de lucro - Administrativo - Categoría 4ª - Administrativo calificado",
+          "zona": "ZONA 2",
+          "basico": "1162845.95",
+          "unidad": "MENSUAL",
+          "fuente": "Acta SOECRA/CACEPRI 17/07/2026 (RE-2026-70482358-APN-DTD#JGM), escala de julio 2026 leida del PDF oficial https://soecra.com.ar/wp-content/uploads/2026/07/ESCALA-CEMENTERIO-CACEPRI-761-19-JULIO-2026.pdf, pagina 3; agosto reconstruido con el IPC nivel general INDEC de julio 2026 (2,1%) segun los puntos 2 y 3 del acta. ACUERDO NO HOMOLOGADO. Bloque 3 (ZONA 2 - PERS. ADMINISTRACION), fila 4. Basico julio 1141163.84 + no remunerativa de julio 21682.11, que pasa al basico en agosto.",
+          "estado_fuente": "PROVISORIA",
+          "verificado": false,
+          "provisoria": true,
+          "habilitada": false
+        },
+        {
+          "categoria": "Con fines de lucro - Administrativo - Categoría 5ª - Administrativo general",
+          "zona": "ZONA 2",
+          "basico": "1116490.99",
+          "unidad": "MENSUAL",
+          "fuente": "Acta SOECRA/CACEPRI 17/07/2026 (RE-2026-70482358-APN-DTD#JGM), escala de julio 2026 leida del PDF oficial https://soecra.com.ar/wp-content/uploads/2026/07/ESCALA-CEMENTERIO-CACEPRI-761-19-JULIO-2026.pdf, pagina 3; agosto reconstruido con el IPC nivel general INDEC de julio 2026 (2,1%) segun los puntos 2 y 3 del acta. ACUERDO NO HOMOLOGADO. Bloque 3 (ZONA 2 - PERS. ADMINISTRACION), fila 5. Basico julio 1095673.20 + no remunerativa de julio 20817.79, que pasa al basico en agosto.",
+          "estado_fuente": "PROVISORIA",
+          "verificado": false,
+          "provisoria": true,
+          "habilitada": false
+        },
+        {
+          "categoria": "Con fines de lucro - Parque y crematorio - Categoría 1ª - Supervisor jefe",
+          "zona": "ZONA 2",
+          "basico": "1429145.78",
+          "unidad": "MENSUAL",
+          "fuente": "Acta SOECRA/CACEPRI 17/07/2026 (RE-2026-70482358-APN-DTD#JGM), escala de julio 2026 leida del PDF oficial https://soecra.com.ar/wp-content/uploads/2026/07/ESCALA-CEMENTERIO-CACEPRI-761-19-JULIO-2026.pdf, pagina 3; agosto reconstruido con el IPC nivel general INDEC de julio 2026 (2,1%) segun los puntos 2 y 3 del acta. ACUERDO NO HOMOLOGADO. Bloque 4 (ZONA 2 - PERS. PARQUE Y CREMATORIO), fila 1. Basico julio 1402498.31 + no remunerativa de julio 26647.47, que pasa al basico en agosto.",
+          "estado_fuente": "PROVISORIA",
+          "verificado": false,
+          "provisoria": true,
+          "habilitada": false
+        },
+        {
+          "categoria": "Con fines de lucro - Parque y crematorio - Categoría 2ª - Capataz",
+          "zona": "ZONA 2",
+          "basico": "1331002.63",
+          "unidad": "MENSUAL",
+          "fuente": "Acta SOECRA/CACEPRI 17/07/2026 (RE-2026-70482358-APN-DTD#JGM), escala de julio 2026 leida del PDF oficial https://soecra.com.ar/wp-content/uploads/2026/07/ESCALA-CEMENTERIO-CACEPRI-761-19-JULIO-2026.pdf, pagina 3; agosto reconstruido con el IPC nivel general INDEC de julio 2026 (2,1%) segun los puntos 2 y 3 del acta. ACUERDO NO HOMOLOGADO. Bloque 4 (ZONA 2 - PERS. PARQUE Y CREMATORIO), fila 2. Basico julio 1306185.11 + no remunerativa de julio 24817.52, que pasa al basico en agosto.",
+          "estado_fuente": "PROVISORIA",
+          "verificado": false,
+          "provisoria": true,
+          "habilitada": false
+        },
+        {
+          "categoria": "Con fines de lucro - Parque y crematorio - Categoría 3ª - Trabajador especializado o técnico",
+          "zona": "ZONA 2",
+          "basico": "1197447.43",
+          "unidad": "MENSUAL",
+          "fuente": "Acta SOECRA/CACEPRI 17/07/2026 (RE-2026-70482358-APN-DTD#JGM), escala de julio 2026 leida del PDF oficial https://soecra.com.ar/wp-content/uploads/2026/07/ESCALA-CEMENTERIO-CACEPRI-761-19-JULIO-2026.pdf, pagina 3; agosto reconstruido con el IPC nivel general INDEC de julio 2026 (2,1%) segun los puntos 2 y 3 del acta. ACUERDO NO HOMOLOGADO. Bloque 4 (ZONA 2 - PERS. PARQUE Y CREMATORIO), fila 3. Basico julio 1175120.15 + no remunerativa de julio 22327.28, que pasa al basico en agosto.",
+          "estado_fuente": "PROVISORIA",
+          "verificado": false,
+          "provisoria": true,
+          "habilitada": false
+        },
+        {
+          "categoria": "Con fines de lucro - Parque y crematorio - Categoría 4ª - Trabajador calificado",
+          "zona": "ZONA 2",
+          "basico": "1162845.95",
+          "unidad": "MENSUAL",
+          "fuente": "Acta SOECRA/CACEPRI 17/07/2026 (RE-2026-70482358-APN-DTD#JGM), escala de julio 2026 leida del PDF oficial https://soecra.com.ar/wp-content/uploads/2026/07/ESCALA-CEMENTERIO-CACEPRI-761-19-JULIO-2026.pdf, pagina 3; agosto reconstruido con el IPC nivel general INDEC de julio 2026 (2,1%) segun los puntos 2 y 3 del acta. ACUERDO NO HOMOLOGADO. Bloque 4 (ZONA 2 - PERS. PARQUE Y CREMATORIO), fila 4. Basico julio 1141163.84 + no remunerativa de julio 21682.11, que pasa al basico en agosto.",
+          "estado_fuente": "PROVISORIA",
+          "verificado": false,
+          "provisoria": true,
+          "habilitada": false
+        },
+        {
+          "categoria": "Con fines de lucro - Parque y crematorio - Categoría 5ª - Trabajador general",
+          "zona": "ZONA 2",
+          "basico": "1116490.99",
+          "unidad": "MENSUAL",
+          "fuente": "Acta SOECRA/CACEPRI 17/07/2026 (RE-2026-70482358-APN-DTD#JGM), escala de julio 2026 leida del PDF oficial https://soecra.com.ar/wp-content/uploads/2026/07/ESCALA-CEMENTERIO-CACEPRI-761-19-JULIO-2026.pdf, pagina 3; agosto reconstruido con el IPC nivel general INDEC de julio 2026 (2,1%) segun los puntos 2 y 3 del acta. ACUERDO NO HOMOLOGADO. Bloque 4 (ZONA 2 - PERS. PARQUE Y CREMATORIO), fila 5. Basico julio 1095673.20 + no remunerativa de julio 20817.79, que pasa al basico en agosto.",
+          "estado_fuente": "PROVISORIA",
+          "verificado": false,
+          "provisoria": true,
+          "habilitada": false
+        },
+        {
+          "categoria": "Con fines de lucro - Administrativo - Categoría 1ª - Jefe administrativo",
+          "zona": "ZONA INHOSPITA",
+          "basico": "1691115.17",
+          "unidad": "MENSUAL",
+          "fuente": "Acta SOECRA/CACEPRI 17/07/2026 (RE-2026-70482358-APN-DTD#JGM), escala de julio 2026 leida del PDF oficial https://soecra.com.ar/wp-content/uploads/2026/07/ESCALA-CEMENTERIO-CACEPRI-761-19-JULIO-2026.pdf, pagina 3; agosto reconstruido con el IPC nivel general INDEC de julio 2026 (2,1%) segun los puntos 2 y 3 del acta. ACUERDO NO HOMOLOGADO. Bloque 5 (ZONA INHOSPITA - PERS. ADMINISTRACION), fila 1. Basico julio 1659583.09 + no remunerativa de julio 31532.08, que pasa al basico en agosto.",
+          "estado_fuente": "PROVISORIA",
+          "verificado": false,
+          "provisoria": true,
+          "habilitada": false
+        },
+        {
+          "categoria": "Con fines de lucro - Administrativo - Categoría 2ª - Personal jerárquico",
+          "zona": "ZONA INHOSPITA",
+          "basico": "1573263.38",
+          "unidad": "MENSUAL",
+          "fuente": "Acta SOECRA/CACEPRI 17/07/2026 (RE-2026-70482358-APN-DTD#JGM), escala de julio 2026 leida del PDF oficial https://soecra.com.ar/wp-content/uploads/2026/07/ESCALA-CEMENTERIO-CACEPRI-761-19-JULIO-2026.pdf, pagina 3; agosto reconstruido con el IPC nivel general INDEC de julio 2026 (2,1%) segun los puntos 2 y 3 del acta. ACUERDO NO HOMOLOGADO. Bloque 5 (ZONA INHOSPITA - PERS. ADMINISTRACION), fila 2. Basico julio 1543928.73 + no remunerativa de julio 29334.65, que pasa al basico en agosto.",
+          "estado_fuente": "PROVISORIA",
+          "verificado": false,
+          "provisoria": true,
+          "habilitada": false
+        },
+        {
+          "categoria": "Con fines de lucro - Administrativo - Categoría 3ª - Administrativo especializado o técnico",
+          "zona": "ZONA INHOSPITA",
+          "basico": "1402283.73",
+          "unidad": "MENSUAL",
+          "fuente": "Acta SOECRA/CACEPRI 17/07/2026 (RE-2026-70482358-APN-DTD#JGM), escala de julio 2026 leida del PDF oficial https://soecra.com.ar/wp-content/uploads/2026/07/ESCALA-CEMENTERIO-CACEPRI-761-19-JULIO-2026.pdf, pagina 3; agosto reconstruido con el IPC nivel general INDEC de julio 2026 (2,1%) segun los puntos 2 y 3 del acta. ACUERDO NO HOMOLOGADO. Bloque 5 (ZONA INHOSPITA - PERS. ADMINISTRACION), fila 3. Basico julio 1376137.12 + no remunerativa de julio 26146.61, que pasa al basico en agosto.",
+          "estado_fuente": "PROVISORIA",
+          "verificado": false,
+          "provisoria": true,
+          "habilitada": false
+        },
+        {
+          "categoria": "Con fines de lucro - Administrativo - Categoría 4ª - Administrativo calificado",
+          "zona": "ZONA INHOSPITA",
+          "basico": "1366784.09",
+          "unidad": "MENSUAL",
+          "fuente": "Acta SOECRA/CACEPRI 17/07/2026 (RE-2026-70482358-APN-DTD#JGM), escala de julio 2026 leida del PDF oficial https://soecra.com.ar/wp-content/uploads/2026/07/ESCALA-CEMENTERIO-CACEPRI-761-19-JULIO-2026.pdf, pagina 3; agosto reconstruido con el IPC nivel general INDEC de julio 2026 (2,1%) segun los puntos 2 y 3 del acta. ACUERDO NO HOMOLOGADO. Bloque 5 (ZONA INHOSPITA - PERS. ADMINISTRACION), fila 4. Basico julio 1341299.40 + no remunerativa de julio 25484.69, que pasa al basico en agosto.",
+          "estado_fuente": "PROVISORIA",
+          "verificado": false,
+          "provisoria": true,
+          "habilitada": false
+        },
+        {
+          "categoria": "Con fines de lucro - Administrativo - Categoría 5ª - Administrativo general",
+          "zona": "ZONA INHOSPITA",
+          "basico": "1311190.53",
+          "unidad": "MENSUAL",
+          "fuente": "Acta SOECRA/CACEPRI 17/07/2026 (RE-2026-70482358-APN-DTD#JGM), escala de julio 2026 leida del PDF oficial https://soecra.com.ar/wp-content/uploads/2026/07/ESCALA-CEMENTERIO-CACEPRI-761-19-JULIO-2026.pdf, pagina 3; agosto reconstruido con el IPC nivel general INDEC de julio 2026 (2,1%) segun los puntos 2 y 3 del acta. ACUERDO NO HOMOLOGADO. Bloque 5 (ZONA INHOSPITA - PERS. ADMINISTRACION), fila 5. Basico julio 1286742.42 + no remunerativa de julio 24448.11, que pasa al basico en agosto.",
+          "estado_fuente": "PROVISORIA",
+          "verificado": false,
+          "provisoria": true,
+          "habilitada": false
+        },
+        {
+          "categoria": "Con fines de lucro - Parque y crematorio - Categoría 1ª - Supervisor jefe",
+          "zona": "ZONA INHOSPITA",
+          "basico": "1691115.17",
+          "unidad": "MENSUAL",
+          "fuente": "Acta SOECRA/CACEPRI 17/07/2026 (RE-2026-70482358-APN-DTD#JGM), escala de julio 2026 leida del PDF oficial https://soecra.com.ar/wp-content/uploads/2026/07/ESCALA-CEMENTERIO-CACEPRI-761-19-JULIO-2026.pdf, pagina 3; agosto reconstruido con el IPC nivel general INDEC de julio 2026 (2,1%) segun los puntos 2 y 3 del acta. ACUERDO NO HOMOLOGADO. Bloque 6 (ZONA INHOSPITA - PERS. PARQUE Y CREMATORIO), fila 1. Basico julio 1659583.09 + no remunerativa de julio 31532.08, que pasa al basico en agosto.",
+          "estado_fuente": "PROVISORIA",
+          "verificado": false,
+          "provisoria": true,
+          "habilitada": false
+        },
+        {
+          "categoria": "Con fines de lucro - Parque y crematorio - Categoría 2ª - Capataz",
+          "zona": "ZONA INHOSPITA",
+          "basico": "1573263.38",
+          "unidad": "MENSUAL",
+          "fuente": "Acta SOECRA/CACEPRI 17/07/2026 (RE-2026-70482358-APN-DTD#JGM), escala de julio 2026 leida del PDF oficial https://soecra.com.ar/wp-content/uploads/2026/07/ESCALA-CEMENTERIO-CACEPRI-761-19-JULIO-2026.pdf, pagina 3; agosto reconstruido con el IPC nivel general INDEC de julio 2026 (2,1%) segun los puntos 2 y 3 del acta. ACUERDO NO HOMOLOGADO. Bloque 6 (ZONA INHOSPITA - PERS. PARQUE Y CREMATORIO), fila 2. Basico julio 1543928.73 + no remunerativa de julio 29334.65, que pasa al basico en agosto.",
+          "estado_fuente": "PROVISORIA",
+          "verificado": false,
+          "provisoria": true,
+          "habilitada": false
+        },
+        {
+          "categoria": "Con fines de lucro - Parque y crematorio - Categoría 3ª - Trabajador especializado o técnico",
+          "zona": "ZONA INHOSPITA",
+          "basico": "1402283.73",
+          "unidad": "MENSUAL",
+          "fuente": "Acta SOECRA/CACEPRI 17/07/2026 (RE-2026-70482358-APN-DTD#JGM), escala de julio 2026 leida del PDF oficial https://soecra.com.ar/wp-content/uploads/2026/07/ESCALA-CEMENTERIO-CACEPRI-761-19-JULIO-2026.pdf, pagina 3; agosto reconstruido con el IPC nivel general INDEC de julio 2026 (2,1%) segun los puntos 2 y 3 del acta. ACUERDO NO HOMOLOGADO. Bloque 6 (ZONA INHOSPITA - PERS. PARQUE Y CREMATORIO), fila 3. Basico julio 1376137.12 + no remunerativa de julio 26146.61, que pasa al basico en agosto.",
+          "estado_fuente": "PROVISORIA",
+          "verificado": false,
+          "provisoria": true,
+          "habilitada": false
+        },
+        {
+          "categoria": "Con fines de lucro - Parque y crematorio - Categoría 4ª - Trabajador calificado",
+          "zona": "ZONA INHOSPITA",
+          "basico": "1366784.09",
+          "unidad": "MENSUAL",
+          "fuente": "Acta SOECRA/CACEPRI 17/07/2026 (RE-2026-70482358-APN-DTD#JGM), escala de julio 2026 leida del PDF oficial https://soecra.com.ar/wp-content/uploads/2026/07/ESCALA-CEMENTERIO-CACEPRI-761-19-JULIO-2026.pdf, pagina 3; agosto reconstruido con el IPC nivel general INDEC de julio 2026 (2,1%) segun los puntos 2 y 3 del acta. ACUERDO NO HOMOLOGADO. Bloque 6 (ZONA INHOSPITA - PERS. PARQUE Y CREMATORIO), fila 4. Basico julio 1341299.40 + no remunerativa de julio 25484.69, que pasa al basico en agosto.",
+          "estado_fuente": "PROVISORIA",
+          "verificado": false,
+          "provisoria": true,
+          "habilitada": false
+        },
+        {
+          "categoria": "Con fines de lucro - Parque y crematorio - Categoría 5ª - Trabajador general",
+          "zona": "ZONA INHOSPITA",
+          "basico": "1311190.53",
+          "unidad": "MENSUAL",
+          "fuente": "Acta SOECRA/CACEPRI 17/07/2026 (RE-2026-70482358-APN-DTD#JGM), escala de julio 2026 leida del PDF oficial https://soecra.com.ar/wp-content/uploads/2026/07/ESCALA-CEMENTERIO-CACEPRI-761-19-JULIO-2026.pdf, pagina 3; agosto reconstruido con el IPC nivel general INDEC de julio 2026 (2,1%) segun los puntos 2 y 3 del acta. ACUERDO NO HOMOLOGADO. Bloque 6 (ZONA INHOSPITA - PERS. PARQUE Y CREMATORIO), fila 5. Basico julio 1286742.42 + no remunerativa de julio 24448.11, que pasa al basico en agosto.",
+          "estado_fuente": "PROVISORIA",
+          "verificado": false,
+          "provisoria": true,
+          "habilitada": false
+        }
+      ],
+      "parametros": [
+        {
+          "codigo": "APORTE_SOLIDARIO_SOECRA_761/19",
+          "valor": "0.01",
+          "unidad": "%",
+          "ambito": "ded_noafil",
+          "fuente": "CCT 761/19 art. 76 y acta SOECRA/CACEPRI 17/07/2026 punto 4 (RE-2026-70482358-APN-DTD#JGM), que prorroga expresamente el 1% para los meses de julio y agosto de 2026",
+          "estado_fuente": "PROVISORIA",
+          "verificado": false,
+          "incidencias": {
+            "base_deduccion": "total de remuneraciones",
+            "condicion": "solo_no_afiliados",
+            "destino_pago": "SOECRA",
+            "codigo_boleta": "SOECRA_APORTE_SOLIDARIO",
+            "canal_pago": "CuotaQ",
+            "url_pago": "https://www.cuotaq.com/soecra",
+            "vigencia_declarada": "julio y agosto de 2026 por prórroga",
+            "reserva_documental": "acuerdo no homologado; verificar el texto del art. 76 en la versión homologada del CCT"
+          }
+        },
+        {
+          "codigo": "CUOTA_SINDICAL_SOECRA_761/19",
+          "valor": "0.015",
+          "unidad": "%",
+          "ambito": "ded_afil",
+          "fuente": "CCT 761/19 art. 75, texto publicado por la parte sindical firmante",
+          "estado_fuente": "PROVISORIA",
+          "verificado": false,
+          "incidencias": {
+            "base_deduccion": "total de remuneraciones",
+            "condicion": "solo_afiliados_con_afiliacion_acreditada",
+            "destino_pago": "SOECRA",
+            "codigo_boleta": "SOECRA_CUOTA_SINDICAL",
+            "canal_pago": "CuotaQ",
+            "url_pago": "https://www.cuotaq.com/soecra",
+            "regla_vencimiento": "dentro de los 15 días posteriores al mes vencido",
+            "reserva_documental": "verificar contra el texto homologado antes de habilitar la retención"
+          }
+        },
+        {
+          "codigo": "NO_REM_2026_08_761_LUCRO_PARQUE_1_ZONA_1",
+          "valor": "30881.23",
+          "unidad": "ARS",
+          "ambito": "no_rem",
+          "fuente": "Acta SOECRA/CACEPRI 17/07/2026 (RE-2026-70482358-APN-DTD#JGM), escala de julio 2026 leida del PDF oficial https://soecra.com.ar/wp-content/uploads/2026/07/ESCALA-CEMENTERIO-CACEPRI-761-19-JULIO-2026.pdf, pagina 3; agosto reconstruido con el IPC nivel general INDEC de julio 2026 (2,1%) segun los puntos 2 y 3 del acta. ACUERDO NO HOMOLOGADO. 2,1% sobre el basico conformado de agosto 1470534.94.",
+          "estado_fuente": "PROVISORIA",
+          "verificado": false,
+          "incidencias": {
+            "categoria": "Con fines de lucro - Parque y crematorio - Categoría 1ª - Supervisor jefe",
+            "zona": "ZONA 1",
+            "total_conformado_agosto": "1501416.17",
+            "caracter": "no remunerativa en agosto; pasa al basico en septiembre y adquiere caracter remunerativo",
+            "base_aportes_seguridad_social": false,
+            "requiere_confirmacion_expresa": true
+          }
+        },
+        {
+          "codigo": "NO_REM_2026_08_761_LUCRO_PARQUE_2_ZONA_1",
+          "valor": "28729.16",
+          "unidad": "ARS",
+          "ambito": "no_rem",
+          "fuente": "Acta SOECRA/CACEPRI 17/07/2026 (RE-2026-70482358-APN-DTD#JGM), escala de julio 2026 leida del PDF oficial https://soecra.com.ar/wp-content/uploads/2026/07/ESCALA-CEMENTERIO-CACEPRI-761-19-JULIO-2026.pdf, pagina 3; agosto reconstruido con el IPC nivel general INDEC de julio 2026 (2,1%) segun los puntos 2 y 3 del acta. ACUERDO NO HOMOLOGADO. 2,1% sobre el basico conformado de agosto 1368055.19.",
+          "estado_fuente": "PROVISORIA",
+          "verificado": false,
+          "incidencias": {
+            "categoria": "Con fines de lucro - Parque y crematorio - Categoría 2ª - Capataz",
+            "zona": "ZONA 1",
+            "total_conformado_agosto": "1396784.35",
+            "caracter": "no remunerativa en agosto; pasa al basico en septiembre y adquiere caracter remunerativo",
+            "base_aportes_seguridad_social": false,
+            "requiere_confirmacion_expresa": true
+          }
+        },
+        {
+          "codigo": "NO_REM_2026_08_761_LUCRO_PARQUE_3_ZONA_1",
+          "valor": "25800.01",
+          "unidad": "ARS",
+          "ambito": "no_rem",
+          "fuente": "Acta SOECRA/CACEPRI 17/07/2026 (RE-2026-70482358-APN-DTD#JGM), escala de julio 2026 leida del PDF oficial https://soecra.com.ar/wp-content/uploads/2026/07/ESCALA-CEMENTERIO-CACEPRI-761-19-JULIO-2026.pdf, pagina 3; agosto reconstruido con el IPC nivel general INDEC de julio 2026 (2,1%) segun los puntos 2 y 3 del acta. ACUERDO NO HOMOLOGADO. 2,1% sobre el basico conformado de agosto 1228572.05.",
+          "estado_fuente": "PROVISORIA",
+          "verificado": false,
+          "incidencias": {
+            "categoria": "Con fines de lucro - Parque y crematorio - Categoría 3ª - Trabajador especializado o técnico",
+            "zona": "ZONA 1",
+            "total_conformado_agosto": "1254372.06",
+            "caracter": "no remunerativa en agosto; pasa al basico en septiembre y adquiere caracter remunerativo",
+            "base_aportes_seguridad_social": false,
+            "requiere_confirmacion_expresa": true
+          }
+        },
+        {
+          "codigo": "NO_REM_2026_08_761_LUCRO_PARQUE_4_ZONA_1",
+          "valor": "24958.59",
+          "unidad": "ARS",
+          "ambito": "no_rem",
+          "fuente": "Acta SOECRA/CACEPRI 17/07/2026 (RE-2026-70482358-APN-DTD#JGM), escala de julio 2026 leida del PDF oficial https://soecra.com.ar/wp-content/uploads/2026/07/ESCALA-CEMENTERIO-CACEPRI-761-19-JULIO-2026.pdf, pagina 3; agosto reconstruido con el IPC nivel general INDEC de julio 2026 (2,1%) segun los puntos 2 y 3 del acta. ACUERDO NO HOMOLOGADO. 2,1% sobre el basico conformado de agosto 1188504.22.",
+          "estado_fuente": "PROVISORIA",
+          "verificado": false,
+          "incidencias": {
+            "categoria": "Con fines de lucro - Parque y crematorio - Categoría 4ª - Trabajador calificado",
+            "zona": "ZONA 1",
+            "total_conformado_agosto": "1213462.81",
+            "caracter": "no remunerativa en agosto; pasa al basico en septiembre y adquiere caracter remunerativo",
+            "base_aportes_seguridad_social": false,
+            "requiere_confirmacion_expresa": true
+          }
+        },
+        {
+          "codigo": "NO_REM_2026_08_761_LUCRO_PARQUE_5_ZONA_1",
+          "valor": "23943.48",
+          "unidad": "ARS",
+          "ambito": "no_rem",
+          "fuente": "Acta SOECRA/CACEPRI 17/07/2026 (RE-2026-70482358-APN-DTD#JGM), escala de julio 2026 leida del PDF oficial https://soecra.com.ar/wp-content/uploads/2026/07/ESCALA-CEMENTERIO-CACEPRI-761-19-JULIO-2026.pdf, pagina 3; agosto reconstruido con el IPC nivel general INDEC de julio 2026 (2,1%) segun los puntos 2 y 3 del acta. ACUERDO NO HOMOLOGADO. 2,1% sobre el basico conformado de agosto 1140165.75.",
+          "estado_fuente": "PROVISORIA",
+          "verificado": false,
+          "incidencias": {
+            "categoria": "Con fines de lucro - Parque y crematorio - Categoría 5ª - Trabajador general",
+            "zona": "ZONA 1",
+            "total_conformado_agosto": "1164109.23",
+            "caracter": "no remunerativa en agosto; pasa al basico en septiembre y adquiere caracter remunerativo",
+            "base_aportes_seguridad_social": false,
+            "requiere_confirmacion_expresa": true
+          }
+        },
+        {
+          "codigo": "NO_REM_2026_08_761_LUCRO_ADM_1_ZONA_1",
+          "valor": "30881.23",
+          "unidad": "ARS",
+          "ambito": "no_rem",
+          "fuente": "Acta SOECRA/CACEPRI 17/07/2026 (RE-2026-70482358-APN-DTD#JGM), escala de julio 2026 leida del PDF oficial https://soecra.com.ar/wp-content/uploads/2026/07/ESCALA-CEMENTERIO-CACEPRI-761-19-JULIO-2026.pdf, pagina 3; agosto reconstruido con el IPC nivel general INDEC de julio 2026 (2,1%) segun los puntos 2 y 3 del acta. ACUERDO NO HOMOLOGADO. 2,1% sobre el basico conformado de agosto 1470534.94.",
+          "estado_fuente": "PROVISORIA",
+          "verificado": false,
+          "incidencias": {
+            "categoria": "Con fines de lucro - Administrativo - Categoría 1ª - Jefe administrativo",
+            "zona": "ZONA 1",
+            "total_conformado_agosto": "1501416.17",
+            "caracter": "no remunerativa en agosto; pasa al basico en septiembre y adquiere caracter remunerativo",
+            "base_aportes_seguridad_social": false,
+            "requiere_confirmacion_expresa": true
+          }
+        },
+        {
+          "codigo": "NO_REM_2026_08_761_LUCRO_ADM_2_ZONA_1",
+          "valor": "28729.16",
+          "unidad": "ARS",
+          "ambito": "no_rem",
+          "fuente": "Acta SOECRA/CACEPRI 17/07/2026 (RE-2026-70482358-APN-DTD#JGM), escala de julio 2026 leida del PDF oficial https://soecra.com.ar/wp-content/uploads/2026/07/ESCALA-CEMENTERIO-CACEPRI-761-19-JULIO-2026.pdf, pagina 3; agosto reconstruido con el IPC nivel general INDEC de julio 2026 (2,1%) segun los puntos 2 y 3 del acta. ACUERDO NO HOMOLOGADO. 2,1% sobre el basico conformado de agosto 1368055.19.",
+          "estado_fuente": "PROVISORIA",
+          "verificado": false,
+          "incidencias": {
+            "categoria": "Con fines de lucro - Administrativo - Categoría 2ª - Personal jerárquico",
+            "zona": "ZONA 1",
+            "total_conformado_agosto": "1396784.35",
+            "caracter": "no remunerativa en agosto; pasa al basico en septiembre y adquiere caracter remunerativo",
+            "base_aportes_seguridad_social": false,
+            "requiere_confirmacion_expresa": true
+          }
+        },
+        {
+          "codigo": "NO_REM_2026_08_761_LUCRO_ADM_3_ZONA_1",
+          "valor": "25800.01",
+          "unidad": "ARS",
+          "ambito": "no_rem",
+          "fuente": "Acta SOECRA/CACEPRI 17/07/2026 (RE-2026-70482358-APN-DTD#JGM), escala de julio 2026 leida del PDF oficial https://soecra.com.ar/wp-content/uploads/2026/07/ESCALA-CEMENTERIO-CACEPRI-761-19-JULIO-2026.pdf, pagina 3; agosto reconstruido con el IPC nivel general INDEC de julio 2026 (2,1%) segun los puntos 2 y 3 del acta. ACUERDO NO HOMOLOGADO. 2,1% sobre el basico conformado de agosto 1228572.05.",
+          "estado_fuente": "PROVISORIA",
+          "verificado": false,
+          "incidencias": {
+            "categoria": "Con fines de lucro - Administrativo - Categoría 3ª - Administrativo especializado o técnico",
+            "zona": "ZONA 1",
+            "total_conformado_agosto": "1254372.06",
+            "caracter": "no remunerativa en agosto; pasa al basico en septiembre y adquiere caracter remunerativo",
+            "base_aportes_seguridad_social": false,
+            "requiere_confirmacion_expresa": true
+          }
+        },
+        {
+          "codigo": "NO_REM_2026_08_761_LUCRO_ADM_4_ZONA_1",
+          "valor": "24958.59",
+          "unidad": "ARS",
+          "ambito": "no_rem",
+          "fuente": "Acta SOECRA/CACEPRI 17/07/2026 (RE-2026-70482358-APN-DTD#JGM), escala de julio 2026 leida del PDF oficial https://soecra.com.ar/wp-content/uploads/2026/07/ESCALA-CEMENTERIO-CACEPRI-761-19-JULIO-2026.pdf, pagina 3; agosto reconstruido con el IPC nivel general INDEC de julio 2026 (2,1%) segun los puntos 2 y 3 del acta. ACUERDO NO HOMOLOGADO. 2,1% sobre el basico conformado de agosto 1188504.22.",
+          "estado_fuente": "PROVISORIA",
+          "verificado": false,
+          "incidencias": {
+            "categoria": "Con fines de lucro - Administrativo - Categoría 4ª - Administrativo calificado",
+            "zona": "ZONA 1",
+            "total_conformado_agosto": "1213462.81",
+            "caracter": "no remunerativa en agosto; pasa al basico en septiembre y adquiere caracter remunerativo",
+            "base_aportes_seguridad_social": false,
+            "requiere_confirmacion_expresa": true
+          }
+        },
+        {
+          "codigo": "NO_REM_2026_08_761_LUCRO_ADM_5_ZONA_1",
+          "valor": "23943.48",
+          "unidad": "ARS",
+          "ambito": "no_rem",
+          "fuente": "Acta SOECRA/CACEPRI 17/07/2026 (RE-2026-70482358-APN-DTD#JGM), escala de julio 2026 leida del PDF oficial https://soecra.com.ar/wp-content/uploads/2026/07/ESCALA-CEMENTERIO-CACEPRI-761-19-JULIO-2026.pdf, pagina 3; agosto reconstruido con el IPC nivel general INDEC de julio 2026 (2,1%) segun los puntos 2 y 3 del acta. ACUERDO NO HOMOLOGADO. 2,1% sobre el basico conformado de agosto 1140165.75.",
+          "estado_fuente": "PROVISORIA",
+          "verificado": false,
+          "incidencias": {
+            "categoria": "Con fines de lucro - Administrativo - Categoría 5ª - Administrativo general",
+            "zona": "ZONA 1",
+            "total_conformado_agosto": "1164109.23",
+            "caracter": "no remunerativa en agosto; pasa al basico en septiembre y adquiere caracter remunerativo",
+            "base_aportes_seguridad_social": false,
+            "requiere_confirmacion_expresa": true
+          }
+        },
+        {
+          "codigo": "NO_REM_2026_08_761_LUCRO_ADM_1_ZONA_2",
+          "valor": "30012.06",
+          "unidad": "ARS",
+          "ambito": "no_rem",
+          "fuente": "Acta SOECRA/CACEPRI 17/07/2026 (RE-2026-70482358-APN-DTD#JGM), escala de julio 2026 leida del PDF oficial https://soecra.com.ar/wp-content/uploads/2026/07/ESCALA-CEMENTERIO-CACEPRI-761-19-JULIO-2026.pdf, pagina 3; agosto reconstruido con el IPC nivel general INDEC de julio 2026 (2,1%) segun los puntos 2 y 3 del acta. ACUERDO NO HOMOLOGADO. 2,1% sobre el basico conformado de agosto 1429145.78.",
+          "estado_fuente": "PROVISORIA",
+          "verificado": false,
+          "incidencias": {
+            "categoria": "Con fines de lucro - Administrativo - Categoría 1ª - Jefe administrativo",
+            "zona": "ZONA 2",
+            "total_conformado_agosto": "1459157.84",
+            "caracter": "no remunerativa en agosto; pasa al basico en septiembre y adquiere caracter remunerativo",
+            "base_aportes_seguridad_social": false,
+            "requiere_confirmacion_expresa": true
+          }
+        },
+        {
+          "codigo": "NO_REM_2026_08_761_LUCRO_ADM_2_ZONA_2",
+          "valor": "27951.06",
+          "unidad": "ARS",
+          "ambito": "no_rem",
+          "fuente": "Acta SOECRA/CACEPRI 17/07/2026 (RE-2026-70482358-APN-DTD#JGM), escala de julio 2026 leida del PDF oficial https://soecra.com.ar/wp-content/uploads/2026/07/ESCALA-CEMENTERIO-CACEPRI-761-19-JULIO-2026.pdf, pagina 3; agosto reconstruido con el IPC nivel general INDEC de julio 2026 (2,1%) segun los puntos 2 y 3 del acta. ACUERDO NO HOMOLOGADO. 2,1% sobre el basico conformado de agosto 1331002.63.",
+          "estado_fuente": "PROVISORIA",
+          "verificado": false,
+          "incidencias": {
+            "categoria": "Con fines de lucro - Administrativo - Categoría 2ª - Personal jerárquico",
+            "zona": "ZONA 2",
+            "total_conformado_agosto": "1358953.69",
+            "caracter": "no remunerativa en agosto; pasa al basico en septiembre y adquiere caracter remunerativo",
+            "base_aportes_seguridad_social": false,
+            "requiere_confirmacion_expresa": true
+          }
+        },
+        {
+          "codigo": "NO_REM_2026_08_761_LUCRO_ADM_3_ZONA_2",
+          "valor": "25146.40",
+          "unidad": "ARS",
+          "ambito": "no_rem",
+          "fuente": "Acta SOECRA/CACEPRI 17/07/2026 (RE-2026-70482358-APN-DTD#JGM), escala de julio 2026 leida del PDF oficial https://soecra.com.ar/wp-content/uploads/2026/07/ESCALA-CEMENTERIO-CACEPRI-761-19-JULIO-2026.pdf, pagina 3; agosto reconstruido con el IPC nivel general INDEC de julio 2026 (2,1%) segun los puntos 2 y 3 del acta. ACUERDO NO HOMOLOGADO. 2,1% sobre el basico conformado de agosto 1197447.43.",
+          "estado_fuente": "PROVISORIA",
+          "verificado": false,
+          "incidencias": {
+            "categoria": "Con fines de lucro - Administrativo - Categoría 3ª - Administrativo especializado o técnico",
+            "zona": "ZONA 2",
+            "total_conformado_agosto": "1222593.83",
+            "caracter": "no remunerativa en agosto; pasa al basico en septiembre y adquiere caracter remunerativo",
+            "base_aportes_seguridad_social": false,
+            "requiere_confirmacion_expresa": true
+          }
+        },
+        {
+          "codigo": "NO_REM_2026_08_761_LUCRO_ADM_4_ZONA_2",
+          "valor": "24419.76",
+          "unidad": "ARS",
+          "ambito": "no_rem",
+          "fuente": "Acta SOECRA/CACEPRI 17/07/2026 (RE-2026-70482358-APN-DTD#JGM), escala de julio 2026 leida del PDF oficial https://soecra.com.ar/wp-content/uploads/2026/07/ESCALA-CEMENTERIO-CACEPRI-761-19-JULIO-2026.pdf, pagina 3; agosto reconstruido con el IPC nivel general INDEC de julio 2026 (2,1%) segun los puntos 2 y 3 del acta. ACUERDO NO HOMOLOGADO. 2,1% sobre el basico conformado de agosto 1162845.95.",
+          "estado_fuente": "PROVISORIA",
+          "verificado": false,
+          "incidencias": {
+            "categoria": "Con fines de lucro - Administrativo - Categoría 4ª - Administrativo calificado",
+            "zona": "ZONA 2",
+            "total_conformado_agosto": "1187265.71",
+            "caracter": "no remunerativa en agosto; pasa al basico en septiembre y adquiere caracter remunerativo",
+            "base_aportes_seguridad_social": false,
+            "requiere_confirmacion_expresa": true
+          }
+        },
+        {
+          "codigo": "NO_REM_2026_08_761_LUCRO_ADM_5_ZONA_2",
+          "valor": "23446.31",
+          "unidad": "ARS",
+          "ambito": "no_rem",
+          "fuente": "Acta SOECRA/CACEPRI 17/07/2026 (RE-2026-70482358-APN-DTD#JGM), escala de julio 2026 leida del PDF oficial https://soecra.com.ar/wp-content/uploads/2026/07/ESCALA-CEMENTERIO-CACEPRI-761-19-JULIO-2026.pdf, pagina 3; agosto reconstruido con el IPC nivel general INDEC de julio 2026 (2,1%) segun los puntos 2 y 3 del acta. ACUERDO NO HOMOLOGADO. 2,1% sobre el basico conformado de agosto 1116490.99.",
+          "estado_fuente": "PROVISORIA",
+          "verificado": false,
+          "incidencias": {
+            "categoria": "Con fines de lucro - Administrativo - Categoría 5ª - Administrativo general",
+            "zona": "ZONA 2",
+            "total_conformado_agosto": "1139937.30",
+            "caracter": "no remunerativa en agosto; pasa al basico en septiembre y adquiere caracter remunerativo",
+            "base_aportes_seguridad_social": false,
+            "requiere_confirmacion_expresa": true
+          }
+        },
+        {
+          "codigo": "NO_REM_2026_08_761_LUCRO_PARQUE_1_ZONA_2",
+          "valor": "30012.06",
+          "unidad": "ARS",
+          "ambito": "no_rem",
+          "fuente": "Acta SOECRA/CACEPRI 17/07/2026 (RE-2026-70482358-APN-DTD#JGM), escala de julio 2026 leida del PDF oficial https://soecra.com.ar/wp-content/uploads/2026/07/ESCALA-CEMENTERIO-CACEPRI-761-19-JULIO-2026.pdf, pagina 3; agosto reconstruido con el IPC nivel general INDEC de julio 2026 (2,1%) segun los puntos 2 y 3 del acta. ACUERDO NO HOMOLOGADO. 2,1% sobre el basico conformado de agosto 1429145.78.",
+          "estado_fuente": "PROVISORIA",
+          "verificado": false,
+          "incidencias": {
+            "categoria": "Con fines de lucro - Parque y crematorio - Categoría 1ª - Supervisor jefe",
+            "zona": "ZONA 2",
+            "total_conformado_agosto": "1459157.84",
+            "caracter": "no remunerativa en agosto; pasa al basico en septiembre y adquiere caracter remunerativo",
+            "base_aportes_seguridad_social": false,
+            "requiere_confirmacion_expresa": true
+          }
+        },
+        {
+          "codigo": "NO_REM_2026_08_761_LUCRO_PARQUE_2_ZONA_2",
+          "valor": "27951.06",
+          "unidad": "ARS",
+          "ambito": "no_rem",
+          "fuente": "Acta SOECRA/CACEPRI 17/07/2026 (RE-2026-70482358-APN-DTD#JGM), escala de julio 2026 leida del PDF oficial https://soecra.com.ar/wp-content/uploads/2026/07/ESCALA-CEMENTERIO-CACEPRI-761-19-JULIO-2026.pdf, pagina 3; agosto reconstruido con el IPC nivel general INDEC de julio 2026 (2,1%) segun los puntos 2 y 3 del acta. ACUERDO NO HOMOLOGADO. 2,1% sobre el basico conformado de agosto 1331002.63.",
+          "estado_fuente": "PROVISORIA",
+          "verificado": false,
+          "incidencias": {
+            "categoria": "Con fines de lucro - Parque y crematorio - Categoría 2ª - Capataz",
+            "zona": "ZONA 2",
+            "total_conformado_agosto": "1358953.69",
+            "caracter": "no remunerativa en agosto; pasa al basico en septiembre y adquiere caracter remunerativo",
+            "base_aportes_seguridad_social": false,
+            "requiere_confirmacion_expresa": true
+          }
+        },
+        {
+          "codigo": "NO_REM_2026_08_761_LUCRO_PARQUE_3_ZONA_2",
+          "valor": "25146.40",
+          "unidad": "ARS",
+          "ambito": "no_rem",
+          "fuente": "Acta SOECRA/CACEPRI 17/07/2026 (RE-2026-70482358-APN-DTD#JGM), escala de julio 2026 leida del PDF oficial https://soecra.com.ar/wp-content/uploads/2026/07/ESCALA-CEMENTERIO-CACEPRI-761-19-JULIO-2026.pdf, pagina 3; agosto reconstruido con el IPC nivel general INDEC de julio 2026 (2,1%) segun los puntos 2 y 3 del acta. ACUERDO NO HOMOLOGADO. 2,1% sobre el basico conformado de agosto 1197447.43.",
+          "estado_fuente": "PROVISORIA",
+          "verificado": false,
+          "incidencias": {
+            "categoria": "Con fines de lucro - Parque y crematorio - Categoría 3ª - Trabajador especializado o técnico",
+            "zona": "ZONA 2",
+            "total_conformado_agosto": "1222593.83",
+            "caracter": "no remunerativa en agosto; pasa al basico en septiembre y adquiere caracter remunerativo",
+            "base_aportes_seguridad_social": false,
+            "requiere_confirmacion_expresa": true
+          }
+        },
+        {
+          "codigo": "NO_REM_2026_08_761_LUCRO_PARQUE_4_ZONA_2",
+          "valor": "24419.76",
+          "unidad": "ARS",
+          "ambito": "no_rem",
+          "fuente": "Acta SOECRA/CACEPRI 17/07/2026 (RE-2026-70482358-APN-DTD#JGM), escala de julio 2026 leida del PDF oficial https://soecra.com.ar/wp-content/uploads/2026/07/ESCALA-CEMENTERIO-CACEPRI-761-19-JULIO-2026.pdf, pagina 3; agosto reconstruido con el IPC nivel general INDEC de julio 2026 (2,1%) segun los puntos 2 y 3 del acta. ACUERDO NO HOMOLOGADO. 2,1% sobre el basico conformado de agosto 1162845.95.",
+          "estado_fuente": "PROVISORIA",
+          "verificado": false,
+          "incidencias": {
+            "categoria": "Con fines de lucro - Parque y crematorio - Categoría 4ª - Trabajador calificado",
+            "zona": "ZONA 2",
+            "total_conformado_agosto": "1187265.71",
+            "caracter": "no remunerativa en agosto; pasa al basico en septiembre y adquiere caracter remunerativo",
+            "base_aportes_seguridad_social": false,
+            "requiere_confirmacion_expresa": true
+          }
+        },
+        {
+          "codigo": "NO_REM_2026_08_761_LUCRO_PARQUE_5_ZONA_2",
+          "valor": "23446.31",
+          "unidad": "ARS",
+          "ambito": "no_rem",
+          "fuente": "Acta SOECRA/CACEPRI 17/07/2026 (RE-2026-70482358-APN-DTD#JGM), escala de julio 2026 leida del PDF oficial https://soecra.com.ar/wp-content/uploads/2026/07/ESCALA-CEMENTERIO-CACEPRI-761-19-JULIO-2026.pdf, pagina 3; agosto reconstruido con el IPC nivel general INDEC de julio 2026 (2,1%) segun los puntos 2 y 3 del acta. ACUERDO NO HOMOLOGADO. 2,1% sobre el basico conformado de agosto 1116490.99.",
+          "estado_fuente": "PROVISORIA",
+          "verificado": false,
+          "incidencias": {
+            "categoria": "Con fines de lucro - Parque y crematorio - Categoría 5ª - Trabajador general",
+            "zona": "ZONA 2",
+            "total_conformado_agosto": "1139937.30",
+            "caracter": "no remunerativa en agosto; pasa al basico en septiembre y adquiere caracter remunerativo",
+            "base_aportes_seguridad_social": false,
+            "requiere_confirmacion_expresa": true
+          }
+        },
+        {
+          "codigo": "NO_REM_2026_08_761_LUCRO_ADM_1_ZONA_INHOSPITA",
+          "valor": "35513.42",
+          "unidad": "ARS",
+          "ambito": "no_rem",
+          "fuente": "Acta SOECRA/CACEPRI 17/07/2026 (RE-2026-70482358-APN-DTD#JGM), escala de julio 2026 leida del PDF oficial https://soecra.com.ar/wp-content/uploads/2026/07/ESCALA-CEMENTERIO-CACEPRI-761-19-JULIO-2026.pdf, pagina 3; agosto reconstruido con el IPC nivel general INDEC de julio 2026 (2,1%) segun los puntos 2 y 3 del acta. ACUERDO NO HOMOLOGADO. 2,1% sobre el basico conformado de agosto 1691115.17.",
+          "estado_fuente": "PROVISORIA",
+          "verificado": false,
+          "incidencias": {
+            "categoria": "Con fines de lucro - Administrativo - Categoría 1ª - Jefe administrativo",
+            "zona": "ZONA INHOSPITA",
+            "total_conformado_agosto": "1726628.59",
+            "caracter": "no remunerativa en agosto; pasa al basico en septiembre y adquiere caracter remunerativo",
+            "base_aportes_seguridad_social": false,
+            "requiere_confirmacion_expresa": true
+          }
+        },
+        {
+          "codigo": "NO_REM_2026_08_761_LUCRO_ADM_2_ZONA_INHOSPITA",
+          "valor": "33038.53",
+          "unidad": "ARS",
+          "ambito": "no_rem",
+          "fuente": "Acta SOECRA/CACEPRI 17/07/2026 (RE-2026-70482358-APN-DTD#JGM), escala de julio 2026 leida del PDF oficial https://soecra.com.ar/wp-content/uploads/2026/07/ESCALA-CEMENTERIO-CACEPRI-761-19-JULIO-2026.pdf, pagina 3; agosto reconstruido con el IPC nivel general INDEC de julio 2026 (2,1%) segun los puntos 2 y 3 del acta. ACUERDO NO HOMOLOGADO. 2,1% sobre el basico conformado de agosto 1573263.38.",
+          "estado_fuente": "PROVISORIA",
+          "verificado": false,
+          "incidencias": {
+            "categoria": "Con fines de lucro - Administrativo - Categoría 2ª - Personal jerárquico",
+            "zona": "ZONA INHOSPITA",
+            "total_conformado_agosto": "1606301.91",
+            "caracter": "no remunerativa en agosto; pasa al basico en septiembre y adquiere caracter remunerativo",
+            "base_aportes_seguridad_social": false,
+            "requiere_confirmacion_expresa": true
+          }
+        },
+        {
+          "codigo": "NO_REM_2026_08_761_LUCRO_ADM_3_ZONA_INHOSPITA",
+          "valor": "29447.96",
+          "unidad": "ARS",
+          "ambito": "no_rem",
+          "fuente": "Acta SOECRA/CACEPRI 17/07/2026 (RE-2026-70482358-APN-DTD#JGM), escala de julio 2026 leida del PDF oficial https://soecra.com.ar/wp-content/uploads/2026/07/ESCALA-CEMENTERIO-CACEPRI-761-19-JULIO-2026.pdf, pagina 3; agosto reconstruido con el IPC nivel general INDEC de julio 2026 (2,1%) segun los puntos 2 y 3 del acta. ACUERDO NO HOMOLOGADO. 2,1% sobre el basico conformado de agosto 1402283.73.",
+          "estado_fuente": "PROVISORIA",
+          "verificado": false,
+          "incidencias": {
+            "categoria": "Con fines de lucro - Administrativo - Categoría 3ª - Administrativo especializado o técnico",
+            "zona": "ZONA INHOSPITA",
+            "total_conformado_agosto": "1431731.69",
+            "caracter": "no remunerativa en agosto; pasa al basico en septiembre y adquiere caracter remunerativo",
+            "base_aportes_seguridad_social": false,
+            "requiere_confirmacion_expresa": true
+          }
+        },
+        {
+          "codigo": "NO_REM_2026_08_761_LUCRO_ADM_4_ZONA_INHOSPITA",
+          "valor": "28702.47",
+          "unidad": "ARS",
+          "ambito": "no_rem",
+          "fuente": "Acta SOECRA/CACEPRI 17/07/2026 (RE-2026-70482358-APN-DTD#JGM), escala de julio 2026 leida del PDF oficial https://soecra.com.ar/wp-content/uploads/2026/07/ESCALA-CEMENTERIO-CACEPRI-761-19-JULIO-2026.pdf, pagina 3; agosto reconstruido con el IPC nivel general INDEC de julio 2026 (2,1%) segun los puntos 2 y 3 del acta. ACUERDO NO HOMOLOGADO. 2,1% sobre el basico conformado de agosto 1366784.09.",
+          "estado_fuente": "PROVISORIA",
+          "verificado": false,
+          "incidencias": {
+            "categoria": "Con fines de lucro - Administrativo - Categoría 4ª - Administrativo calificado",
+            "zona": "ZONA INHOSPITA",
+            "total_conformado_agosto": "1395486.56",
+            "caracter": "no remunerativa en agosto; pasa al basico en septiembre y adquiere caracter remunerativo",
+            "base_aportes_seguridad_social": false,
+            "requiere_confirmacion_expresa": true
+          }
+        },
+        {
+          "codigo": "NO_REM_2026_08_761_LUCRO_ADM_5_ZONA_INHOSPITA",
+          "valor": "27535.00",
+          "unidad": "ARS",
+          "ambito": "no_rem",
+          "fuente": "Acta SOECRA/CACEPRI 17/07/2026 (RE-2026-70482358-APN-DTD#JGM), escala de julio 2026 leida del PDF oficial https://soecra.com.ar/wp-content/uploads/2026/07/ESCALA-CEMENTERIO-CACEPRI-761-19-JULIO-2026.pdf, pagina 3; agosto reconstruido con el IPC nivel general INDEC de julio 2026 (2,1%) segun los puntos 2 y 3 del acta. ACUERDO NO HOMOLOGADO. 2,1% sobre el basico conformado de agosto 1311190.53.",
+          "estado_fuente": "PROVISORIA",
+          "verificado": false,
+          "incidencias": {
+            "categoria": "Con fines de lucro - Administrativo - Categoría 5ª - Administrativo general",
+            "zona": "ZONA INHOSPITA",
+            "total_conformado_agosto": "1338725.53",
+            "caracter": "no remunerativa en agosto; pasa al basico en septiembre y adquiere caracter remunerativo",
+            "base_aportes_seguridad_social": false,
+            "requiere_confirmacion_expresa": true
+          }
+        },
+        {
+          "codigo": "NO_REM_2026_08_761_LUCRO_PARQUE_1_ZONA_INHOSPITA",
+          "valor": "35513.42",
+          "unidad": "ARS",
+          "ambito": "no_rem",
+          "fuente": "Acta SOECRA/CACEPRI 17/07/2026 (RE-2026-70482358-APN-DTD#JGM), escala de julio 2026 leida del PDF oficial https://soecra.com.ar/wp-content/uploads/2026/07/ESCALA-CEMENTERIO-CACEPRI-761-19-JULIO-2026.pdf, pagina 3; agosto reconstruido con el IPC nivel general INDEC de julio 2026 (2,1%) segun los puntos 2 y 3 del acta. ACUERDO NO HOMOLOGADO. 2,1% sobre el basico conformado de agosto 1691115.17.",
+          "estado_fuente": "PROVISORIA",
+          "verificado": false,
+          "incidencias": {
+            "categoria": "Con fines de lucro - Parque y crematorio - Categoría 1ª - Supervisor jefe",
+            "zona": "ZONA INHOSPITA",
+            "total_conformado_agosto": "1726628.59",
+            "caracter": "no remunerativa en agosto; pasa al basico en septiembre y adquiere caracter remunerativo",
+            "base_aportes_seguridad_social": false,
+            "requiere_confirmacion_expresa": true
+          }
+        },
+        {
+          "codigo": "NO_REM_2026_08_761_LUCRO_PARQUE_2_ZONA_INHOSPITA",
+          "valor": "33038.53",
+          "unidad": "ARS",
+          "ambito": "no_rem",
+          "fuente": "Acta SOECRA/CACEPRI 17/07/2026 (RE-2026-70482358-APN-DTD#JGM), escala de julio 2026 leida del PDF oficial https://soecra.com.ar/wp-content/uploads/2026/07/ESCALA-CEMENTERIO-CACEPRI-761-19-JULIO-2026.pdf, pagina 3; agosto reconstruido con el IPC nivel general INDEC de julio 2026 (2,1%) segun los puntos 2 y 3 del acta. ACUERDO NO HOMOLOGADO. 2,1% sobre el basico conformado de agosto 1573263.38.",
+          "estado_fuente": "PROVISORIA",
+          "verificado": false,
+          "incidencias": {
+            "categoria": "Con fines de lucro - Parque y crematorio - Categoría 2ª - Capataz",
+            "zona": "ZONA INHOSPITA",
+            "total_conformado_agosto": "1606301.91",
+            "caracter": "no remunerativa en agosto; pasa al basico en septiembre y adquiere caracter remunerativo",
+            "base_aportes_seguridad_social": false,
+            "requiere_confirmacion_expresa": true
+          }
+        },
+        {
+          "codigo": "NO_REM_2026_08_761_LUCRO_PARQUE_3_ZONA_INHOSPITA",
+          "valor": "29447.96",
+          "unidad": "ARS",
+          "ambito": "no_rem",
+          "fuente": "Acta SOECRA/CACEPRI 17/07/2026 (RE-2026-70482358-APN-DTD#JGM), escala de julio 2026 leida del PDF oficial https://soecra.com.ar/wp-content/uploads/2026/07/ESCALA-CEMENTERIO-CACEPRI-761-19-JULIO-2026.pdf, pagina 3; agosto reconstruido con el IPC nivel general INDEC de julio 2026 (2,1%) segun los puntos 2 y 3 del acta. ACUERDO NO HOMOLOGADO. 2,1% sobre el basico conformado de agosto 1402283.73.",
+          "estado_fuente": "PROVISORIA",
+          "verificado": false,
+          "incidencias": {
+            "categoria": "Con fines de lucro - Parque y crematorio - Categoría 3ª - Trabajador especializado o técnico",
+            "zona": "ZONA INHOSPITA",
+            "total_conformado_agosto": "1431731.69",
+            "caracter": "no remunerativa en agosto; pasa al basico en septiembre y adquiere caracter remunerativo",
+            "base_aportes_seguridad_social": false,
+            "requiere_confirmacion_expresa": true
+          }
+        },
+        {
+          "codigo": "NO_REM_2026_08_761_LUCRO_PARQUE_4_ZONA_INHOSPITA",
+          "valor": "28702.47",
+          "unidad": "ARS",
+          "ambito": "no_rem",
+          "fuente": "Acta SOECRA/CACEPRI 17/07/2026 (RE-2026-70482358-APN-DTD#JGM), escala de julio 2026 leida del PDF oficial https://soecra.com.ar/wp-content/uploads/2026/07/ESCALA-CEMENTERIO-CACEPRI-761-19-JULIO-2026.pdf, pagina 3; agosto reconstruido con el IPC nivel general INDEC de julio 2026 (2,1%) segun los puntos 2 y 3 del acta. ACUERDO NO HOMOLOGADO. 2,1% sobre el basico conformado de agosto 1366784.09.",
+          "estado_fuente": "PROVISORIA",
+          "verificado": false,
+          "incidencias": {
+            "categoria": "Con fines de lucro - Parque y crematorio - Categoría 4ª - Trabajador calificado",
+            "zona": "ZONA INHOSPITA",
+            "total_conformado_agosto": "1395486.56",
+            "caracter": "no remunerativa en agosto; pasa al basico en septiembre y adquiere caracter remunerativo",
+            "base_aportes_seguridad_social": false,
+            "requiere_confirmacion_expresa": true
+          }
+        },
+        {
+          "codigo": "NO_REM_2026_08_761_LUCRO_PARQUE_5_ZONA_INHOSPITA",
+          "valor": "27535.00",
+          "unidad": "ARS",
+          "ambito": "no_rem",
+          "fuente": "Acta SOECRA/CACEPRI 17/07/2026 (RE-2026-70482358-APN-DTD#JGM), escala de julio 2026 leida del PDF oficial https://soecra.com.ar/wp-content/uploads/2026/07/ESCALA-CEMENTERIO-CACEPRI-761-19-JULIO-2026.pdf, pagina 3; agosto reconstruido con el IPC nivel general INDEC de julio 2026 (2,1%) segun los puntos 2 y 3 del acta. ACUERDO NO HOMOLOGADO. 2,1% sobre el basico conformado de agosto 1311190.53.",
+          "estado_fuente": "PROVISORIA",
+          "verificado": false,
+          "incidencias": {
+            "categoria": "Con fines de lucro - Parque y crematorio - Categoría 5ª - Trabajador general",
+            "zona": "ZONA INHOSPITA",
+            "total_conformado_agosto": "1338725.53",
+            "caracter": "no remunerativa en agosto; pasa al basico en septiembre y adquiere caracter remunerativo",
+            "base_aportes_seguridad_social": false,
+            "requiere_confirmacion_expresa": true
+          }
+        }
+      ]
+    }
+  ],
+  "incidencias": {
+    "sumas_no_remunerativas_2026_08": {
+      "caracter": "No remunerativas en el mes de efectivización; remunerativas desde el mes subsiguiente",
+      "base_sac": "PENDIENTE_DOCUMENTACION",
+      "base_obra_social": "PENDIENTE_DOCUMENTACION",
+      "base_sindical": "PENDIENTE_DOCUMENTACION"
+    }
+  },
+  "estado_fuente": "PROVISORIA",
+  "verificado": false,
+  "bloqueos": [
+    "El acuerdo del 17/07/2026 no esta homologado (punto 6 del acta solicita la homologacion).",
+    "La escala publicada cubre unicamente los agrupamientos de Administracion y de Parque y Crematorio en tres zonas. Las categorias de Comercializacion y Cobranzas (art. 12) NO tienen escala publicada: quedan bloqueadas.",
+    "Las categorias del Capitulo V (entidades sin fines de lucro) estan expresamente excluidas del acuerdo julio-septiembre 2026 y no tienen escala 2026: quedan bloqueadas.",
+    "La escala distingue ZONA 1, ZONA 2 y ZONA INHOSPITA, pero el documento no define que localidades integran cada zona. Sin la tabla de zonas no se puede asignar automaticamente la escala a un establecimiento.",
+    "En el documento, los bloques de Parque y Crematorio y de Administracion de una misma zona tienen valores identicos. Se cargan como escalas separadas por categoria, sin unificar.",
+    "El adicional por zona inhospita del art. 46 podria superponerse con la ZONA INHOSPITA de la escala: no se aplican ambos hasta que un profesional lo confirme."
+  ],
+  "motor": {
+    "estado": "VISTA_PREVIA",
+    "entradas_requeridas": [
+      "actividad_principal_establecimiento",
+      "tipo_de_empleador",
+      "localidad_y_provincia",
+      "categoria",
+      "periodo",
+      "fecha_ingreso",
+      "afiliacion_sindical",
+      "asistencia_del_mes",
+      "titulo_habilitante",
+      "realiza_cobranza",
+      "trabajo_en_altura",
+      "cantidad_de_exhumaciones"
+    ],
+    "pruebas_regresion": [
+      {
+        "codigo": "761_AGO2026_Z1_PRIMERA",
+        "descripcion": "Zona 1, categoria primera: basico de agosto = 1.443.115,74 + 27.419,20",
+        "resultado_esperado": {
+          "basico": "1470534.94",
+          "no_remunerativa": "30881.23"
+        }
+      },
+      {
+        "codigo": "761_AGO2026_IDENTIDAD",
+        "descripcion": "En las 15 combinaciones categoria-zona, no_rem(ago) debe ser exactamente 2,1% del basico de agosto",
+        "resultado_esperado": "identidad verificada"
+      },
+      {
+        "codigo": "761_COMERCIALIZACION_BLOQUEADA",
+        "descripcion": "Representante o cobrador: no hay escala publicada",
+        "resultado_esperado": "BLOQUEO"
+      },
+      {
+        "codigo": "761_CAPITULO_V_BLOQUEADO",
+        "descripcion": "Trabajador de entidad sin fines de lucro: excluido del acuerdo 2026",
+        "resultado_esperado": "BLOQUEO"
+      },
+      {
+        "codigo": "761_ZONA_SIN_TABLA",
+        "descripcion": "Establecimiento sin zona declarada: no se puede elegir escala",
+        "resultado_esperado": "BLOQUEO por zona indeterminada"
+      },
+      {
+        "codigo": "761_APORTE_SOLIDARIO_AGO",
+        "descripcion": "No afiliado en agosto 2026: 1% prorrogado por el punto 4 del acta",
+        "resultado_esperado": "PROVISORIO con confirmacion"
+      },
+      {
+        "codigo": "761_SIN_CONFIRMACION",
+        "descripcion": "Sin confirmacion expresa, el periodo 2026-08 no debe liquidar",
+        "resultado_esperado": "BLOQUEO"
+      }
+    ],
+    "modo": "PROVISORIO_CON_CONFIRMACION_EXPRESA",
+    "confirmacion_requerida": "El usuario debe confirmar expresamente que acepta liquidar con una escala publicada por las partes y NO homologada. Sin esa confirmacion el periodo 2026-08 no se liquida."
+  },
+  "fuentes": [
+    {
+      "tipo": "cct_texto",
+      "descripcion": "CCT 761/19, texto publicado por la parte sindical firmante",
+      "url": "https://soecra.com.ar/convenios_y_arreglos/cementerios/CCT_761_19_cementerios.pdf",
+      "estado_fuente": "PROVISORIA"
+    },
+    {
+      "tipo": "acto_homologatorio",
+      "descripcion": "Resolución 2652/2019 de la Secretaría de Trabajo homologa el CCT 761/19",
+      "url": "https://www.argentina.gob.ar/normativa/nacional/norma-371213/texto",
+      "expediente": "EX-2019-40384754-APN-DGDMT#MPYT",
+      "estado_fuente": "VERIFICADA_OFICIAL"
+    },
+    {
+      "tipo": "acto_homologatorio",
+      "descripcion": "Disposición 2017/2025 homologa acuerdo SOECRA – CACEPRI del 07/12/2022 en el marco del CCT 761/19",
+      "url": "https://www.argentina.gob.ar/normativa/nacional/norma-420702/texto",
+      "expediente": "EX-2022-127451238-APN-DGD#MT",
+      "estado_fuente": "VERIFICADA_OFICIAL"
+    },
+    {
+      "tipo": "acto_homologatorio",
+      "descripcion": "Disposición 830/2025 homologa acuerdo, escala salarial y acta complementaria con Cementerio Británico y Congregación Evangélica Alemana",
+      "url": "https://www.argentina.gob.ar/normativa/nacional/norma-415064/texto",
+      "expediente": "EX-2024-26993488-APN-DGD#MT",
+      "estado_fuente": "VERIFICADA_OFICIAL"
+    },
+    {
+      "tipo": "acto_homologatorio",
+      "descripcion": "Disposición 829/2025",
+      "url": "https://www.argentina.gob.ar/normativa/nacional/norma-415062/texto",
+      "estado_fuente": "VERIFICADA_OFICIAL"
+    },
+    {
+      "tipo": "acto_homologatorio",
+      "descripcion": "Disposición 253/2025 y 280/2025, unidad sin fines de lucro",
+      "url": "https://www.argentina.gob.ar/normativa/nacional/norma-413709/texto",
+      "expediente": "EX-2023-34666252-APN-DGD#MT",
+      "estado_fuente": "VERIFICADA_OFICIAL"
+    },
+    {
+      "tipo": "acta_salarial_no_homologada",
+      "descripcion": "Acta 17/07/2026 y escalas julio 2026 CACEPRI, RE-2026-70482358-APN-DTD#JGM",
+      "url": "https://soecra.com.ar/wp-content/uploads/2026/07/ESCALA-CEMENTERIO-CACEPRI-761-19-JULIO-2026.pdf",
+      "estado_fuente": "PROVISORIA"
+    },
+    {
+      "tipo": "indice_oficial",
+      "descripcion": "INDEC, IPC Nivel General julio 2026 = 2,1% mensual (informe del 13/08/2026)",
+      "url": "https://www.indec.gob.ar/uploads/informesdeprensa/ipc_08_2642C82F62AE.pdf",
+      "estado_fuente": "VERIFICADA_OFICIAL"
+    }
+  ]
+}
