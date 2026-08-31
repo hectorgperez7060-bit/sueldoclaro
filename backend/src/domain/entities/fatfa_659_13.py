@@ -58,7 +58,7 @@ def configurar_adicionales_fatfa(
         ReglaAdicionalConfig(
             "FATFA_FALLA_CAJA", "Fondo compensador por falla de caja",
             Decimal("0.20"), "basico_categoria", "23",
-            naturaleza="no_remunerativo",
+            naturaleza="no_remunerativo", aporte_sindicato=True,
         ),
     ]
     for codigo, descripcion, referencia in (
@@ -71,7 +71,7 @@ def configurar_adicionales_fatfa(
     ):
         reglas.append(ReglaAdicionalConfig(
             codigo, descripcion, Decimal("1"), f"referencia:{referencia}",
-            "7", naturaleza="no_remunerativo",
+            "7", naturaleza="no_remunerativo", aporte_sindicato=True,
         ))
 
     referencias = [("APRENDIZ", Decimal(basico_aprendiz))]
