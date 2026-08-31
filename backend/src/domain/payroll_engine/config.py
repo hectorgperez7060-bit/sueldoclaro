@@ -33,6 +33,7 @@ class ReglaAdicionalConfig:
     # Naturaleza del concepto en el recibo. La mayoría son remunerativos;
     # algunos convenios definen expresamente adicionales no remunerativos.
     naturaleza: str = "remunerativo"
+    aporte_sindicato: bool = False
 
 
 @dataclass(frozen=True)
