@@ -54,6 +54,13 @@ def test_migracion_no_disfraza_datos_como_homologados():
     assert "PENDIENTE_HOMOLOGACION" not in sql
     assert "habilitada_liquidacion" in sql
     assert sql.count("VALUES (gen_random_uuid(),") == 2
+    columnas_cct = (
+        "id,numero,nombre,sindicato,cuota_sindical_pct,"
+        "antiguedad_pct_por_anio,presentismo_divisor,divisor_horas,"
+        "aplica_presentismo,aplica_cuota_sindical,activo"
+    )
+    assert sql.count(columnas_cct) == 2
+    assert sql.count(",0,0.01,10,200,false,false,true)") == 2
 
 
 def test_encuadra_funebre_y_cementerio_privado_sin_aplicacion_automatica():
