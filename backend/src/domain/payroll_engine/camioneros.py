@@ -68,7 +68,8 @@ CAMPOS_CANTIDAD_CAMIONEROS = tuple(
 )
 CLAVES_DETALLE_CAMIONEROS = {
     "rama", "camara_frio", "zona", "grupo_taller", "cuenca_petrolifera",
-    "la_pampa_mendoza", "toneladas_transporte_pesado", *CAMPOS_CANTIDAD_CAMIONEROS
+    "la_pampa_mendoza", "toneladas_transporte_pesado",
+    "modalidad_transporte_pesado", *CAMPOS_CANTIDAD_CAMIONEROS
 }
 
 CODIGOS_VIATICO_NO_REMUNERATIVO = {
