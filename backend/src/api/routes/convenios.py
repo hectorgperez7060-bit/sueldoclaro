@@ -152,6 +152,14 @@ async def gestor_normativo(
             if e.is_verified and e.fuente.strip()
             and getattr(e, "habilitada_liquidacion", True)
         })
+        esc_publicadas = len({
+            (e.categoria, getattr(e, "zona", "") or "") for e in esc
+            if e.fuente.strip()
+        })
+        esc_publicadas_habilitadas = len({
+            (e.categoria, getattr(e, "zona", "") or "") for e in esc
+            if e.fuente.strip() and getattr(e, "habilitada_liquidacion", True)
+        })
         estructura_completa = estructura_registrada and bool(nombres_categorias) and cats_ok == len(nombres_categorias) and bool(regs) and all(
             r.is_verified and r.fuente.strip() for r in regs
         )
@@ -175,12 +183,35 @@ async def gestor_normativo(
                 if e.is_verified and e.fuente.strip()
                 and getattr(e, "habilitada_liquidacion", True)
             })
+            esc_publicadas = len({
+                (e.categoria, getattr(e, "zona", "") or "") for e in esc
+                if e.fuente.strip()
+            })
+            esc_publicadas_habilitadas = len({
+                (e.categoria, getattr(e, "zona", "") or "") for e in esc
+                if e.fuente.strip() and getattr(e, "habilitada_liquidacion", True)
+            })
         cantidad_zonas = len(zonas_config) if zonas_config else 1
         escalas_esperadas = len(nombres_categorias) * max(cantidad_zonas, 1)
         escala_completa = bool(nombres_categorias) and esc_ok == escalas_esperadas
+        cobertura_publicada = (
+            bool(nombres_categorias)
+            and esc_publicadas == escalas_esperadas
+            and esc_publicadas_habilitadas == escalas_esperadas
+        )
         motor_periodo_habilitado = escala_completa and esc_habilitadas == escalas_esperadas
         vista_previa_habilitada = False
         if cct.numero in {"260/75", "40/89"} and estructura_completa and escala_completa:
+            vista_previa_habilitada = not motor_periodo_habilitado
+        elif (
+            cct.numero == "659/13"
+            and estructura_registrada
+            and cats_ok == len(nombres_categorias)
+            and cobertura_publicada
+        ):
+            # FATFA publicó la escala completa, pero todavía no existe acto
+            # homologatorio localizable. Se permite liquidar sólo con la
+            # confirmación expresa de escala provisoria que ya exige el motor.
             vista_previa_habilitada = not motor_periodo_habilitado
         if estructura_completa and escala_completa and motor_periodo_habilitado:
             estado = "completo"
@@ -198,6 +229,7 @@ async def gestor_normativo(
             },
             "periodo_actual": {
                 "escalas": len({(e.categoria, getattr(e, "zona", "") or "") for e in esc}),
+                "escalas_publicadas": esc_publicadas,
                 "escalas_verificadas": esc_ok,
                 "escalas_habilitadas": esc_habilitadas,
                 "escalas_esperadas": escalas_esperadas,
@@ -206,7 +238,11 @@ async def gestor_normativo(
                 "vista_previa_habilitada": vista_previa_habilitada,
                 "mensaje_motor": (
                     "Disponibles: general, larga distancia, lácteos, auxilio, diarios, combustibles, asfalto caliente, peligrosas, residuos, taller, caudales, clearing, expreso/mudanzas, aguas gaseosas, logística, pozos petrolíferos, transporte de automóviles, transporte pesado, zafra azucarera y bitrenes"
-                    if cct.numero == "40/89" and vista_previa_habilitada else None
+                    if cct.numero == "40/89" and vista_previa_habilitada
+                    else (
+                        "Escala oficial FATFA publicada; liquidación provisoria disponible con confirmación expresa, pendiente de homologación"
+                        if cct.numero == "659/13" and vista_previa_habilitada else None
+                    )
                 ),
             },
         })

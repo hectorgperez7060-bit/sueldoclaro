@@ -28,3 +28,15 @@ def test_ui_muestra_gestor_y_separacion_conceptual():
     assert "Valores del período" in HTML
     assert "cargarGestorNormativo" in HTML
     assert "/convenios/gestor-normativo?periodo=" in HTML
+
+
+def test_tablero_distingue_escalas_fatfa_publicadas_de_verificadas():
+    codigo = (RAIZ / "src" / "api" / "routes" / "convenios.py").read_text()
+    assert '"escalas_publicadas": esc_publicadas' in codigo
+    assert 'cct.numero == "659/13"' in codigo
+    assert "confirmación expresa" in codigo
+
+
+def test_ui_informa_publicadas_sin_llamarlas_verificadas():
+    assert "escalas verificadas" in HTML
+    assert "escalas_publicadas" in HTML
