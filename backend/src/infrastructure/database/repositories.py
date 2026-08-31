@@ -532,6 +532,20 @@ class ParametrosRepo:
                 )
         elif cct_numero == CCT_SANIDAD:
             adicionales = configurar_adicionales_sanidad()
+        elif cct_numero == "659/13":
+            r = await self.s.execute(select(m.CctReglaEstructural).where(
+                m.CctReglaEstructural.cct_numero == cct_numero,
+                m.CctReglaEstructural.activa.is_(True),
+                m.CctReglaEstructural.is_verified.is_(True),
+                m.CctReglaEstructural.codigo == "ANTIGUEDAD_ESCALONADA",
+            ))
+            regla = r.scalar_one_or_none()
+            configuracion = (regla.configuracion or {}) if regla else {}
+            if configuracion.get("escalones"):
+                escalones = tuple(
+                    (int(item["desde"]), Decimal(str(item["porcentaje"])))
+                    for item in configuracion["escalones"]
+                )
         elif cct_numero == "389/04":
             r = await self.s.execute(select(m.CctReglaEstructural).where(
                 m.CctReglaEstructural.cct_numero == cct_numero,
