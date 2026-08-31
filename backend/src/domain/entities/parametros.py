@@ -226,6 +226,13 @@ class ParametroSet:
             raise ValueError(f"{codigo} no es un valor en ARS")
         return Dinero(p.valor)
 
+    def cantidad(self, codigo: str, unidad: str) -> Decimal:
+        """Devuelve una cantidad normativa conservando el control de unidad."""
+        p = self._obtener(codigo)
+        if p.unidad != unidad:
+            raise ValueError(f"{codigo} no está expresado en {unidad}")
+        return p.valor
+
     def existe(self, codigo: str) -> bool:
         return codigo in self._por_codigo
 
