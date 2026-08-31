@@ -69,7 +69,7 @@ CAMPOS_CANTIDAD_CAMIONEROS = tuple(
 CLAVES_DETALLE_CAMIONEROS = {
     "rama", "camara_frio", "zona", "grupo_taller", "cuenca_petrolifera",
     "la_pampa_mendoza", "toneladas_transporte_pesado",
-    "modalidad_transporte_pesado", *CAMPOS_CANTIDAD_CAMIONEROS
+    "modalidad_transporte_pesado", "radio_zafra", *CAMPOS_CANTIDAD_CAMIONEROS
 }
 
 CODIGOS_VIATICO_NO_REMUNERATIVO = {
@@ -204,6 +204,7 @@ def armar_recibo_camioneros_general(
     jornales_por_viaje_automoviles: Decimal = Decimal("1"),
     dias_asfalto_caliente: Decimal = Decimal("0"),
     jornales_por_dia_asfalto: Decimal = Decimal("1"),
+    adicional_zafra_pct: Decimal = Decimal("0"),
 ) -> ResultadoLiquidacion:
     """Recibo de la rama general con incidencias explícitas del CCT 40/89.
 
@@ -324,7 +325,26 @@ def armar_recibo_camioneros_general(
         cantidad=Decimal(int(anios_antiguedad)), base_calculo=base_antiguedad,
         unidad="1% por año · ítem 6.1.5",
     ))
-    base_rem = (base_antiguedad + antiguedad).redondear()
+    adicional_zafra = Dinero.cero()
+    pct_zafra = Decimal(str(adicional_zafra_pct))
+    if pct_zafra:
+        if pct_zafra <= 0 or pct_zafra > Decimal("1"):
+            raise ValueError("el adicional de zafra no es válido")
+        no_remunerativos_variables = Dinero.cero()
+        for variable in variables:
+            if variable.codigo in CODIGOS_VIATICO_NO_REMUNERATIVO:
+                no_remunerativos_variables = no_remunerativos_variables + variable.importe
+        base_zafra = (
+            base_antiguedad + antiguedad + no_remunerativos_variables
+        ).redondear()
+        adicional_zafra = base_zafra.porcentaje(pct_zafra).redondear()
+        conceptos.append(Concepto(
+            "ADICIONAL_ZAFRA_5_9_3", "Adicional transporte en zona de zafra",
+            TipoConcepto.REMUNERATIVO, adicional_zafra,
+            base_calculo=base_zafra,
+            unidad=f"{pct_zafra * 100}% sobre total percibido · ítem 5.9.3",
+        ))
+    base_rem = (base_antiguedad + antiguedad + adicional_zafra).redondear()
     conceptos.extend([
         Concepto("APORTE_JUBILACION", "Jubilación", TipoConcepto.DEDUCCION,
                  base_rem.porcentaje(jubilacion_pct).redondear(), base_calculo=base_rem,
