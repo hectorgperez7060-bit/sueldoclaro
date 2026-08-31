@@ -1837,6 +1837,7 @@ function editarNovedad(id){
   $('novTipoPremio').value=n.tipo_premio||'pendiente';
   $('novDescuentos').value=n.descuentos_adicionales; $('novObservaciones').value=n.observaciones||'';
   limpiarAdicionalesFarmacia();
+  limpiarAdicionalesFatfa();
   limpiarAdicionalesSanidad();
   const adicionales=new Set(n.adicionales_convencionales||[]);
   if(adicionales.has('DIRECCION_TECNICA')) $('novRolFarmacia').value='director';
@@ -1849,6 +1850,21 @@ function editarNovedad(id){
   $('novHorasNocturnas').value=(n.cantidades_adicionales||{}).NOCTURNO_VOLUNTARIO||0;
   $('novHorasTotales').value=(n.cantidades_adicionales||{}).HORAS_TOTALES_PERIODO||0;
   $('novFaltanteCaja').value=(n.cantidades_adicionales||{}).FALLA_CAJA||0;
+  if(adicionales.has('FATFA_BLOQUEO_DT')) $('fatfaRolTitulo').value='director';
+  else if(adicionales.has('FATFA_AUX_BLOQUEO')) $('fatfaRolTitulo').value='auxiliar_bloqueo';
+  else if(adicionales.has('FATFA_TITULO_60')) $('fatfaRolTitulo').value='titulo_60';
+  const opcionesFatfa={
+    fatfaCapAuxiliar:'FATFA_CAP_AUXILIAR',
+    fatfaCapTecnico:'FATFA_CAP_TECNICO',
+    fatfaCapProfesional:'FATFA_CAP_PROFESIONAL',
+    fatfaTituloSecundario:'FATFA_TITULO_SECUNDARIO',
+    fatfaAdministrativo:'FATFA_ADMINISTRATIVO',
+    fatfaPerfumeria:'FATFA_PERFUMERIA',
+    fatfaVehiculo:'FATFA_VEHICULO',
+    fatfaFallaCaja:'FATFA_FALLA_CAJA'
+  };
+  Object.entries(opcionesFatfa).forEach(([id,codigo])=>$(id).checked=adicionales.has(codigo));
+  $('fatfaIdiomas').value=(n.cantidades_adicionales||{}).FATFA_IDIOMA||0;
   const sectoresSanidad=['TERAPIA_8H','MUCAMA_SECTOR_ESPECIAL','MENTAL_ENFERMERIA','MENTAL_TERAPIA','MENTAL_OTRAS_TAREAS'];
   $('novSectorSanidad').value=sectoresSanidad.find(codigo=>adicionales.has(codigo))||'';
   const opcionesSanidad={novElectricistaSanidad:'ELECTRICISTA_TITULO',novOperadorSanidad:'OPERADOR_MAQUINAS_CONTABLES',novLaboratorioSanidad:'LAB_AREA_CERRADA',novRayosSanidad:'RAYOS_LAB_48H'};
