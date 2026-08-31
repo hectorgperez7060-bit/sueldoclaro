@@ -78,6 +78,7 @@ def _desc_ded(codigo: str) -> str:
         "APORTE_ADEF_NR": "Aporte ADEF sobre no remunerativos",
         "APORTE_ADEF_ASISTENCIA": "Aporte ADEF asistencia social (junio/diciembre)",
         "CUOTA_SINDICAL_ART47": "Cuota sindical ADEF afiliado (art. 47)",
+        "FATFA_SOLIDARIO": "Contribución solidaria FATFA 1% (art. 47)",
     }
     for pref, desc in prefijos.items():
         if codigo.startswith(pref):
@@ -89,6 +90,7 @@ def _desc_contrib_convenio(codigo: str) -> str:
     prefijos = {
         "CONTRIB_EXTRAORDINARIA_FATSA": "Contribución extraordinaria FATSA/OSPSA",
         "CONTRIB_CAPACITACION_FATSA": "Contribución FATSA para formación y capacitación",
+        "FATFA_CAPACITACION": "Contribución patronal capacitación FATFA 1% (art. 48)",
     }
     for prefijo, descripcion in prefijos.items():
         if codigo.startswith(prefijo):
@@ -515,7 +517,11 @@ class MotorLiquidacion:
                     importe = importe.porcentaje(empleado.proporcion_jornada)
             elif p.unidad == "%":
                 selector = incidencias.get("base_contribucion", "remunerativa")
-                bases = {"remunerativa": base, "sindical": base_sindical}
+                bases = {
+                    "remunerativa": base,
+                    "sindical": base_sindical,
+                    "basico": basico,
+                }
                 if selector not in bases:
                     raise ValueError(f"Base de contribución inválida para {p.codigo}: {selector}")
                 importe = bases[selector].porcentaje(p.valor)
