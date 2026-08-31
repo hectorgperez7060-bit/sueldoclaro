@@ -204,14 +204,15 @@ async def gestor_normativo(
         if cct.numero in {"260/75", "40/89"} and estructura_completa and escala_completa:
             vista_previa_habilitada = not motor_periodo_habilitado
         elif (
-            cct.numero == "659/13"
+            cct.numero in {"389/04", "659/13"}
             and estructura_registrada
             and cats_ok == len(nombres_categorias)
             and cobertura_publicada
         ):
-            # FATFA publicó la escala completa, pero todavía no existe acto
-            # homologatorio localizable. Se permite liquidar sólo con la
-            # confirmación expresa de escala provisoria que ya exige el motor.
+            # UTHGRA y FATFA publicaron escalas completas, pero todavía no
+            # existe acto homologatorio localizable. Se permite liquidar sólo
+            # con la confirmación expresa de escala provisoria que ya exige el
+            # motor.
             vista_previa_habilitada = not motor_periodo_habilitado
         if estructura_completa and escala_completa and motor_periodo_habilitado:
             estado = "completo"
@@ -241,7 +242,11 @@ async def gestor_normativo(
                     if cct.numero == "40/89" and vista_previa_habilitada
                     else (
                         "Escala oficial FATFA publicada; liquidación provisoria disponible con confirmación expresa, pendiente de homologación"
-                        if cct.numero == "659/13" and vista_previa_habilitada else None
+                        if cct.numero == "659/13" and vista_previa_habilitada
+                        else (
+                            "Escala UTHGRA publicada; motor disponible en prueba con confirmación expresa, pendiente de homologación"
+                            if cct.numero == "389/04" and vista_previa_habilitada else None
+                        )
                     )
                 ),
             },

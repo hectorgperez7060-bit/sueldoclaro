@@ -421,6 +421,12 @@ HTML = r"""<!DOCTYPE html>
               <div><label>Idiomas extranjeros requeridos</label><input id="fatfaIdiomas" type="number" min="0" step="1" value="0"></div>
             </div>
           </div>
+          <div id="novUthgra" style="display:none;grid-column:1/-1;border:1px solid var(--borde);border-radius:8px;padding:12px">
+            <b>Control UTHGRA — CCT 389/04</b>
+            <p style="font-size:.82rem;color:#6b7280;margin:5px 0 10px">El complemento de servicio del 12% se calcula automáticamente. Marcá asistencia perfecta sólo si no hubo inasistencias ni tardanzas que la hagan perder.</p>
+            <label><input id="uthgraAsistenciaPerfecta" type="checkbox"> Cumple asistencia perfecta del art. 11.5 (10% del básico)</label>
+            <p style="font-size:.78rem;color:#92400e;margin:6px 0 0">Vacaciones y licencias admitidas por el convenio no la eliminan. Ante una ausencia dudosa, no marcar y revisar.</p>
+          </div>
           <div id="novSanidad" style="display:none;grid-column:1/-1;border:1px solid var(--borde);border-radius:8px;padding:12px">
             <b>Adicionales Sanidad — CCT 122/75</b>
             <p style="font-size:.82rem;color:#6b7280;margin:5px 0 10px">Marcá solamente condiciones efectivamente trabajadas. Los regímenes de sector son alternativos entre sí.</p>
@@ -1173,6 +1179,21 @@ function limpiarAdicionalesFatfa(){
   $('fatfaIdiomas').value='0';
   checksFatfa.forEach(id=>$(id).checked=false);
 }
+function actualizarAdicionalesUthgra(){
+  const emp=empleadosCache[$('novEmpleado').value];
+  $('novUthgra').style.display=emp && emp.cct_numero==='389/04'?'block':'none';
+}
+function limpiarAdicionalesUthgra(){
+  $('uthgraAsistenciaPerfecta').checked=false;
+}
+function datosAdicionalesUthgra(){
+  const emp=empleadosCache[$('novEmpleado').value];
+  if(!emp || emp.cct_numero!=='389/04') return {adicionales_convencionales:[],cantidades_adicionales:{}};
+  return {
+    adicionales_convencionales:$('uthgraAsistenciaPerfecta').checked?['ASISTENCIA_PERFECTA']:[],
+    cantidades_adicionales:{}
+  };
+}
 const checksSanidad=['novElectricistaSanidad','novOperadorSanidad','novLaboratorioSanidad','novRayosSanidad'];
 function actualizarAdicionalesSanidad(){
   const emp=empleadosCache[$('novEmpleado').value];
@@ -1181,6 +1202,7 @@ function actualizarAdicionalesSanidad(){
 function actualizarAdicionalesConvenio(){
   actualizarAdicionalesFarmacia();
   actualizarAdicionalesFatfa();
+  actualizarAdicionalesUthgra();
   actualizarAdicionalesSanidad();
   const emp=empleadosCache[$('novEmpleado').value];
   $('novUocra').style.display=emp && emp.cct_numero==='76/75'?'block':'none';
@@ -1360,6 +1382,7 @@ function datosAdicionalesConvenio(){
   const emp=empleadosCache[$('novEmpleado').value];
   if(emp && emp.cct_numero==='414/05') return datosAdicionalesFarmacia();
   if(emp && emp.cct_numero==='659/13') return datosAdicionalesFatfa();
+  if(emp && emp.cct_numero==='389/04') return datosAdicionalesUthgra();
   if(emp && emp.cct_numero==='122/75') return datosAdicionalesSanidad();
   return {adicionales_convencionales:[],cantidades_adicionales:{}};
 }
@@ -1379,6 +1402,7 @@ function limpiarNovedad(){
   $('novTipoPremio').value='pendiente';
   limpiarAdicionalesFarmacia();
   limpiarAdicionalesFatfa();
+  limpiarAdicionalesUthgra();
   limpiarAdicionalesSanidad();
   limpiarCamioneros();
   limpiarUom();
@@ -1838,6 +1862,7 @@ function editarNovedad(id){
   $('novDescuentos').value=n.descuentos_adicionales; $('novObservaciones').value=n.observaciones||'';
   limpiarAdicionalesFarmacia();
   limpiarAdicionalesFatfa();
+  limpiarAdicionalesUthgra();
   limpiarAdicionalesSanidad();
   const adicionales=new Set(n.adicionales_convencionales||[]);
   if(adicionales.has('DIRECCION_TECNICA')) $('novRolFarmacia').value='director';
@@ -1865,6 +1890,7 @@ function editarNovedad(id){
   };
   Object.entries(opcionesFatfa).forEach(([id,codigo])=>$(id).checked=adicionales.has(codigo));
   $('fatfaIdiomas').value=(n.cantidades_adicionales||{}).FATFA_IDIOMA||0;
+  $('uthgraAsistenciaPerfecta').checked=adicionales.has('ASISTENCIA_PERFECTA');
   const sectoresSanidad=['TERAPIA_8H','MUCAMA_SECTOR_ESPECIAL','MENTAL_ENFERMERIA','MENTAL_TERAPIA','MENTAL_OTRAS_TAREAS'];
   $('novSectorSanidad').value=sectoresSanidad.find(codigo=>adicionales.has(codigo))||'';
   const opcionesSanidad={novElectricistaSanidad:'ELECTRICISTA_TITULO',novOperadorSanidad:'OPERADOR_MAQUINAS_CONTABLES',novLaboratorioSanidad:'LAB_AREA_CERRADA',novRayosSanidad:'RAYOS_LAB_48H'};
