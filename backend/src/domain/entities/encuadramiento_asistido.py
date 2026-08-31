@@ -60,7 +60,45 @@ def sugerir_encuadramiento(
 
     candidatos = []
     es_farmacia = "FARMACIA" in act or "FARMACEUT" in act
-    if es_farmacia:
+    es_cementerio = any(p in act for p in ("CEMENTERIO", "CREMATORIO", "PANTEON", "PARQUE CEMENTERIO"))
+    es_funeraria = any(p in act for p in ("FUNERARIA", "COCHERIA", "POMPAS FUNEBRES", "CASA VELATORIA", "SERVICIO FUNEBRE"))
+    es_municipal = "MUNICIPAL" in act or "MUNICIPIO" in act
+
+    if es_cementerio and es_municipal:
+        faltantes.append(
+            "Los cementerios municipales están excluidos del CCT 761/19; "
+            "confirmar si existe concesión privada"
+        )
+    elif es_cementerio:
+        candidatos.append({
+            "cct_numero": "761/19",
+            "nombre": "Cementerios privados, parques cementerio y crematorios",
+            "confianza": "media",
+            "motivos": [
+                "La actividad declarada corresponde a un cementerio, parque cementerio o crematorio",
+                "El CCT 761/19 encuadra establecimientos privados y concesiones privadas",
+            ],
+            "advertencias": [
+                "Confirmar que no sea explotación municipal directa",
+                "Seleccionar manualmente la zona con respaldo documental",
+                "La escala agosto 2026 es provisoria y no está habilitada para liquidación definitiva",
+            ],
+        })
+    elif es_funeraria:
+        candidatos.append({
+            "cct_numero": "749/18",
+            "nombre": "Cocherías, pompas fúnebres y casas velatorias",
+            "confianza": "media",
+            "motivos": [
+                "La actividad declarada corresponde a servicios funerarios o cochería",
+                "El encuadramiento se determina por la actividad real del establecimiento",
+            ],
+            "advertencias": [
+                "La escala agosto 2026 es provisoria y no está habilitada para liquidación definitiva",
+                "Los aportes convencionales contradictorios permanecen bloqueados",
+            ],
+        })
+    elif es_farmacia:
         if loc in AMBITO_TERRITORIAL_414_05:
             candidatos.append({
                 "cct_numero": "414/05", "nombre": "Farmacias alcanzadas por ADEF",
