@@ -1163,6 +1163,16 @@ function actualizarAdicionalesFarmacia(){
   const emp=empleadosCache[$('novEmpleado').value];
   $('novFarmacia').style.display=emp && emp.cct_numero==='414/05'?'block':'none';
 }
+const checksFatfa=['fatfaCapAuxiliar','fatfaCapTecnico','fatfaCapProfesional','fatfaTituloSecundario','fatfaAdministrativo','fatfaPerfumeria','fatfaVehiculo','fatfaFallaCaja'];
+function actualizarAdicionalesFatfa(){
+  const emp=empleadosCache[$('novEmpleado').value];
+  $('novFatfa').style.display=emp && emp.cct_numero==='659/13'?'block':'none';
+}
+function limpiarAdicionalesFatfa(){
+  $('fatfaRolTitulo').value='';
+  $('fatfaIdiomas').value='0';
+  checksFatfa.forEach(id=>$(id).checked=false);
+}
 const checksSanidad=['novElectricistaSanidad','novOperadorSanidad','novLaboratorioSanidad','novRayosSanidad'];
 function actualizarAdicionalesSanidad(){
   const emp=empleadosCache[$('novEmpleado').value];
@@ -1170,6 +1180,7 @@ function actualizarAdicionalesSanidad(){
 }
 function actualizarAdicionalesConvenio(){
   actualizarAdicionalesFarmacia();
+  actualizarAdicionalesFatfa();
   actualizarAdicionalesSanidad();
   const emp=empleadosCache[$('novEmpleado').value];
   $('novUocra').style.display=emp && emp.cct_numero==='76/75'?'block':'none';
@@ -1307,6 +1318,29 @@ function datosAdicionalesFarmacia(){
   }
   return {adicionales_convencionales:codigos,cantidades_adicionales:cantidades};
 }
+function datosAdicionalesFatfa(){
+  const emp=empleadosCache[$('novEmpleado').value];
+  if(!emp || emp.cct_numero!=='659/13') return {adicionales_convencionales:[],cantidades_adicionales:{}};
+  const codigos=[]; const cantidades={};
+  const rol=$('fatfaRolTitulo').value;
+  if(rol==='director') codigos.push('FATFA_BLOQUEO_DT','FATFA_BLOQUEO_DT_NR');
+  if(rol==='auxiliar_bloqueo') codigos.push('FATFA_AUX_BLOQUEO','FATFA_AUX_BLOQUEO_NR');
+  if(rol==='titulo_60') codigos.push('FATFA_TITULO_60','FATFA_TITULO_60_NR');
+  const opciones={
+    fatfaCapAuxiliar:'FATFA_CAP_AUXILIAR',
+    fatfaCapTecnico:'FATFA_CAP_TECNICO',
+    fatfaCapProfesional:'FATFA_CAP_PROFESIONAL',
+    fatfaTituloSecundario:'FATFA_TITULO_SECUNDARIO',
+    fatfaAdministrativo:'FATFA_ADMINISTRATIVO',
+    fatfaPerfumeria:'FATFA_PERFUMERIA',
+    fatfaVehiculo:'FATFA_VEHICULO',
+    fatfaFallaCaja:'FATFA_FALLA_CAJA'
+  };
+  Object.entries(opciones).forEach(([id,codigo])=>{if($(id).checked) codigos.push(codigo);});
+  const idiomas=numeroNov('fatfaIdiomas');
+  if(idiomas>0){codigos.push('FATFA_IDIOMA'); cantidades.FATFA_IDIOMA=idiomas;}
+  return {adicionales_convencionales:codigos,cantidades_adicionales:cantidades};
+}
 function datosAdicionalesSanidad(){
   const emp=empleadosCache[$('novEmpleado').value];
   if(!emp || emp.cct_numero!=='122/75') return {adicionales_convencionales:[],cantidades_adicionales:{}};
@@ -1325,6 +1359,7 @@ function datosAdicionalesSanidad(){
 function datosAdicionalesConvenio(){
   const emp=empleadosCache[$('novEmpleado').value];
   if(emp && emp.cct_numero==='414/05') return datosAdicionalesFarmacia();
+  if(emp && emp.cct_numero==='659/13') return datosAdicionalesFatfa();
   if(emp && emp.cct_numero==='122/75') return datosAdicionalesSanidad();
   return {adicionales_convencionales:[],cantidades_adicionales:{}};
 }
@@ -1343,6 +1378,7 @@ function limpiarNovedad(){
   $('novObservaciones').value='';
   $('novTipoPremio').value='pendiente';
   limpiarAdicionalesFarmacia();
+  limpiarAdicionalesFatfa();
   limpiarAdicionalesSanidad();
   limpiarCamioneros();
   limpiarUom();
