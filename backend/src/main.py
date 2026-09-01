@@ -35,7 +35,9 @@ def create_app() -> FastAPI:
     app.include_router(establecimientos.router)
     app.include_router(liquidaciones.router)
     app.include_router(novedades.router)
-    app.include_router(carpetas.router)\n    app.include_router(exportaciones.router)\n    app.include_router(recibos.router)
+    app.include_router(carpetas.router)
+    app.include_router(exportaciones.router)
+    app.include_router(recibos.router)
 
     @app.exception_handler(ValueError)
     async def _value_error(_: Request, exc: ValueError):
