@@ -34,9 +34,9 @@ def test_atributos_suss_tienen_147_posiciones_oficiales():
     assert attrs[3:4] == "1"       # CCT, posición 17
     assert attrs[8:10] == "01"     # situación, posiciones 22-23
     assert attrs[12:15] == "049"   # actividad, posiciones 26-28
-    assert attrs[49:54] == "00125" # aporte adicional, posiciones 53-57
-    assert attrs[55:61] == "123456"
-    assert attrs[63:78] == "000000000012345"
+    assert attrs[39:44] == "00125" # aporte adicional, posiciones 53-57
+    assert attrs[49:55] == "123456"
+    assert attrs[57:72] == "000000000012345"
 
 
 def test_no_completa_codigos_por_defecto():
