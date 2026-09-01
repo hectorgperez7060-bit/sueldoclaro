@@ -1,11 +1,12 @@
 """Punto de entrada de la API SUELDOCLARO (FastAPI)."""
 from __future__ import annotations
 
+import base64
 import logging
 import uuid
 
 from fastapi import Depends, FastAPI, Request
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, Response
 from sqlalchemy.exc import DBAPIError
 
 from api.dependencies.auth import Principal, require_tenant
@@ -14,6 +15,7 @@ from api.routes import auth, carpetas, convenios, empleados, establecimientos, l
 from infrastructure.database import models as m
 from infrastructure.database.session import dispose_engine, plain_session
 from ui_page import HTML as UI_HTML
+from pwa_assets import ICON_192_B64, ICON_512_B64
 
 
 logger = logging.getLogger("sueldoclaro")
@@ -59,6 +61,52 @@ def create_app() -> FastAPI:
     @app.get("/", include_in_schema=False)
     async def home():
         return HTMLResponse(UI_HTML)
+
+    @app.get("/manifest.webmanifest", include_in_schema=False)
+    async def manifest():
+        return JSONResponse({
+            "name": "Sueldo Claro",
+            "short_name": "Sueldo Claro",
+            "description": "Gestión laboral y liquidación de haberes clara y trazable",
+            "start_url": "/",
+            "scope": "/",
+            "display": "standalone",
+            "background_color": "#f2f7f6",
+            "theme_color": "#087f72",
+            "orientation": "any",
+            "icons": [
+                {"src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable"},
+                {"src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable"},
+            ],
+        }, media_type="application/manifest+json")
+
+    @app.get("/icon-{size}.png", include_in_schema=False)
+    async def pwa_icon(size: int):
+        data = ICON_512_B64 if size == 512 else ICON_192_B64 if size == 192 else None
+        if data is None:
+            return Response(status_code=404)
+        return Response(
+            base64.b64decode(data), media_type="image/png",
+            headers={"Cache-Control": "public, max-age=31536000, immutable"},
+        )
+
+    @app.get("/sw.js", include_in_schema=False)
+    async def service_worker():
+        script = """const CACHE='sueldo-claro-shell-v1';
+const SHELL=['/','/manifest.webmanifest','/icon-192.png','/icon-512.png'];
+self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(SHELL)).then(()=>self.skipWaiting())));
+self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));
+self.addEventListener('fetch',e=>{
+  if(e.request.method!=='GET') return;
+  const u=new URL(e.request.url);
+  if(u.origin!==self.location.origin) return;
+  if(!SHELL.includes(u.pathname)) return;
+  e.respondWith(fetch(e.request).then(r=>{const copy=r.clone();caches.open(CACHE).then(c=>c.put(e.request,copy));return r;}).catch(()=>caches.match(e.request)));
+});"""
+        return Response(
+            script, media_type="application/javascript",
+            headers={"Service-Worker-Allowed": "/", "Cache-Control": "no-cache"},
+        )
 
     @app.get("/empresa", tags=["empresa"])
     async def empresa(principal: Principal = Depends(require_tenant)):
