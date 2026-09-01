@@ -66,6 +66,14 @@ def test_en_telefono_el_menu_lateral_se_abre_y_se_cierra():
     assert "cerrarMenu();" in ira
 
 
+def test_en_telefono_el_menu_arranca_abierto_y_muestra_sus_accesos():
+    assert "function abrirMenuInicialEnTelefono()" in UI
+    assert "window.matchMedia('(max-width: 900px)').matches" in UI
+    entrar = UI[UI.index("async function entrar()"):]
+    assert "abrirMenuInicialEnTelefono();" in entrar[:entrar.index("\nfunction toggleAlta")]
+    assert "✕ Cerrar menú" in UI
+
+
 def test_cambiar_de_seccion_no_destruye_lo_ya_cargado():
     # Sólo se alterna la visibilidad de las secciones: no se vacían ni se
     # sacan del DOM, así que los formularios conservan lo que el usuario cargó.
