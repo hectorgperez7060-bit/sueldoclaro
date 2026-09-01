@@ -50,3 +50,16 @@ def test_service_worker_no_cachea_datos_privados():
     assert '@app.get("/icon-{size}.png"' in main
     assert "if(!SHELL.includes(u.pathname)) return;" in main
     assert "/liquidaciones" not in main.split('script = """', 1)[1].split('"""', 1)[0]
+
+
+def test_inicio_muestra_mapa_simple_y_navegable():
+    assert 'id="tituloMapaUso"' in HTML
+    assert "No necesitás saber contabilidad" in HTML
+    for numero in range(1, 7):
+        assert f'class="mapa-uso-numero">{numero}</span>' in HTML
+    for destino in (
+        "seccionEmpresas", "seccionEstablecimientos", "seccionEmpleados",
+        "seccionNovedades", "seccionLiquidar", "seccionHistorial",
+    ):
+        assert f'onclick="irA(\'{destino}\')"' in HTML
+    assert "evita completar importes inventados" in HTML
