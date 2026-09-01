@@ -949,7 +949,13 @@ class LiquidarPeriodo:
                     "aviso_art101": aviso_cuota_afiliado,
                     "escala_provisoria": escala_provisoria,
                     "vista_previa": vista_previa_contador,
-                    "pendiente_aprobacion_contador": vista_previa_contador,
+                    "modo_servicio": (
+                        "AUTOGESTION_SIN_FIRMA"
+                        if escala_provisoria else "CALCULO_SIN_CIERRE_PROFESIONAL"
+                    ),
+                    "pendiente_aprobacion_contador": bool(
+                        vista_previa_contador or escala_provisoria
+                    ),
                 })
 
             # Una ejecución de "liquidar todos" es atómica: si un empleado no
@@ -982,10 +988,13 @@ class LiquidarPeriodo:
                 })
             if any(d.get("pendiente_aprobacion_contador") for d in detalles_out):
                 reglas_pendientes.append({
-                    "codigo": "APROBACION_CONTADOR_UOM",
-                    "cct_numero": "260/75",
+                    "codigo": "APROBACION_PROFESIONAL_PENDIENTE",
+                    "cct_numero": "MULTIPLE",
                     "verificado": False,
-                    "fuente": "Pendiente de revisión y aprobación por contador público",
+                    "fuente": (
+                        "Liquidación de autogestión: pendiente de revisión y "
+                        "firma efectiva por contador público"
+                    ),
                 })
             contenido_carpeta = construir_contenido_carpeta(
                 periodo=periodo_str, tipo=tipo, liquidacion_id=str(liq.id),

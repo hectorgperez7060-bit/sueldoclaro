@@ -17,7 +17,7 @@ from domain.entities.parametros import EscalaSalarial
 
 
 MENSAJE_SIN_ESCALA = "Sin escala salarial verificada para el período"
-NOTA_PROVISORIA = "Valor provisorio: última escala verificada disponible"
+NOTA_PROVISORIA = "Escala publicada y documentada, pendiente de validación final"
 MENSAJE_MOTOR_NO_HABILITADO = (
     "La escala está documentada, pero el motor todavía no está habilitado "
     "para su unidad y modalidad de liquidación"
@@ -61,13 +61,17 @@ def evaluar_escala(
     """
     if vigente is None:
         return EvaluacionEscala("bloqueada", None, False, False, MENSAJE_SIN_ESCALA, "")
+    # Política general: una escala provisoria con fuente y vigencia explícitas
+    # puede usarse con confirmación, aunque no esté habilitada como definitiva.
+    # El indicador habilitada_liquidacion reserva la publicación final; no debe
+    # impedir el trabajo mensual mientras la homologación administrativa demora.
+    if getattr(vigente, "provisoria", False) and (vigente.fuente or "").strip():
+        return EvaluacionEscala(
+            "provisoria", vigente, True, not confirmado, "", NOTA_PROVISORIA
+        )
     if not getattr(vigente, "habilitada_liquidacion", True):
         return EvaluacionEscala(
             "bloqueada", None, False, False, MENSAJE_MOTOR_NO_HABILITADO, ""
-        )
-    if getattr(vigente, "provisoria", False):
-        return EvaluacionEscala(
-            "provisoria", vigente, True, not confirmado, "", NOTA_PROVISORIA
         )
     if not vigente.is_verified:
         return EvaluacionEscala(
