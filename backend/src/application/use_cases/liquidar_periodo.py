@@ -926,6 +926,8 @@ class LiquidarPeriodo:
                         "lugar_trabajo": getattr(emp, "lugar_trabajo", "") or "",
                         "cbu": getattr(emp, "cbu", "") or "",
                         "forma_pago": getattr(emp, "forma_pago", "") or "",
+                        "cantidad_hijos": int(getattr(emp, "cantidad_hijos", 0) or 0),
+                        "conyuge_a_cargo": bool(getattr(emp, "conyuge_a_cargo", False)),
                     },
                     # Perfil ARCA fotografiado: una exportación histórica no puede
                     # consultar la ficha actual porque los códigos pudieron cambiar.
