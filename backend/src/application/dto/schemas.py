@@ -119,6 +119,9 @@ class EmpleadoIn(BaseModel):
     # Datos estructurados para resolver la cuota sindical de afiliado (Art. 101).
     localidad: Optional[str] = None
     filial_sindical: Optional[str] = None
+    # Perfil registral ARCA. Puede quedar incompleto al crear la ficha; la
+    # exportación LSD informa cada faltante y no genera un TXT engañoso.
+    perfil_arca: dict = Field(default_factory=dict)
 
     @model_validator(mode="after")
     def _validar_forma_pago(self):
@@ -161,6 +164,7 @@ class EmpleadoOut(BaseModel):
     establecimiento_id: Optional[str] = None
     localidad: Optional[str] = None
     filial_sindical: Optional[str] = None
+    perfil_arca: dict = Field(default_factory=dict)
 
 
 # --- Novedades mensuales ---
