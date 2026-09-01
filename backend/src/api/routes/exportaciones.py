@@ -1,21 +1,26 @@
-"""Controles ARCA y planilla de carga SOECRA desde una carpeta inmutable."""
+"""Exportaciones ARCA y SOECRA desde una carpeta mensual inmutable."""
 from __future__ import annotations
 
 import csv
 import io
 import uuid
+from datetime import date
 from decimal import Decimal
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import Response
 
 from api.dependencies.auth import Principal, require_rol
 from infrastructure.database import models as m
 from infrastructure.database.session import tenant_session
-from infrastructure.lsd.catalogo_afip import concepto_arca
-from infrastructure.lsd.perfil_arca import faltantes_perfil
+from infrastructure.lsd.bases_snapshot import codigo_empleador, codigo_tipo_arca
+from infrastructure.lsd.generator import (
+    ConceptoLSD, EmpleadorLSD, TrabajadorLSD, build_lsd_bytes,
+)
+from infrastructure.lsd.perfil_arca import construir_atributos_suss, faltantes_perfil
 
 router = APIRouter(prefix="/exportaciones", tags=["exportaciones"])
+_ROLES = Depends(require_rol("admin", "liquidador", "contador_revisor"))
 _FUNERARIAS = {"749/18", "761/19"}
 _URL_SOECRA = "https://soecra.com.ar/ddjj-empresas/"
 
@@ -36,44 +41,54 @@ async def _carpeta(s, carpeta_id: str) -> m.CarpetaMensual:
     return carpeta
 
 
+def _faltantes(carpeta: m.CarpetaMensual) -> list[dict]:
+    _, snapshot, detalles = _datos(carpeta)
+    empleados = snapshot.get("empleados", {})
+    faltantes: list[dict] = []
+    for detalle in detalles:
+        eid = str(detalle.get("empleado_id", ""))
+        foto = empleados.get(eid, {})
+        perfil = foto.get("perfil_arca", {})
+        for campo in faltantes_perfil(perfil):
+            faltantes.append({"empleado_id": eid, "campo": campo})
+        doc = foto.get("documental", {})
+        if not doc.get("forma_pago"):
+            faltantes.append({"empleado_id": eid, "campo": "forma_pago"})
+        if doc.get("forma_pago") == "3" and len("".join(filter(str.isdigit, doc.get("cbu", "")))) != 22:
+            faltantes.append({"empleado_id": eid, "campo": "cbu_22_digitos"})
+        for concepto in detalle.get("conceptos", []):
+            codigo = str(concepto.get("codigo", ""))
+            try:
+                codigo_empleador(codigo)
+                codigo_tipo_arca(codigo)
+            except ValueError as exc:
+                faltantes.append({
+                    "empleado_id": eid, "campo": "concepto_arca",
+                    "concepto": codigo, "motivo": str(exc),
+                })
+        if not detalle.get("bases_lsd"):
+            faltantes.append({
+                "empleado_id": eid, "campo": "bases_lsd",
+                "motivo": detalle.get("error_lsd") or "No fueron fotografiadas",
+            })
+    empresa = snapshot.get("empresa", {})
+    if len("".join(ch for ch in str(empresa.get("cuit", "")) if ch.isdigit())) != 11:
+        faltantes.append({"campo": "cuit_empleador"})
+    return faltantes
+
+
 @router.get("/carpetas/{carpeta_id}/arca-control")
-async def control_arca(
-    carpeta_id: str,
-    principal: Principal = Depends(require_rol("admin", "liquidador", "contador_revisor")),
-):
+async def control_arca(carpeta_id: str, principal: Principal = _ROLES):
     async with tenant_session(principal.tenant_id) as s:
         carpeta = await _carpeta(s, carpeta_id)
-        _, snapshot, detalles = _datos(carpeta)
-        empleados = snapshot.get("empleados", {})
-        faltantes = []
-        for detalle in detalles:
-            eid = str(detalle.get("empleado_id", ""))
-            foto = empleados.get(eid, {})
-            perfil = foto.get("perfil_arca", {})
-            for campo in faltantes_perfil(perfil):
-                faltantes.append({"empleado_id": eid, "campo": campo})
-            for concepto in detalle.get("conceptos", []):
-                codigo = concepto.get("codigo", "")
-                catalogado = concepto_arca(codigo)
-                if catalogado is None or not catalogado.verificado:
-                    faltantes.append({
-                        "empleado_id": eid, "campo": "concepto_arca",
-                        "concepto": codigo,
-                    })
-            if not detalle.get("bases_lsd"):
-                faltantes.append({"empleado_id": eid, "campo": "bases_lsd"})
-        empresa = snapshot.get("empresa", {})
-        if len("".join(ch for ch in str(empresa.get("cuit", "")) if ch.isdigit())) != 11:
-            faltantes.append({"campo": "cuit_empleador"})
+        faltantes = _faltantes(carpeta)
         return {
             "listo_para_txt": not faltantes,
-            "periodo": carpeta.periodo,
-            "version": carpeta.version,
+            "periodo": carpeta.periodo, "version": carpeta.version,
             "faltantes": faltantes,
             "proximo_paso": (
-                "Descargar TXT ARCA"
-                if not faltantes else
-                "Completar los datos indicados y volver a liquidar para fotografiarlos"
+                "Descargar TXT ARCA" if not faltantes
+                else "Completar los datos indicados y volver a liquidar para fotografiarlos"
             ),
             "aclaracion": (
                 "ARCA valida el TXT; después de aceptar la liquidación genera la declaración F.931."
@@ -81,16 +96,77 @@ async def control_arca(
         }
 
 
-@router.get("/carpetas/{carpeta_id}/soecra.csv")
-async def planilla_soecra(
+@router.get("/carpetas/{carpeta_id}/arca.txt")
+async def descargar_arca(
     carpeta_id: str,
-    principal: Principal = Depends(require_rol("admin", "liquidador", "contador_revisor")),
+    fecha_pago: date = Query(...),
+    fecha_rubrica: date | None = Query(default=None),
+    numero_liquidacion: int = Query(default=1, ge=1, le=99999),
+    principal: Principal = _ROLES,
 ):
     async with tenant_session(principal.tenant_id) as s:
         carpeta = await _carpeta(s, carpeta_id)
+        faltantes = _faltantes(carpeta)
+        if faltantes:
+            raise HTTPException(
+                status.HTTP_409_CONFLICT,
+                {"mensaje": "El TXT ARCA está bloqueado", "faltantes": faltantes},
+            )
         _, snapshot, detalles = _datos(carpeta)
-        empleados = snapshot.get("empleados", {})
-        empresa = snapshot.get("empresa", {})
+        empresa = snapshot["empresa"]
+        fotos = snapshot["empleados"]
+        trabajadores = []
+        for detalle in detalles:
+            eid = str(detalle["empleado_id"])
+            foto, doc = fotos[eid], fotos[eid]["documental"]
+            perfil = foto["perfil_arca"]
+            conceptos = []
+            total_haberes = Decimal("0")
+            for c in detalle.get("conceptos", []):
+                codigo = str(c["codigo"])
+                tipo = str(c.get("tipo", "")).upper()
+                importe = Decimal(str(c["importe"]))
+                if tipo != "DESCUENTO":
+                    total_haberes += importe
+                conceptos.append(ConceptoLSD(
+                    codigo=codigo_empleador(codigo),
+                    importe=importe,
+                    signo="D" if tipo == "DESCUENTO" else "C",
+                    cantidad=Decimal(str(c.get("cantidad") or 0)),
+                    unidad=(str(c.get("unidad") or "$")[:1]),
+                ))
+            trabajadores.append(TrabajadorLSD(
+                cuil=doc["cuil"], legajo=doc.get("legajo", ""),
+                dependencia_revista=doc.get("lugar_trabajo", ""),
+                cbu=doc.get("cbu", ""), dias_tope=int(perfil["dias_trabajados"]),
+                fecha_pago=fecha_pago.strftime("%Y%m%d"),
+                fecha_rubrica=fecha_rubrica.strftime("%Y%m%d") if fecha_rubrica else "",
+                forma_pago=doc["forma_pago"], conceptos=conceptos,
+                attrs_suss=construir_atributos_suss(
+                    perfil, conyuge=bool(doc.get("conyuge_a_cargo", False)),
+                    hijos=int(doc.get("cantidad_hijos", 0)), tiene_cct=bool(doc.get("cct_numero")),
+                ),
+                remun_total=total_haberes,
+                bases=[Decimal(str(v)) for v in detalle["bases_lsd"]],
+            ))
+        empleador = EmpleadorLSD(
+            cuit=empresa["cuit"], periodo=carpeta.periodo.replace("-", ""),
+            tipo_liq="M", nro_liq=numero_liquidacion, dias_base=30,
+        )
+        contenido = build_lsd_bytes(empleador, trabajadores)
+        nombre = f"ARCA-LSD-{carpeta.periodo}-v{carpeta.version}.txt"
+        return Response(
+            contenido, media_type="text/plain; charset=iso-8859-1",
+            headers={"Content-Disposition": f'attachment; filename="{nombre}"'},
+        )
+
+
+@router.get("/carpetas/{carpeta_id}/soecra.csv")
+async def planilla_soecra(carpeta_id: str, principal: Principal = _ROLES):
+    async with tenant_session(principal.tenant_id) as s:
+        carpeta = await _carpeta(s, carpeta_id)
+        _, snapshot, detalles = _datos(carpeta)
+        empleados, empresa = snapshot.get("empleados", {}), snapshot.get("empresa", {})
         filas = []
         for detalle in detalles:
             cct = detalle.get("cct_numero", "")
@@ -98,12 +174,11 @@ async def planilla_soecra(
                 continue
             eid = str(detalle.get("empleado_id", ""))
             doc = empleados.get(eid, {}).get("documental", {})
-            remunerativo = Decimal("0")
-            no_remunerativo = Decimal("0")
-            sindical = Decimal("0")
+            remunerativo = no_remunerativo = sindical = Decimal("0")
             for concepto in detalle.get("conceptos", []):
                 importe = Decimal(str(concepto.get("importe", 0)))
-                tipo = str(concepto.get("tipo", "")).upper()\n                if tipo == "REMUNERATIVO":
+                tipo = str(concepto.get("tipo", "")).upper()
+                if tipo == "REMUNERATIVO":
                     remunerativo += importe
                 elif tipo == "NO_REMUNERATIVO":
                     no_remunerativo += importe
