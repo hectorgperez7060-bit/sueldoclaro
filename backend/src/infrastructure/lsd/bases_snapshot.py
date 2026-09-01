@@ -94,7 +94,7 @@ def calcular_bases_snapshot(
     base_lrt = Decimal("0")
     for c in conceptos:
         tipo = str(c.get("tipo", "")).upper()
-        if tipo == "CONTRIBUCION":
+        if tipo == "CONTRIBUCION" or "EMPLEADOR" in tipo:
             continue
         codigo = str(c.get("codigo", ""))
         info = _info(codigo)
