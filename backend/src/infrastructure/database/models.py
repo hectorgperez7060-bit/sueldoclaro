@@ -309,6 +309,8 @@ class Empleado(TenantMixin, Base):
     # NO se derivan del domicilio de texto libre.
     localidad: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
     filial_sindical: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
+    # Códigos registrales para ARCA LSD; nunca se completan por inferencia.
+    perfil_arca: Mapped[dict] = mapped_column(JSONB, default=dict)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc)
 
 
