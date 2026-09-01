@@ -53,7 +53,20 @@ def test_migracion_no_disfraza_datos_como_homologados():
     assert "NORMA_HOMOLOGADA" not in sql
     assert "PENDIENTE_HOMOLOGACION" not in sql
     assert "habilitada_liquidacion" in sql
-    assert sql.count("VALUES (gen_random_uuid(),") == 2
+    # La migración es el reflejo de los dos paquetes: se cuenta contra ellos y no
+    # contra un número fijo, para que cargar más escalas no rompa la prueba ni la
+    # vuelva decorativa.
+    paquetes = [_paquete("soecra_749_18_2026_08_provisorio.json"),
+                _paquete("soecra_761_19_2026_08_provisorio.json")]
+    escalas = sum(len(_periodo(p)["escalas"]) for p in paquetes)
+    parametros = sum(len(_periodo(p)["parametros"]) for p in paquetes)
+    assert sql.count("INSERT INTO public.escala_salarial ") == escalas
+    assert sql.count("INSERT INTO public.parametro_legal ") == parametros
+    assert sql.count("INSERT INTO public.cct_paquete_version ") == len(paquetes)
+    assert sql.count("VALUES (gen_random_uuid(),") == escalas + parametros + len(paquetes)
+    # Ninguna escala puede quedar habilitada para liquidar.
+    assert sql.count("'MENSUAL',false)") == escalas
+    assert "'MENSUAL',true)" not in sql
     columnas_cct = (
         "id,numero,nombre,sindicato,cuota_sindical_pct,"
         "antiguedad_pct_por_anio,presentismo_divisor,divisor_horas,"
