@@ -1,86 +1,91 @@
-"""Test dorado del generador LSD: reproduce el archivo REAL aceptado por ARCA.
-
-Prueba de 'no humo': a partir de datos estructurados, el generador debe producir
-los mismos registros que un LSD real (empleador 27-20736432-6, período 2026-07).
-Los registros 01/03/04 deben salir byte-a-byte idénticos; el 02 debe coincidir en
-todos los campos con contenido (el archivo original tenía un '0' de relleno en el
-CBU en blanco, una rareza del software que lo generó y que no replicamos).
-"""
-import os, sys
+"""Contrato de ancho fijo ARCA vigente desde 15/05/2026."""
+import os
+import sys
 from decimal import Decimal
+
 HERE = os.path.dirname(__file__)
 sys.path.insert(0, os.path.join(HERE, "..", "src"))
+
 from infrastructure.lsd.generator import (
-    EmpleadorLSD, TrabajadorLSD, ConceptoLSD, build_lsd,
-    registro_02,
+    ConceptoLSD, EmpleadorLSD, TrabajadorLSD, build_lsd, build_lsd_bytes,
+    registro_01, registro_02, registro_03, registro_04,
 )
 
-REF = os.path.join(HERE, "..", "..", "27-20736432-6_2026-7_0__LSD_CORREGIDO.txt")
+
+def _trabajador():
+    return TrabajadorLSD(
+        cuil="27-24032052-0",
+        legajo="138",
+        dependencia_revista="Casa velatoria",
+        forma_pago="3",
+        cbu="0170099920000001234567",
+        dias_tope=30,
+        fecha_pago="20260904",
+        fecha_rubrica="20260904",
+        conceptos=[
+            ConceptoLSD("SUELDO", Decimal("1184999.99"), "C", Decimal("1"), "M"),
+            ConceptoLSD("JUBILAC", Decimal("130349.99"), "D", Decimal("11"), "%"),
+        ],
+        attrs_suss="0" * 147,
+        remun_total=Decimal("1184999.99"),
+        bases=[Decimal("1184999.99")] * 10 + [Decimal("0")] * 3,
+    )
 
 
-def _parse_ref():
-    L = open(REF, encoding="latin-1").read().split("\n")
-    r01 = L[0]
-    emp = EmpleadorLSD(cuit=r01[2:13], sello=r01[13:15], periodo=r01[15:21],
-                       tipo_liq=r01[21], cola01=r01[22:])
-    trs, orden = {}, []
-    for ln in L:
-        if ln[:2] == "02":
-            c = ln[2:13]; orden.append(c)
-            trs[c] = TrabajadorLSD(cuil=c, legajo=ln[13:23].strip(),
-                forma_pago=ln[73], cbu=ln[74:96].strip(),
-                dias_tope=int(ln[96:98]), fecha_pago=ln[98:106])
-    for ln in L:
-        if ln[:2] == "03":
-            c = ln[2:13]
-            trs[c].conceptos.append(ConceptoLSD(codigo=ln[13:28],
-                importe=Decimal(ln[29:44]) / 100, signo=ln[44]))
-    for ln in L:
-        if ln[:2] == "04":
-            c = ln[2:13]; t = trs[c]; t.attrs_suss = ln[13:160]
-            campos = [Decimal(ln[160 + i*15:160 + (i+1)*15]) / 100 for i in range(14)]
-            t.remun_total = campos[0]; t.bases = campos[1:]
-    return emp, [trs[c] for c in orden], L
+def test_registro_01_respeta_diseno_oficial():
+    r = registro_01(EmpleadorLSD("30-69706631-0", "202608", nro_liq=1), 1)
+    assert len(r) == 35
+    assert r[0:2] == "01"
+    assert r[2:13] == "30697066310"
+    assert r[13:15] == "SJ"
+    assert r[15:21] == "202608"
+    assert r[21] == "M"
+    assert r[22:27] == "00001"
+    assert r[27:29] == "30"
+    assert r[29:35] == "000001"
 
 
-def test_golden_reproduce_registros_01_03_04():
-    emp, trabajadores, L = _parse_ref()
-    out = build_lsd(emp, trabajadores).split("\n")
-    ref_por_tipo = {"01": [], "03": [], "04": []}
-    out_por_tipo = {"01": [], "03": [], "04": []}
-    for ln in L:
-        if ln[:2] in ref_por_tipo: ref_por_tipo[ln[:2]].append(ln)
-    for ln in out:
-        if ln[:2] in out_por_tipo: out_por_tipo[ln[:2]].append(ln)
-    for t in ("01", "03", "04"):
-        assert sorted(out_por_tipo[t]) == sorted(ref_por_tipo[t]), f"registro {t} no coincide"
+def test_registro_02_cbu_dias_fechas_y_forma_en_posicion_2026():
+    r = registro_02(_trabajador())
+    assert len(r) == 115
+    assert r[73:95] == "0170099920000001234567"
+    assert r[95:98] == "030"
+    assert r[98:106] == "20260904"
+    assert r[106:114] == "20260904"
+    assert r[114] == "3"
 
 
-def test_longitudes_fijas():
-    emp, trabajadores, L = _parse_ref()
-    out = build_lsd(emp, trabajadores).split("\n")
-    largos = {"01": 35, "02": 115, "03": 51, "04": 370}
-    for ln in out:
-        assert len(ln) == largos[ln[:2]], f"{ln[:2]} largo {len(ln)}"
+def test_registro_03_codigo_cantidad_unidad_importe_signo_y_ajuste():
+    c = ConceptoLSD(
+        "SUELDO", Decimal("1184999.99"), "C", Decimal("1"), "M", "202607"
+    )
+    r = registro_03("27240320520", c)
+    assert len(r) == 51
+    assert r[13:23] == "SUELDO    "
+    assert r[23:28] == "00100"
+    assert r[28] == "M"
+    assert r[29:44] == "000000118499999"
+    assert r[44] == "C"
+    assert r[45:51] == "202607"
 
 
-def test_registro_02_campos_reales_coinciden():
-    emp, trabajadores, L = _parse_ref()
-    ref02 = {ln[2:13]: ln for ln in L if ln[:2] == "02"}
-    for t in trabajadores:
-        r = registro_02(t)
-        o = ref02[t.cuil]
-        assert r[2:13] == o[2:13]        # CUIL
-        assert r[73] == o[73] == "1"     # forma de pago corregida
-        assert r[98:106] == o[98:106]    # fecha de pago
-        assert r[13:23] == o[13:23]      # legajo
+def test_registro_04_y_archivo_ansi_crlf():
+    t = _trabajador()
+    assert len(registro_04(t)) == 370
+    emp = EmpleadorLSD("30697066310", "202608")
+    texto = build_lsd(emp, [t])
+    lineas = texto.splitlines()
+    assert [len(x) for x in lineas] == [35, 115, 51, 51, 370]
+    assert texto.endswith("\r\n")
+    assert build_lsd_bytes(emp, [t]) == texto.encode("latin-1")
 
 
-if __name__ == "__main__":
-    test_golden_reproduce_registros_01_03_04()
-    test_longitudes_fijas()
-    test_registro_02_campos_reales_coinciden()
-    print("✅ TODOS LOS TESTS DORADOS PASAN")
-    print("   - registros 01/03/04 reproducidos byte-a-byte (como multiset)")
-    print("   - longitudes fijas correctas (35/115/51/370)")
-    print("   - registro 02: CUIL, forma de pago, fecha y legajo coinciden con el real")
+def test_no_genera_archivo_incompleto_silenciosamente():
+    t = _trabajador()
+    t.cbu = ""
+    try:
+        registro_02(t)
+    except ValueError as exc:
+        assert "CBU de 22 digitos" in str(exc)
+    else:
+        raise AssertionError("debió bloquear una acreditación sin CBU")
