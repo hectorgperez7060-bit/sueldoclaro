@@ -19,6 +19,7 @@ def conceptos_funeraria():
         {"codigo": "APORTE_JUBILACION", "tipo": "DESCUENTO", "importe": "121000.00"},
         {"codigo": "APORTE_LEY19032", "tipo": "DESCUENTO", "importe": "33000.00"},
         {"codigo": "APORTE_OBRA_SOCIAL", "tipo": "DESCUENTO", "importe": "33000.00"},
+        {"codigo": "CONTRIB_JUBILACION", "tipo": "APORTE DEL EMPLEADOR", "importe": "198000.00"},
     ]
 
 
@@ -59,3 +60,9 @@ def test_ruta_exportaciones_no_contiene_salto_literal_que_rompe_python():
         Path(__file__).resolve().parents[1] / "src" / "api" / "routes" / "exportaciones.py"
     ).read_text(encoding="utf-8")
     assert 'upper()\\n' not in fuente
+
+
+def test_catalogo_comun_usa_codigos_oficiales_actuales():
+    assert codigo_tipo_arca("ANTIGUEDAD") == "160001"
+    assert codigo_tipo_arca("HORAS_EXTRA_50") == "130001"
+    assert codigo_tipo_arca("HORAS_EXTRA_100") == "130002"
