@@ -71,7 +71,6 @@ def test_en_telefono_el_menu_arranca_abierto_y_muestra_sus_accesos():
     assert "window.matchMedia('(max-width: 900px)').matches" in UI
     entrar = UI[UI.index("async function entrar()"):]
     assert "abrirMenuInicialEnTelefono();" in entrar[:entrar.index("\nfunction toggleAlta")]
-    assert entrar.index("abrirMenuInicialEnTelefono();") < entrar.index("await recargarEmpresaActiva();")
     assert "✕ Cerrar menú" in UI
 
 

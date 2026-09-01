@@ -1007,8 +1007,6 @@ async function recargarEmpresaActiva(){
 async function entrar(){
   document.body.classList.add('sesion-activa');
   $('auth').style.display='none'; $('app').style.display='block';
-  // El menú es parte de la interfaz: no debe esperar la consulta a la base.
-  abrirMenuInicialEnTelefono();
   $('quien').textContent='Sesión iniciada';
   const hoy = new Date();
   $('periodo').value = hoy.toISOString().slice(0,7);
@@ -1018,6 +1016,8 @@ async function entrar(){
   catch(e){ salir(); mostrarError('authError',e.message); return; }
   // Al entrar (o al recargar la página) se abre la sección que indica el hash.
   aplicarHash();
+  // En el teléfono mostramos de entrada qué puede hacer la aplicación.
+  abrirMenuInicialEnTelefono();
 }
 function toggleAlta(){ const a=$('alta'); a.style.display = a.style.display==='none'?'block':'none'; }
 function toggleEstablecimiento(){ const a=$('formEstablecimiento'); a.style.display=a.style.display==='none'?'block':'none'; }
@@ -2849,13 +2849,7 @@ async function instalarAplicacion(){
   }
 }
 if('serviceWorker' in navigator){
-  let recargaPorActualizacion=false;
-  navigator.serviceWorker.addEventListener('controllerchange',()=>{
-    if(recargaPorActualizacion) return;
-    recargaPorActualizacion=true;
-    window.location.reload();
-  });
-  window.addEventListener('load',()=>navigator.serviceWorker.register('/sw.js').then(reg=>reg.update()).catch(()=>{}));
+  window.addEventListener('load',()=>navigator.serviceWorker.register('/sw.js').catch(()=>{}));
 }
 
 if(token()) entrar();
