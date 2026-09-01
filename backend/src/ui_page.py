@@ -413,7 +413,7 @@ tr:last-child td{border-bottom:0}tbody tr:hover{background:#f8fcfb}
           <div><label>Modalidad de contrato</label>
             <select id="eModalidad"><option>Tiempo indeterminado</option><option>Plazo fijo</option><option>Eventual</option><option>Temporada</option><option>Período de prueba</option></select></div>
           <div><label>Horas semanales pactadas</label>
-            <input id="eHorasSemanales" type="number" min="1" max="48" step="0.5" value="48">
+            <input id="eHorasSemanales" type="number" min="1" step="0.5"><small id="eHorasAyuda" style="display:block;color:#6b7280"></small>
             <small style="color:#6b7280">En Comercio la jornada completa es 48. Para este empleado escribí 30.</small></div>
           <div><label>Obra social (independiente del sindicato)</label><input id="eObraSocial" list="obrasSociales" placeholder="Elegí o escribí la obra social"><datalist id="obrasSociales"><option value="OSADEF - Obra Social de las Asociaciones de Empleados de Farmacia"><option value="OSPSA - Obra Social del Personal de la Sanidad Argentina"><option value="OSECAC - Obra Social de Empleados de Comercio"><option value="OSPF - Obra Social del Personal de Farmacia"></datalist></div>
           <div><label>Establecimiento / lugar de trabajo</label><select id="eEstablecimiento" onchange="datosEstablecimientoParaEncuadramiento()"><option value="">Sin establecimiento asignado</option></select></div>
@@ -731,6 +731,33 @@ let empleadosCache = {};
 let establecimientosCache = {};
 let editandoEmpleadoId = null;
 let convenios = [];
+// Horas de jornada completa del convenio elegido. Cada convenio trae las suyas
+// (Comercio 48, Farmacia 45, los dos de SOECRA 44). Si el convenio todavía no
+// las declara se cae al tope de la Ley 11.544 y se avisa en pantalla.
+const HORAS_TOPE_LEY_11544 = 48;
+function horasJornadaConvenio(numero){
+  const c = convenios.find(x => x.numero === (numero || ($('eConvenio') && $('eConvenio').value)));
+  const h = c && c.horas_semanales_jornada_completa;
+  const n = Number(h);
+  return (h != null && isFinite(n) && n > 0) ? n : HORAS_TOPE_LEY_11544;
+}
+function convenioDeclaraJornada(numero){
+  const c = convenios.find(x => x.numero === (numero || ($('eConvenio') && $('eConvenio').value)));
+  return !!(c && c.horas_semanales_jornada_completa);
+}
+function ajustarCampoHoras(){
+  const campo = $('eHorasSemanales');
+  if(!campo) return;
+  const completa = horasJornadaConvenio();
+  campo.max = completa;
+  const ayuda = $('eHorasAyuda');
+  if(ayuda){
+    ayuda.textContent = convenioDeclaraJornada()
+      ? 'Jornada completa del convenio: ' + completa + ' h semanales.'
+      : 'El convenio no declara su jornada: se toma el tope legal de 48 h.';
+  }
+  if(Number(campo.value) > completa) campo.value = completa;
+}
 let obraSocialSugeridaAnterior = '';
 let empresaCache = {razon_social:'', cuit:''};
 let ultimaLiq = null;
@@ -1217,6 +1244,7 @@ function llenarConvenios(preseleccion=null){
 }
 function llenarCategorias(){
   const c = convenios.find(x=>x.numero===$('eConvenio').value);
+  ajustarCampoHoras();
   const sel = $('eCategoria'); sel.innerHTML='';
   (c?c.categorias:[]).forEach(cat=>{
     const o=document.createElement('option'); o.value=cat; o.textContent=cat; sel.appendChild(o);
@@ -2152,7 +2180,8 @@ function editarEmpleado(id){
   $('eObraSocial').value = e.obra_social || '';
   obraSocialSugeridaAnterior = '';
   $('eModalidad').value = e.modalidad_contrato || 'Tiempo indeterminado';
-  $('eHorasSemanales').value = Number(e.proporcion_jornada || 1) * 48;
+  $('eHorasSemanales').value = Number(e.proporcion_jornada || 1) * horasJornadaConvenio(e.cct_numero);
+  ajustarCampoHoras();
   $('eFormaPago').value = e.forma_pago || '';
   $('eCbu').value = e.cbu || '';
   $('eEstablecimiento').value = e.establecimiento_id || '';
@@ -2191,7 +2220,8 @@ function cancelarEdicion(){
   $('resultadoEncuadramiento').style.display='none';
   $('eEstablecimiento').value='';
   $('eHijos').value='0';
-  $('eHorasSemanales').value='48';
+  $('eHorasSemanales').value=String(horasJornadaConvenio());
+  ajustarCampoHoras();
   $('eConyuge').value='false';
   $('btnGuardarEmp').textContent = 'Guardar empleado';
   $('btnCancelarEmp').style.display = 'none';
@@ -2315,8 +2345,9 @@ async function crearEmpleado(){
   if(fp==='3' && $('eCbu').value.replace(/\D/g,'').length!==22){
     mostrarError('empError','Acreditación en cuenta: el CBU es obligatorio y debe tener 22 dígitos.'); return; }
   const horasSemanales=Number($('eHorasSemanales').value);
-  if(!(horasSemanales>0 && horasSemanales<=48)){
-    mostrarError('empError','Las horas semanales deben ser mayores que 0 y no superar 48.'); return;
+  const horasCompletas=horasJornadaConvenio();
+  if(!(horasSemanales>0 && horasSemanales<=horasCompletas)){
+    mostrarError('empError','Las horas semanales deben ser mayores que 0 y no superar la jornada completa del convenio ('+horasCompletas+' h). Si trabaja más, son horas extra y se cargan como novedad del mes.'); return;
   }
   const lugarElegido=$('eEstablecimiento').value || null;
   const lugarAnterior=editandoEmpleadoId ? (empleadosCache[editandoEmpleadoId].establecimiento_id||null) : null;
@@ -2329,7 +2360,7 @@ async function crearEmpleado(){
       cuil:$('eCuil').value.replace(/\D/g,''), fecha_ingreso:fechaIso($('eFecha').value,'Fecha de ingreso'),
       cct_numero:$('eConvenio').value, categoria:$('eCategoria').value,
       legajo:$('eLegajo').value.trim(),
-      proporcion_jornada:horasSemanales/48,
+      proporcion_jornada:horasSemanales/horasCompletas,
       fecha_nacimiento:fechaIso($('eNacimiento').value,'Fecha de nacimiento'),
       sexo:$('eSexo').value || null,
       estado_civil:$('eEstadoCivil').value || null,

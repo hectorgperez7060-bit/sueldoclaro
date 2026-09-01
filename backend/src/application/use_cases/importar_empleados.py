@@ -15,8 +15,10 @@ class ImportarEmpleados:
             repo = EmpleadoRepo(s)
             existentes = await repo.listar()
             cuils_existentes = {str(e.cuil).replace("-", "").strip() for e in existentes}
-            catalogo = await ParametrosRepo(s).catalogo_encuadramientos()
-        validos, errores = parsear(contenido, cuils_existentes)
+            parametros = ParametrosRepo(s)
+            catalogo = await parametros.catalogo_encuadramientos()
+            horas_por_cct = await parametros.horas_jornada_por_cct()
+        validos, errores = parsear(contenido, cuils_existentes, horas_por_cct)
         validos, errores_encuadramiento = validar_filas_encuadramiento(validos, catalogo)
         errores.extend(errores_encuadramiento)
         # Convert date objects to isoformat string for JSON serialization
@@ -37,9 +39,11 @@ class ImportarEmpleados:
             repo = EmpleadoRepo(s)
             existentes = await repo.listar()
             cuils_existentes = {str(e.cuil).replace("-", "").strip() for e in existentes}
-            validos, errores = parsear(contenido, cuils_existentes)
+            parametros = ParametrosRepo(s)
+            horas_por_cct = await parametros.horas_jornada_por_cct()
+            validos, errores = parsear(contenido, cuils_existentes, horas_por_cct)
             validos, errores_encuadramiento = validar_filas_encuadramiento(
-                validos, await ParametrosRepo(s).catalogo_encuadramientos()
+                validos, await parametros.catalogo_encuadramientos()
             )
             errores.extend(errores_encuadramiento)
             importados = 0

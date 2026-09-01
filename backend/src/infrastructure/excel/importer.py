@@ -14,6 +14,19 @@ from openpyxl import Workbook, load_workbook
 
 from domain.value_objects.cuil import digito_verificador, es_cuil_valido
 
+from domain.entities.jornada import HORAS_TOPE_LEY_11544, proporcion_jornada
+
+
+def horas_jornada_de(horas_por_cct, cct_numero: str) -> Decimal:
+    """Jornada completa del convenio de la fila; tope legal si no la declara."""
+    valor = (horas_por_cct or {}).get(cct_numero)
+    try:
+        horas = Decimal(str(valor))
+    except (ArithmeticError, TypeError, ValueError):
+        return HORAS_TOPE_LEY_11544
+    return horas if horas > 0 else HORAS_TOPE_LEY_11544
+
+
 COLUMNAS = [
     "nombre", "apellido", "cuil", "fecha_ingreso", "cct_numero",
     "categoria", "legajo", "horas_semanales", "remuneracion_pactada",
@@ -85,8 +98,15 @@ def _a_fecha(valor) -> date:
     return datetime.strptime(str(valor).strip(), "%Y-%m-%d").date()
 
 
-def parsear(contenido: bytes, cuils_existentes: set[str] = None) -> Tuple[List[dict], List[dict]]:
-    """Devuelve (empleados_validos, errores_por_fila)."""
+def parsear(contenido: bytes, cuils_existentes: set[str] = None,
+            horas_por_cct: dict = None) -> Tuple[List[dict], List[dict]]:
+    """Devuelve (empleados_validos, errores_por_fila).
+
+    ``horas_por_cct`` trae las horas de jornada completa declaradas por cada
+    convenio. La proporción de jornada se calcula contra la jornada del convenio
+    de esa fila, no contra 48 fijas: en un convenio de 44 horas, 44 horas son
+    jornada completa y prorratear contra 48 le recortaría el sueldo.
+    """
     wb = load_workbook(io.BytesIO(contenido), read_only=True, data_only=True)
     ws = wb.active
     filas = list(ws.iter_rows(values_only=True))
@@ -141,13 +161,16 @@ def parsear(contenido: bytes, cuils_existentes: set[str] = None) -> Tuple[List[d
             except (InvalidOperation, ValueError):
                 errs.append(f"remuneracion_pactada inválida: {rem!r}")
 
+        cct_fila = str(val("cct_numero") or "").strip()
+        horas_completas = horas_jornada_de(horas_por_cct, cct_fila)
         try:
-            horas_semanales = Decimal(str(val("horas_semanales") or "48"))
-            if not Decimal("0") < horas_semanales <= Decimal("48"):
-                raise ValueError
-        except (InvalidOperation, ValueError):
-            horas_semanales = Decimal("48")
-            errs.append("horas_semanales debe ser mayor que 0 y no superar 48")
+            horas_semanales = Decimal(str(val("horas_semanales") or horas_completas))
+            proporcion = proporcion_jornada(horas_semanales, horas_completas)
+        except (InvalidOperation, ValueError) as exc:
+            horas_semanales = horas_completas
+            proporcion = Decimal("1")
+            errs.append(str(exc) if isinstance(exc, ValueError) and str(exc)
+                        else f"horas_semanales inválidas para el convenio {cct_fila}")
 
         nom = str(val("nombre") or "").strip()
         ape = str(val("apellido") or "").strip()
@@ -167,7 +190,7 @@ def parsear(contenido: bytes, cuils_existentes: set[str] = None) -> Tuple[List[d
             "categoria": str(val("categoria")).strip(),
             "legajo": str(val("legajo") or "").strip(),
             "remuneracion_pactada": rem_dec,
-            "proporcion_jornada": horas_semanales / Decimal("48"),
+            "proporcion_jornada": proporcion,
             "afiliado_sindicato": afil in ("SI", "S", "TRUE", "1", "X"),
             "email": (str(val("email")).strip() or None) if val("email") else None,
         })

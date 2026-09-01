@@ -13,6 +13,7 @@ from infrastructure.database import models as m
 from infrastructure.database.session import plain_session
 from domain.entities.farmacia_414_05 import CATEGORIAS_FARMACIA, CCT_FARMACIA
 from domain.entities.encuadramiento_asistido import sugerir_encuadramiento
+from domain.entities.jornada import horas_desde_reglas
 from infrastructure.excel.normativa_importer import (
     generar_plantilla_normativa,
     vista_previa_normativa,
@@ -326,6 +327,20 @@ async def listar(
         categorias_estructurales = (await s.execute(
             select(m.CctCategoria).where(m.CctCategoria.activa.is_(True))
         )).scalars().all()
+        reglas_jornada = (await s.execute(
+            select(m.CctReglaEstructural).where(
+                m.CctReglaEstructural.codigo == "JORNADA",
+                m.CctReglaEstructural.activa.is_(True),
+            )
+        )).scalars().all()
+    # Horas de jornada completa declaradas por cada convenio. Sin este dato la
+    # pantalla de empleados prorratearía contra 48 horas fijas y le recortaría el
+    # sueldo a un trabajador de jornada completa de cualquier convenio de 44 o 45.
+    horas_por_cct: dict[str, str] = {}
+    for regla in reglas_jornada:
+        horas = horas_desde_reglas([regla])
+        if horas is not None:
+            horas_por_cct[regla.cct_numero] = str(horas)
     cats: dict[str, dict[str, dict]] = {}
     vigentes: set[tuple[str, str]] = set()
     for numero, categoria, verificada, fuente, valid_from, valid_to in filas:
@@ -365,6 +380,7 @@ async def listar(
             "categorias": [item["nombre"] for item in detalles],
             "categorias_detalle": detalles,
             "tiene_escala_vigente": any(item["escala_vigente"] for item in detalles),
+            "horas_semanales_jornada_completa": horas_por_cct.get(c.numero),
         })
     # El padrón laboral no depende de que Supabase ya tenga una escala monetaria
     # del mes. Esto permite encuadrar el legajo y mantiene bloqueada, por separado,
@@ -382,6 +398,7 @@ async def listar(
                 for nombre in CATEGORIAS_FARMACIA
             ],
             "tiene_escala_vigente": False,
+            "horas_semanales_jornada_completa": horas_por_cct.get(CCT_FARMACIA),
         })
     salida.sort(key=lambda item: item["numero"])
     return salida
