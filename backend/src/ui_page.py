@@ -434,6 +434,24 @@ tr:last-child td{border-bottom:0}tbody tr:hover{background:#f8fcfb}
           <div><label>Filial sindical (si aplica)</label><input id="eFilial" placeholder="opcional"></div>
         </div>
 
+        <details style="margin-top:14px;border:1px solid var(--borde);border-radius:10px;padding:10px">
+          <summary style="cursor:pointer;font-weight:700;color:var(--verde)">Datos registrales ARCA — Libro de Sueldos Digital</summary>
+          <p style="font-size:.8rem;color:#6b7280;margin:8px 0">Copiá estos códigos de Simplificación Registral. No se completan automáticamente.</p>
+          <div class="fila">
+            <div><label>Tipo empleador (1 dígito)</label><input id="eArcaTipoEmp" maxlength="1"></div>
+            <div><label>Tipo operación (1 dígito)</label><input id="eArcaOperacion" maxlength="1"></div>
+            <div><label>Situación de revista (2)</label><input id="eArcaSituacion" maxlength="2"></div>
+            <div><label>Condición (2)</label><input id="eArcaCondicion" maxlength="2"></div>
+            <div><label>Actividad (3)</label><input id="eArcaActividad" maxlength="3"></div>
+            <div><label>Modalidad contratación (3)</label><input id="eArcaModalidad" maxlength="3"></div>
+            <div><label>Siniestrado (2)</label><input id="eArcaSiniestrado" maxlength="2"></div>
+            <div><label>Localidad ARCA (2)</label><input id="eArcaLocalidad" maxlength="2"></div>
+            <div><label>Código obra social (6)</label><input id="eArcaObraSocial" maxlength="6"></div>
+            <div><label>Días trabajados</label><input id="eArcaDias" type="number" min="0" max="31"></div>
+            <div><label>Horas trabajadas</label><input id="eArcaHoras" type="number" min="0" max="999"></div>
+          </div>
+        </details>
+
         <div style="display:flex;gap:8px;margin-top:10px">
           <button class="chico" id="btnGuardarEmp" onclick="crearEmpleado()">Guardar empleado</button>
           <button class="chico secundario" id="btnCancelarEmp" style="display:none" onclick="cancelarEdicion()">Cancelar edición</button>
@@ -684,7 +702,7 @@ tr:last-child td{border-bottom:0}tbody tr:hover{background:#f8fcfb}
         <div class="cabecera-seccion"><h3 id="panelVersionTitulo">Versión</h3><button class="chico secundario" onclick="cerrarPanelVersion()">Cerrar</button></div>
         <p id="panelVersionMeta" style="font-size:.85rem;color:#4b5563"></p>
         <div class="aviso" id="panelVersionFaltantes" style="display:none"></div>
-        <div style="margin:10px 0"><button class="chico" onclick="descargarRecibosDeVersion()">Descargar todos los recibos</button></div>
+        <div style="margin:10px 0;display:flex;gap:8px;flex-wrap:wrap"><button class="chico" onclick="descargarRecibosDeVersion()">Descargar todos los recibos</button><button class="chico secundario" onclick="controlarArcaVersion()">Controlar ARCA</button><button class="chico secundario" id="btnSoecraVersion" onclick="descargarSoecraVersion()">Planilla SOECRA</button></div>
         <table id="tablaVersionDetalle" class="tabla-movil"><thead><tr><th>Empleado</th><th class="num">Bruto</th><th class="num">Descuentos</th><th class="num">Neto</th><th>Conceptos</th><th></th></tr></thead><tbody></tbody></table>
       </div>
       <div id="panelCierre" style="display:none;margin-top:18px;border-top:1px solid #d1d5db;padding-top:16px">
@@ -1663,6 +1681,32 @@ async function verVersion(id){
   $('panelVersion').style.display='block';
 }
 
+async function controlarArcaVersion(){
+  if(!versionAbierta) return;
+  try{
+    const r=await api('/exportaciones/carpetas/'+versionAbierta+'/arca-control');
+    if(r.listo_para_txt){
+      alert('Control ARCA completo. La carpeta tiene los datos necesarios para construir el TXT.');
+      return;
+    }
+    const items=(r.faltantes||[]).map(x=>'• '+(x.concepto?x.campo+' ('+x.concepto+')':x.campo)).join('\n');
+    alert('Todavía no se genera el TXT ARCA. Falta:\n'+items+'\n\nCompletá la ficha y volvé a liquidar para conservar los datos.');
+  }catch(e){ alert(e.message); }
+}
+
+async function descargarSoecraVersion(){
+  if(!versionAbierta) return;
+  try{
+    const r=await fetch('/exportaciones/carpetas/'+versionAbierta+'/soecra.csv',{
+      headers:{Authorization:'Bearer '+token()}
+    });
+    if(!r.ok){ const d=await r.json().catch(()=>({detail:'No se pudo generar la planilla'})); throw new Error(typeof d.detail==='string'?d.detail:JSON.stringify(d.detail)); }
+    const blob=await r.blob(), url=URL.createObjectURL(blob), a=document.createElement('a');
+    a.href=url; a.download=(r.headers.get('content-disposition')||'').match(/filename="([^"]+)"/)?.[1]||'control-soecra.csv';
+    a.click(); setTimeout(()=>URL.revokeObjectURL(url),1000);
+  }catch(e){ alert(e.message); }
+}
+
 function cerrarPanelVersion(){ $('panelVersion').style.display='none'; versionAbierta=null; }
 
 function verConceptosVersion(empleadoId){
@@ -2055,6 +2099,18 @@ function editarEmpleado(id){
   $('eLocalidad').value = e.localidad || '';
   $('eFilial').value = e.filial_sindical || '';
   $('eRemun').value = e.remuneracion_pactada || '';
+  const pa=e.perfil_arca||{};
+  $('eArcaTipoEmp').value=pa.tipo_empleador||'';
+  $('eArcaOperacion').value=pa.tipo_operacion||'';
+  $('eArcaSituacion').value=pa.situacion_revista||'';
+  $('eArcaCondicion').value=pa.condicion||'';
+  $('eArcaActividad').value=pa.actividad||'';
+  $('eArcaModalidad').value=pa.modalidad_contratacion||'';
+  $('eArcaSiniestrado').value=pa.siniestrado||'';
+  $('eArcaLocalidad').value=pa.localidad||'';
+  $('eArcaObraSocial').value=pa.codigo_obra_social||'';
+  $('eArcaDias').value=pa.dias_trabajados??'';
+  $('eArcaHoras').value=pa.horas_trabajadas??'';
   $('eTareaPrincipal').value = '';
   $('resultadoEncuadramiento').style.display='none';
 
@@ -2067,7 +2123,7 @@ function editarEmpleado(id){
 function cancelarEdicion(){
   editandoEmpleadoId = null;
   obraSocialSugeridaAnterior = '';
-  ['eNombre','eApellido','eCuil','eFecha','eNacimiento','eDomicilio','eLegajo','eObraSocial','eLugarDesde','eCbu','eRemun','eFormaPago','eLocalidad','eFilial','eSindicato','eTareaPrincipal'].forEach(i=>$(i).value='');
+  ['eNombre','eApellido','eCuil','eFecha','eNacimiento','eDomicilio','eLegajo','eObraSocial','eLugarDesde','eCbu','eRemun','eFormaPago','eLocalidad','eFilial','eSindicato','eTareaPrincipal','eArcaTipoEmp','eArcaOperacion','eArcaSituacion','eArcaCondicion','eArcaActividad','eArcaModalidad','eArcaSiniestrado','eArcaLocalidad','eArcaObraSocial','eArcaDias','eArcaHoras'].forEach(i=>$(i).value='');
   $('resultadoEncuadramiento').style.display='none';
   $('eEstablecimiento').value='';
   $('eHijos').value='0';
@@ -2225,7 +2281,21 @@ async function crearEmpleado(){
       lugar_trabajo_desde:fechaIso($('eLugarDesde').value,'Fecha del cambio de lugar'),
       localidad:$('eLocalidad').value.trim() || null,
       filial_sindical:$('eFilial').value.trim() || null,
-      remuneracion_pactada:$('eRemun').value ? $('eRemun').value : null
+      remuneracion_pactada:$('eRemun').value ? $('eRemun').value : null,
+      perfil_arca:{
+        tipo_empleador:$('eArcaTipoEmp').value.trim(),
+        tipo_operacion:$('eArcaOperacion').value.trim(),
+        situacion_revista:$('eArcaSituacion').value.trim(),
+        condicion:$('eArcaCondicion').value.trim(),
+        actividad:$('eArcaActividad').value.trim(),
+        modalidad_contratacion:$('eArcaModalidad').value.trim(),
+        siniestrado:$('eArcaSiniestrado').value.trim(),
+        localidad:$('eArcaLocalidad').value.trim(),
+        codigo_obra_social:$('eArcaObraSocial').value.trim(),
+        dias_trabajados:$('eArcaDias').value===''?'':Number($('eArcaDias').value),
+        horas_trabajadas:$('eArcaHoras').value===''?0:Number($('eArcaHoras').value),
+        scvo:true, reduccion:false
+      }
     };
     const metodo = editandoEmpleadoId ? 'PUT' : 'POST';
     const ruta = editandoEmpleadoId ? '/empleados/' + editandoEmpleadoId : '/empleados';

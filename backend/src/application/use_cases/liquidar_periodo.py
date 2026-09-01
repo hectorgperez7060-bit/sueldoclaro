@@ -914,6 +914,9 @@ class LiquidarPeriodo:
                         "modalidad_contrato": getattr(emp, "modalidad_contrato", "") or "",
                         "lugar_trabajo": getattr(emp, "lugar_trabajo", "") or "",
                     },
+                    # Perfil ARCA fotografiado: una exportación histórica no puede
+                    # consultar la ficha actual porque los códigos pudieron cambiar.
+                    "perfil_arca": dict(getattr(emp, "perfil_arca", None) or {}),
                     "cct": emp.cct_numero, "categoria": emp.categoria,
                     "basico": str(escala.basico.monto), "zona_escala": escala.zona,
                     "amparos": [a[0] + ":" + (a[2] or "") for a in res.regimenes_aplicados()],

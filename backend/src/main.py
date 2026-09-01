@@ -11,7 +11,7 @@ from sqlalchemy.exc import DBAPIError
 
 from api.dependencies.auth import Principal, require_tenant
 from api.middleware.rate_limit import RateLimitMiddleware
-from api.routes import auth, carpetas, convenios, empleados, establecimientos, liquidaciones, novedades, recibos
+from api.routes import auth, carpetas, convenios, empleados, establecimientos, exportaciones, liquidaciones, novedades, recibos
 from infrastructure.database import models as m
 from infrastructure.database.session import dispose_engine, plain_session
 from ui_page import HTML as UI_HTML
@@ -36,6 +36,7 @@ def create_app() -> FastAPI:
     app.include_router(liquidaciones.router)
     app.include_router(novedades.router)
     app.include_router(carpetas.router)
+    app.include_router(exportaciones.router)
     app.include_router(recibos.router)
 
     @app.exception_handler(ValueError)
