@@ -194,6 +194,42 @@ async def descargar_arca(
         )
 
 
+@router.get("/carpetas/{carpeta_id}/arca-conceptos.csv")
+async def mapa_conceptos_arca(carpeta_id: str, principal: Principal = _ROLES):
+    """Mapa auditable para parametrizar conceptos del empleador en LSD."""
+    async with tenant_session(principal.tenant_id) as sesion:
+        carpeta = await _carpeta(sesion, carpeta_id)
+        _, _, detalles = _datos(carpeta)
+        vistos = {}
+        for detalle in detalles:
+            for concepto in detalle.get("conceptos", []):
+                if not _es_concepto_lsd(concepto):
+                    continue
+                codigo = str(concepto.get("codigo", ""))
+                try:
+                    vistos[codigo] = (
+                        codigo_empleador(codigo), codigo_tipo_arca(codigo),
+                        concepto.get("descripcion", ""), concepto.get("tipo", ""),
+                    )
+                except ValueError as exc:
+                    raise HTTPException(status.HTTP_409_CONFLICT, str(exc)) from exc
+        out = io.StringIO(newline="")
+        writer = csv.writer(out, delimiter=";")
+        writer.writerow([
+            "codigo_interno_sueldo_claro", "codigo_concepto_empleador",
+            "codigo_tipo_concepto_arca", "descripcion", "grupo",
+        ])
+        for codigo in sorted(vistos):
+            writer.writerow([codigo, *vistos[codigo]])
+        contenido = ("sep=;\r\n" + out.getvalue()).encode("utf-8-sig")
+        return Response(
+            contenido, media_type="text/csv; charset=utf-8",
+            headers={"Content-Disposition": (
+                f'attachment; filename="mapa-conceptos-ARCA-{carpeta.periodo}.csv"'
+            )},
+        )
+
+
 @router.get("/carpetas/{carpeta_id}/soecra.csv")
 async def planilla_soecra(carpeta_id: str, principal: Principal = _ROLES):
     async with tenant_session(principal.tenant_id) as s:
