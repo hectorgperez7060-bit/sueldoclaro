@@ -103,8 +103,7 @@ async def planilla_soecra(
             sindical = Decimal("0")
             for concepto in detalle.get("conceptos", []):
                 importe = Decimal(str(concepto.get("importe", 0)))
-                tipo = concepto.get("tipo", "")
-                if tipo == "REMUNERATIVO":
+                tipo = str(concepto.get("tipo", "")).upper()\n                if tipo == "REMUNERATIVO":
                     remunerativo += importe
                 elif tipo == "NO_REMUNERATIVO":
                     no_remunerativo += importe
