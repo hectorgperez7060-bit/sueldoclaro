@@ -449,6 +449,8 @@ tr:last-child td{border-bottom:0}tbody tr:hover{background:#f8fcfb}
             <div><label>Código obra social (6)</label><input id="eArcaObraSocial" maxlength="6"></div>
             <div><label>Días trabajados</label><input id="eArcaDias" type="number" min="0" max="31"></div>
             <div><label>Horas trabajadas</label><input id="eArcaHoras" type="number" min="0" max="999"></div>
+            <div><label>Detracción Ley 27.541</label><input id="eArcaDetraccion" type="number" min="0" step="0.01" placeholder="0 si no corresponde"></div>
+            <div><label>¿Importe confirmado?</label><select id="eArcaDetraccionOk"><option value="false">Pendiente</option><option value="true">Sí, confirmado</option></select></div>
           </div>
         </details>
 
@@ -2111,6 +2113,8 @@ function editarEmpleado(id){
   $('eArcaObraSocial').value=pa.codigo_obra_social||'';
   $('eArcaDias').value=pa.dias_trabajados??'';
   $('eArcaHoras').value=pa.horas_trabajadas??'';
+  $('eArcaDetraccion').value=pa.detraccion_ley_27541??'';
+  $('eArcaDetraccionOk').value=pa.detraccion_confirmada===true?'true':'false';
   $('eTareaPrincipal').value = '';
   $('resultadoEncuadramiento').style.display='none';
 
@@ -2123,7 +2127,8 @@ function editarEmpleado(id){
 function cancelarEdicion(){
   editandoEmpleadoId = null;
   obraSocialSugeridaAnterior = '';
-  ['eNombre','eApellido','eCuil','eFecha','eNacimiento','eDomicilio','eLegajo','eObraSocial','eLugarDesde','eCbu','eRemun','eFormaPago','eLocalidad','eFilial','eSindicato','eTareaPrincipal','eArcaTipoEmp','eArcaOperacion','eArcaSituacion','eArcaCondicion','eArcaActividad','eArcaModalidad','eArcaSiniestrado','eArcaLocalidad','eArcaObraSocial','eArcaDias','eArcaHoras'].forEach(i=>$(i).value='');
+  ['eNombre','eApellido','eCuil','eFecha','eNacimiento','eDomicilio','eLegajo','eObraSocial','eLugarDesde','eCbu','eRemun','eFormaPago','eLocalidad','eFilial','eSindicato','eTareaPrincipal','eArcaTipoEmp','eArcaOperacion','eArcaSituacion','eArcaCondicion','eArcaActividad','eArcaModalidad','eArcaSiniestrado','eArcaLocalidad','eArcaObraSocial','eArcaDias','eArcaHoras','eArcaDetraccion'].forEach(i=>$(i).value='');
+  $('eArcaDetraccionOk').value='false';
   $('resultadoEncuadramiento').style.display='none';
   $('eEstablecimiento').value='';
   $('eHijos').value='0';
@@ -2294,6 +2299,8 @@ async function crearEmpleado(){
         codigo_obra_social:$('eArcaObraSocial').value.trim(),
         dias_trabajados:$('eArcaDias').value===''?'':Number($('eArcaDias').value),
         horas_trabajadas:$('eArcaHoras').value===''?0:Number($('eArcaHoras').value),
+        detraccion_ley_27541:$('eArcaDetraccion').value===''?0:$('eArcaDetraccion').value,
+        detraccion_confirmada:$('eArcaDetraccionOk').value==='true',
         scvo:true, reduccion:false
       }
     };
