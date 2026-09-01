@@ -20,6 +20,10 @@ dist/
 tmp*
 *.tmp
 
+# Exportaciones laborales con posibles datos personales
+*_LSD_*.txt
+*_LSD*.txt
+
 # Editores y sistema operativo
 .vscode/
 .idea/
