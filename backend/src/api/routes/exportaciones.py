@@ -22,7 +22,7 @@ _URL_SOECRA = "https://soecra.com.ar/ddjj-empresas/"
 
 def _datos(carpeta: m.CarpetaMensual):
     contenido = carpeta.contenido or {}
-    return contenido, contenido.get("snapshot", {}), contenido.get("detalles", [])
+    return contenido, contenido.get("snapshot_parametros", {}), contenido.get("detalles", [])
 
 
 async def _carpeta(s, carpeta_id: str) -> m.CarpetaMensual:
