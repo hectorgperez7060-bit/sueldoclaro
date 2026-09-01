@@ -1,5 +1,5 @@
 {
-  "version_paquete": "0.2.0-PROVISORIO",
+  "version_paquete": "0.2.1-PROVISORIO",
   "fuente_manifest": "Auditoría Sueldo Claro agosto 2026 · CCT 761/19 (SOECRA – CACEPRI – Cementerio Británico – Congregación Evangélica Alemana – Coop. La Unión). Texto convencional publicado por la parte sindical firmante y acta salarial RE-2026-70482358-APN-DTD#JGM. Sin escala homologada para 2026-08.",
   "cct": "761/19",
   "identidad": {
@@ -843,14 +843,16 @@
           "estado_fuente": "PROVISORIA",
           "verificado": false,
           "incidencias": {
-            "base_deduccion": "total de remuneraciones",
+            "base_deduccion": "remunerativa",
             "condicion": "solo_no_afiliados",
             "destino_pago": "SOECRA",
             "codigo_boleta": "SOECRA_APORTE_SOLIDARIO",
             "canal_pago": "CuotaQ",
             "url_pago": "https://www.cuotaq.com/soecra",
             "vigencia_declarada": "julio y agosto de 2026 por prórroga",
-            "reserva_documental": "acuerdo no homologado; verificar el texto del art. 76 en la versión homologada del CCT"
+            "reserva_documental": "acuerdo no homologado; verificar el texto del art. 76 en la versión homologada del CCT. El acta del 17/07/2026 no extiende el aporte a las sumas no remunerativas, a diferencia del punto 4 del acta del CCT 749/18: la base queda limitada a lo remunerativo hasta que se verifique el texto homologado.",
+            "base_deduccion_texto_convencional": "total de remuneraciones (CCT 761/19 arts. 75 y 76)",
+            "sumas_no_remunerativas_incluidas": false
           }
         },
         {
@@ -862,14 +864,16 @@
           "estado_fuente": "PROVISORIA",
           "verificado": false,
           "incidencias": {
-            "base_deduccion": "total de remuneraciones",
+            "base_deduccion": "remunerativa",
             "condicion": "solo_afiliados_con_afiliacion_acreditada",
             "destino_pago": "SOECRA",
             "codigo_boleta": "SOECRA_CUOTA_SINDICAL",
             "canal_pago": "CuotaQ",
             "url_pago": "https://www.cuotaq.com/soecra",
             "regla_vencimiento": "dentro de los 15 días posteriores al mes vencido",
-            "reserva_documental": "verificar contra el texto homologado antes de habilitar la retención"
+            "reserva_documental": "verificar contra el texto homologado antes de habilitar la retención. El acta del 17/07/2026 no extiende el aporte a las sumas no remunerativas, a diferencia del punto 4 del acta del CCT 749/18: la base queda limitada a lo remunerativo hasta que se verifique el texto homologado.",
+            "base_deduccion_texto_convencional": "total de remuneraciones (CCT 761/19 arts. 75 y 76)",
+            "sumas_no_remunerativas_incluidas": false
           }
         },
         {

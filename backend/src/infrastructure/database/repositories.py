@@ -14,6 +14,7 @@ from typing import List, Optional
 from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from domain.entities.jornada import horas_desde_reglas
 from domain.entities.parametros import (
     Amparo as AmparoDom,
     AmparoSet,
@@ -344,6 +345,26 @@ class NovedadMensualRepo:
 class ParametrosRepo:
     def __init__(self, session: AsyncSession):
         self.s = session
+
+    async def horas_jornada_por_cct(self) -> dict[str, Decimal]:
+        """Horas de jornada completa que declara la regla JORNADA de cada CCT.
+
+        Sin esto, la importación prorratearía toda jornada contra 48 horas y
+        recortaría el sueldo de un trabajador de jornada completa en cualquier
+        convenio de 44 o 45 horas.
+        """
+        filas = await self.s.execute(
+            select(m.CctReglaEstructural).where(
+                m.CctReglaEstructural.codigo == "JORNADA",
+                m.CctReglaEstructural.activa.is_(True),
+            )
+        )
+        horas: dict[str, Decimal] = {}
+        for regla in filas.scalars().all():
+            valor = horas_desde_reglas([regla])
+            if valor is not None:
+                horas[regla.cct_numero] = valor
+        return horas
 
     async def catalogo_encuadramientos(self, fecha: date | None = None) -> dict[str, set[str]]:
         """CCT activos y su padrón histórico de categorías.

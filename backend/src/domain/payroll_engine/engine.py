@@ -98,6 +98,12 @@ def _desc_contrib_convenio(codigo: str) -> str:
     return codigo
 
 
+# Selectores admitidos por ``incidencias.base_deduccion`` de una deducción de
+# convenio. Se declaran una sola vez para que la carga normativa pueda validarse
+# contra el motor y no se cuele una descripción en prosa donde va un selector.
+BASES_DEDUCCION_VALIDAS = ("sindical", "remunerativa", "no_remunerativa_sindical")
+
+
 class MotorLiquidacion:
     def __init__(
         self,
@@ -166,6 +172,11 @@ class MotorLiquidacion:
             # 'categoria' en sus incidencias, solo se aplica al empleado de esa
             # categoría. El motor no conoce convenios ni categorías concretas.
             if not self._p.categoria_coincide(inc.get("categoria"), empleado.categoria):
+                continue
+            # Filtro por zona, con la misma lógica que la categoría. Un convenio
+            # zonificado repite el nombre de categoría en cada zona: sin este
+            # filtro el mismo empleado se llevaba la suma de todas las zonas.
+            if not self._p.zona_coincide(inc.get("zona"), escala.zona):
                 continue
             self._p.marcar_usado(p.codigo)
             imp = Dinero(p.valor)
@@ -477,9 +488,11 @@ class MotorLiquidacion:
                     "remunerativa": base,
                     "no_remunerativa_sindical": _nr("aporte_sindicato").redondear(),
                 }
+                assert set(bases_deduccion) == set(BASES_DEDUCCION_VALIDAS)
                 if selector_base not in bases_deduccion:
                     raise ValueError(
-                        f"Base de deducción inválida para {d.codigo}: {selector_base}"
+                        f"Base de deducción inválida para {d.codigo}: {selector_base!r}. "
+                        f"Valores admitidos: {', '.join(BASES_DEDUCCION_VALIDAS)}"
                     )
                 imp = bases_deduccion[selector_base].porcentaje(d.valor).redondear()
                 absorbe_codigos = set((d.incidencias or {}).get("absorbe_codigos", []))

@@ -172,6 +172,23 @@ class ParametroSet:
 
         return normalizar(requerida) == normalizar(categoria)
 
+    @staticmethod
+    def zona_coincide(requerida: Optional[str], zona: str) -> bool:
+        """Compara zonas declarativas, igual que las categorías.
+
+        Un concepto sin zona vale para todos: así se comporta la mayoría de los
+        convenios. Uno con zona vale sólo para la escala de esa zona, y no se
+        aplica a un empleado sin zona asignada: prefiere no pagarlo a pagarlo mal.
+        """
+        if not requerida:
+            return True
+        tabla = str.maketrans("ÁÉÍÓÚÜÑáéíóúüñ", "AEIOUUNaeiouun")
+
+        def normalizar(texto: str) -> str:
+            return " ".join(str(texto or "").translate(tabla).casefold().split())
+
+        return normalizar(requerida) == normalizar(zona)
+
     def conceptos_sin_regla_jornada(
         self, cct_numero: str, categoria: str, proporcion_jornada: Decimal
     ) -> List[ParametroLegal]:

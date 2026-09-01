@@ -588,8 +588,13 @@ def generar_recibo_pdf(data: dict[str, Any]) -> bytes:
     worker_name = f"{w['nombre']} {w['apellido']}".strip().title()
     right = (("Trabajador", worker_name), ("CUIL / Legajo", f"{w['cuil']} / {w.get('legajo') or '-'}"),
              ("Ingreso / Antig.", f"{_date_display(w['fecha_ingreso'])} / {w.get('antiguedad') or '-'}"))
+    # La jornada va escrita en el recibo: es el dato que explica por qué un básico
+    # aparece prorrateado, y sin él el trabajador no puede controlar su propio sueldo.
+    modalidad = w.get("modalidad_contrato") or NO_INFORMADO
+    jornada = w.get("jornada") or ""
     extra = (("Categoría", w["categoria"]), ("CCT", w.get("cct_numero") or NO_INFORMADO),
-             ("Modalidad", w.get("modalidad_contrato") or NO_INFORMADO))
+             ("Modalidad / Jornada",
+              f"{modalidad} / {jornada}" if jornada else modalidad))
     c.setFillColor(white); c.setStrokeColor(LINE); c.setLineWidth(.35)
     c.rect(28, y - 46, 540, 52, fill=1, stroke=1)
     c.line(208, y - 46, 208, y + 6); c.line(388, y - 46, 388, y + 6)

@@ -413,7 +413,7 @@ tr:last-child td{border-bottom:0}tbody tr:hover{background:#f8fcfb}
           <div><label>Modalidad de contrato</label>
             <select id="eModalidad"><option>Tiempo indeterminado</option><option>Plazo fijo</option><option>Eventual</option><option>Temporada</option><option>Período de prueba</option></select></div>
           <div><label>Horas semanales pactadas</label>
-            <input id="eHorasSemanales" type="number" min="1" max="48" step="0.5" value="48">
+            <input id="eHorasSemanales" type="number" min="1" step="0.5"><small id="eHorasAyuda" style="display:block;color:#6b7280"></small>
             <small style="color:#6b7280">En Comercio la jornada completa es 48. Para este empleado escribí 30.</small></div>
           <div><label>Obra social (independiente del sindicato)</label><input id="eObraSocial" list="obrasSociales" placeholder="Elegí o escribí la obra social"><datalist id="obrasSociales"><option value="OSADEF - Obra Social de las Asociaciones de Empleados de Farmacia"><option value="OSPSA - Obra Social del Personal de la Sanidad Argentina"><option value="OSECAC - Obra Social de Empleados de Comercio"><option value="OSPF - Obra Social del Personal de Farmacia"></datalist></div>
           <div><label>Establecimiento / lugar de trabajo</label><select id="eEstablecimiento" onchange="datosEstablecimientoParaEncuadramiento()"><option value="">Sin establecimiento asignado</option></select></div>
@@ -473,7 +473,9 @@ tr:last-child td{border-bottom:0}tbody tr:hover{background:#f8fcfb}
       <div class="fila">
         <div><label>Mes</label><input id="novPeriodo" type="month" onchange="cargarNovedades()"></div>
         <div style="display:flex;align-items:end"><button class="secundario" onclick="cargarNovedades()" style="width:100%">Ver novedades del mes</button></div>
+        <div style="display:flex;align-items:end"><button class="secundario" onclick="copiarMesAnterior()" style="width:100%">Copiar del mes anterior</button></div>
       </div>
+      <div id="novLoteMsg" style="display:none;margin-top:8px"></div>
 
       <div id="formNovedad" style="display:none;border:1px dashed var(--borde);border-radius:10px;padding:14px;margin-top:12px">
         <h3 id="tituloNovedad" style="font-size:.9rem;color:var(--verde);margin:4px 0 6px">Nueva novedad</h3>
@@ -669,6 +671,7 @@ tr:last-child td{border-bottom:0}tbody tr:hover{background:#f8fcfb}
         </div>
         <div style="display:flex;gap:8px;margin-top:10px">
           <button class="chico" id="btnGuardarNovedad" onclick="guardarNovedad()">Guardar novedad</button>
+          <button class="chico secundario" id="btnNovedadLote" onclick="aplicarNovedadATodos()">Aplicar a todos</button>
           <button class="chico secundario" onclick="cancelarNovedad()">Cancelar</button>
         </div>
         <div class="error" id="novFormError"></div>
@@ -731,6 +734,33 @@ let empleadosCache = {};
 let establecimientosCache = {};
 let editandoEmpleadoId = null;
 let convenios = [];
+// Horas de jornada completa del convenio elegido. Cada convenio trae las suyas
+// (Comercio 48, Farmacia 45, los dos de SOECRA 44). Si el convenio todavía no
+// las declara se cae al tope de la Ley 11.544 y se avisa en pantalla.
+const HORAS_TOPE_LEY_11544 = 48;
+function horasJornadaConvenio(numero){
+  const c = convenios.find(x => x.numero === (numero || ($('eConvenio') && $('eConvenio').value)));
+  const h = c && c.horas_semanales_jornada_completa;
+  const n = Number(h);
+  return (h != null && isFinite(n) && n > 0) ? n : HORAS_TOPE_LEY_11544;
+}
+function convenioDeclaraJornada(numero){
+  const c = convenios.find(x => x.numero === (numero || ($('eConvenio') && $('eConvenio').value)));
+  return !!(c && c.horas_semanales_jornada_completa);
+}
+function ajustarCampoHoras(){
+  const campo = $('eHorasSemanales');
+  if(!campo) return;
+  const completa = horasJornadaConvenio();
+  campo.max = completa;
+  const ayuda = $('eHorasAyuda');
+  if(ayuda){
+    ayuda.textContent = convenioDeclaraJornada()
+      ? 'Jornada completa del convenio: ' + completa + ' h semanales.'
+      : 'El convenio no declara su jornada: se toma el tope legal de 48 h.';
+  }
+  if(Number(campo.value) > completa) campo.value = completa;
+}
 let obraSocialSugeridaAnterior = '';
 let empresaCache = {razon_social:'', cuit:''};
 let ultimaLiq = null;
@@ -1217,6 +1247,7 @@ function llenarConvenios(preseleccion=null){
 }
 function llenarCategorias(){
   const c = convenios.find(x=>x.numero===$('eConvenio').value);
+  ajustarCampoHoras();
   const sel = $('eCategoria'); sel.innerHTML='';
   (c?c.categorias:[]).forEach(cat=>{
     const o=document.createElement('option'); o.value=cat; o.textContent=cat; sel.appendChild(o);
@@ -2024,6 +2055,56 @@ function cuerpoNovedad(incluirEmpleado=true){
   return cuerpo;
 }
 
+function mesAnterior(periodo){
+  const [a,m]=String(periodo||'').split('-').map(Number);
+  if(!a||!m) return '';
+  const d=new Date(a,m-2,1);
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+}
+
+// Muestra qué pasó con cada empleado. Un lote nunca pisa lo ya cargado ni se cae
+// entero por uno: los omitidos se listan con su motivo.
+function mostrarResultadoLote(r, titulo){
+  const caja=$('novLoteMsg');
+  const omitidos=(r.detalle||[]).filter(d=>d.estado==='omitido');
+  const nombre=id=>{const e=empleadosCache[id]; return e?`${e.apellido}, ${e.nombre}`:id;};
+  const lista=omitidos.length
+    ? '<ul style="margin:6px 0 0 16px">'+omitidos.map(d=>`<li>${esc(nombre(d.empleado_id))}: ${esc(d.motivo||'')}</li>`).join('')+'</ul>'
+    : '';
+  caja.className = r.creadas ? 'ok' : 'error';
+  caja.innerHTML = `<b>${esc(titulo)}</b><br>${r.creadas} novedad(es) creada(s), ${r.omitidas} sin cambios.${lista}`;
+  caja.style.display='block';
+}
+
+async function aplicarNovedadATodos(){
+  ocultar('novFormError'); ocultar('novOk');
+  if(editandoNovedadId){ mostrarError('novFormError','Estás editando una novedad. Cancelá la edición para aplicar a todos.'); return; }
+  const cuerpo=cuerpoNovedad(false);
+  const total=Object.keys(empleadosCache||{}).length;
+  if(!confirm(`Se va a cargar esta misma novedad para los ${total} empleados del mes ${cuerpo.periodo}.\n\nA quien ya tenga novedades cargadas no se le toca nada.\n\n¿Confirmás?`)) return;
+  try{
+    const r=await api('/novedades/lote','POST',Object.assign({}, cuerpo, {empleado_ids:null}));
+    cancelarNovedad();
+    mostrarResultadoLote(r,'Novedad aplicada al plantel');
+    await cargarNovedades();
+  }catch(e){ mostrarError('novFormError',e.message); }
+}
+
+async function copiarMesAnterior(){
+  const destino=$('novPeriodo').value;
+  const origen=mesAnterior(destino);
+  if(!origen){ alert('Elegí primero el mes.'); return; }
+  if(!confirm(`Se van a copiar las novedades de ${origen} al mes ${destino}, tal como quedaron.\n\nA quien ya tenga novedades en ${destino} no se le toca nada.\n\n¿Confirmás?`)) return;
+  try{
+    const r=await api('/novedades/copiar','POST',{periodo_origen:origen,periodo_destino:destino,empleado_ids:null});
+    mostrarResultadoLote(r,`Novedades copiadas de ${origen} a ${destino}`);
+    await cargarNovedades();
+  }catch(e){
+    const caja=$('novLoteMsg'); caja.className='error';
+    caja.textContent=e.message; caja.style.display='block';
+  }
+}
+
 async function guardarNovedad(){
   ocultar('novFormError'); ocultar('novOk');
   if(!$('novEmpleado').value){ mostrarError('novFormError','Elegí un empleado.'); return; }
@@ -2152,7 +2233,8 @@ function editarEmpleado(id){
   $('eObraSocial').value = e.obra_social || '';
   obraSocialSugeridaAnterior = '';
   $('eModalidad').value = e.modalidad_contrato || 'Tiempo indeterminado';
-  $('eHorasSemanales').value = Number(e.proporcion_jornada || 1) * 48;
+  $('eHorasSemanales').value = Number(e.proporcion_jornada || 1) * horasJornadaConvenio(e.cct_numero);
+  ajustarCampoHoras();
   $('eFormaPago').value = e.forma_pago || '';
   $('eCbu').value = e.cbu || '';
   $('eEstablecimiento').value = e.establecimiento_id || '';
@@ -2191,7 +2273,8 @@ function cancelarEdicion(){
   $('resultadoEncuadramiento').style.display='none';
   $('eEstablecimiento').value='';
   $('eHijos').value='0';
-  $('eHorasSemanales').value='48';
+  $('eHorasSemanales').value=String(horasJornadaConvenio());
+  ajustarCampoHoras();
   $('eConyuge').value='false';
   $('btnGuardarEmp').textContent = 'Guardar empleado';
   $('btnCancelarEmp').style.display = 'none';
@@ -2315,8 +2398,9 @@ async function crearEmpleado(){
   if(fp==='3' && $('eCbu').value.replace(/\D/g,'').length!==22){
     mostrarError('empError','Acreditación en cuenta: el CBU es obligatorio y debe tener 22 dígitos.'); return; }
   const horasSemanales=Number($('eHorasSemanales').value);
-  if(!(horasSemanales>0 && horasSemanales<=48)){
-    mostrarError('empError','Las horas semanales deben ser mayores que 0 y no superar 48.'); return;
+  const horasCompletas=horasJornadaConvenio();
+  if(!(horasSemanales>0 && horasSemanales<=horasCompletas)){
+    mostrarError('empError','Las horas semanales deben ser mayores que 0 y no superar la jornada completa del convenio ('+horasCompletas+' h). Si trabaja más, son horas extra y se cargan como novedad del mes.'); return;
   }
   const lugarElegido=$('eEstablecimiento').value || null;
   const lugarAnterior=editandoEmpleadoId ? (empleadosCache[editandoEmpleadoId].establecimiento_id||null) : null;
@@ -2329,7 +2413,7 @@ async function crearEmpleado(){
       cuil:$('eCuil').value.replace(/\D/g,''), fecha_ingreso:fechaIso($('eFecha').value,'Fecha de ingreso'),
       cct_numero:$('eConvenio').value, categoria:$('eCategoria').value,
       legajo:$('eLegajo').value.trim(),
-      proporcion_jornada:horasSemanales/48,
+      proporcion_jornada:horasSemanales/horasCompletas,
       fecha_nacimiento:fechaIso($('eNacimiento').value,'Fecha de nacimiento'),
       sexo:$('eSexo').value || null,
       estado_civil:$('eEstadoCivil').value || null,
