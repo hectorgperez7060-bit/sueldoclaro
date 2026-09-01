@@ -304,3 +304,72 @@ def test_la_migracion_056_corrige_la_base_en_una_base_ya_instalada():
 def test_no_hay_dos_migraciones_con_el_numero_056():
     numeros = [p.name[:3] for p in (BACKEND / "migrations").glob("056_*.sql")]
     assert len(numeros) == 1, "el número 056 ya está usado por otra migración"
+
+
+# ------------------------------------- convenios zonificados: una zona por vez
+
+def _no_rem_por_zona(codigo_zona: str, importe: str, zona: str, categoria: str):
+    """Réplica de un parámetro no remunerativo de la migración 054."""
+    return ParametroLegal(
+        f"NO_REM_2026_08_761_LUCRO_ADM_1_{codigo_zona}", Decimal(importe), "ARS",
+        "no_rem", VIGENCIA, valid_to=date(2026, 8, 31), is_verified=False,
+        fuente="Paquete provisorio de la prueba piloto", cct_numero="761/19",
+        incidencias={"categoria": categoria, "zona": zona},
+    )
+
+
+CAT_ZONIFICADA = "Con fines de lucro - Administrativo - Categoría 1ª - Jefe administrativo"
+NO_REM_TRES_ZONAS = [
+    _no_rem_por_zona("ZONA_1", "30881.23", "ZONA 1", CAT_ZONIFICADA),
+    _no_rem_por_zona("ZONA_2", "30012.06", "ZONA 2", CAT_ZONIFICADA),
+    _no_rem_por_zona("ZONA_INHOSPITA", "35513.42", "ZONA INHOSPITA", CAT_ZONIFICADA),
+]
+
+
+def _liquidar_zonificado(zona_empleado: str):
+    params = parametros_ejemplo()
+    for extra in NO_REM_TRES_ZONAS:
+        params = params.con_extra(extra)
+    escala = EscalaSalarial(
+        "761/19", CAT_ZONIFICADA, Dinero(Decimal("1470534.94")), VIGENCIA,
+        is_verified=False, provisoria=True, zona=zona_empleado,
+        habilitada_liquidacion=False, estado_fuente="PROVISORIA",
+    )
+    empleado = _empleado("761/19", CAT_ZONIFICADA, afiliado=False)
+    return MotorLiquidacion(params, sin_amparos()).liquidar_mensual(
+        empleado, PERIODO, escala, _cct("761/19", presentismo=False), Novedades(),
+    )
+
+
+@pytest.mark.parametrize("zona,esperado", [
+    ("ZONA 1", "30881.23"),
+    ("ZONA 2", "30012.06"),
+    ("ZONA INHOSPITA", "35513.42"),
+])
+def test_cada_zona_cobra_solo_su_suma_no_remunerativa(zona, esperado):
+    """Regresión: el mismo nombre de categoría se repite en las tres zonas.
+
+    Sin filtrar por zona, un empleado de Zona 1 se llevaba las tres sumas
+    apiladas: 96.406,71 en vez de 30.881,23.
+    """
+    res = _liquidar_zonificado(zona)
+    no_rem = [c for c in res.conceptos if c.codigo.startswith("NO_REM_")]
+    assert len(no_rem) == 1, f"se aplicaron {len(no_rem)} sumas de zona en vez de una"
+    assert no_rem[0].importe == Dinero(Decimal(esperado))
+    assert res.total_no_remunerativo == Dinero(Decimal(esperado))
+
+
+def test_un_empleado_sin_zona_no_se_lleva_la_suma_de_ninguna():
+    """Ante la duda no se paga de más: falta el dato de zona, se resuelve antes."""
+    res = _liquidar_zonificado("")
+    assert [c for c in res.conceptos if c.codigo.startswith("NO_REM_")] == []
+
+
+def test_un_concepto_sin_zona_sigue_valiendo_para_todos():
+    """Los convenios no zonificados no cambian de comportamiento."""
+    from domain.entities.parametros import ParametroSet
+    assert ParametroSet.zona_coincide(None, "") is True
+    assert ParametroSet.zona_coincide("", "ZONA 2") is True
+    assert ParametroSet.zona_coincide("ZONA 2", "zona 2") is True
+    assert ParametroSet.zona_coincide("ZONA INHOSPITA", "ZONA INHÓSPITA") is True
+    assert ParametroSet.zona_coincide("ZONA 1", "ZONA 2") is False

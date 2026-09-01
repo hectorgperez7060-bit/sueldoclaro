@@ -173,6 +173,11 @@ class MotorLiquidacion:
             # categoría. El motor no conoce convenios ni categorías concretas.
             if not self._p.categoria_coincide(inc.get("categoria"), empleado.categoria):
                 continue
+            # Filtro por zona, con la misma lógica que la categoría. Un convenio
+            # zonificado repite el nombre de categoría en cada zona: sin este
+            # filtro el mismo empleado se llevaba la suma de todas las zonas.
+            if not self._p.zona_coincide(inc.get("zona"), escala.zona):
+                continue
             self._p.marcar_usado(p.codigo)
             imp = Dinero(p.valor)
             if empleado.proporcion_jornada != Decimal("1"):
