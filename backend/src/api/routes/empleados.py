@@ -30,7 +30,7 @@ def _to_out(e) -> EmpleadoOut:
         modalidad_contrato=e.modalidad_contrato, cbu=e.cbu, forma_pago=e.forma_pago,
         lugar_trabajo=e.lugar_trabajo, localidad=e.localidad,
         establecimiento_id=str(e.establecimiento_id) if e.establecimiento_id else None,
-        filial_sindical=e.filial_sindical,
+        filial_sindical=e.filial_sindical, perfil_arca=e.perfil_arca or {},
     )
 
 
