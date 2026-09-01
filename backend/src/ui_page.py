@@ -473,7 +473,9 @@ tr:last-child td{border-bottom:0}tbody tr:hover{background:#f8fcfb}
       <div class="fila">
         <div><label>Mes</label><input id="novPeriodo" type="month" onchange="cargarNovedades()"></div>
         <div style="display:flex;align-items:end"><button class="secundario" onclick="cargarNovedades()" style="width:100%">Ver novedades del mes</button></div>
+        <div style="display:flex;align-items:end"><button class="secundario" onclick="copiarMesAnterior()" style="width:100%">Copiar del mes anterior</button></div>
       </div>
+      <div id="novLoteMsg" style="display:none;margin-top:8px"></div>
 
       <div id="formNovedad" style="display:none;border:1px dashed var(--borde);border-radius:10px;padding:14px;margin-top:12px">
         <h3 id="tituloNovedad" style="font-size:.9rem;color:var(--verde);margin:4px 0 6px">Nueva novedad</h3>
@@ -669,6 +671,7 @@ tr:last-child td{border-bottom:0}tbody tr:hover{background:#f8fcfb}
         </div>
         <div style="display:flex;gap:8px;margin-top:10px">
           <button class="chico" id="btnGuardarNovedad" onclick="guardarNovedad()">Guardar novedad</button>
+          <button class="chico secundario" id="btnNovedadLote" onclick="aplicarNovedadATodos()">Aplicar a todos</button>
           <button class="chico secundario" onclick="cancelarNovedad()">Cancelar</button>
         </div>
         <div class="error" id="novFormError"></div>
@@ -2050,6 +2053,56 @@ function cuerpoNovedad(incluirEmpleado=true){
   Object.assign(cuerpo,datosAdicionalesConvenio());
   if(incluirEmpleado) cuerpo.empleado_id=$('novEmpleado').value;
   return cuerpo;
+}
+
+function mesAnterior(periodo){
+  const [a,m]=String(periodo||'').split('-').map(Number);
+  if(!a||!m) return '';
+  const d=new Date(a,m-2,1);
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+}
+
+// Muestra qué pasó con cada empleado. Un lote nunca pisa lo ya cargado ni se cae
+// entero por uno: los omitidos se listan con su motivo.
+function mostrarResultadoLote(r, titulo){
+  const caja=$('novLoteMsg');
+  const omitidos=(r.detalle||[]).filter(d=>d.estado==='omitido');
+  const nombre=id=>{const e=empleadosCache[id]; return e?`${e.apellido}, ${e.nombre}`:id;};
+  const lista=omitidos.length
+    ? '<ul style="margin:6px 0 0 16px">'+omitidos.map(d=>`<li>${esc(nombre(d.empleado_id))}: ${esc(d.motivo||'')}</li>`).join('')+'</ul>'
+    : '';
+  caja.className = r.creadas ? 'ok' : 'error';
+  caja.innerHTML = `<b>${esc(titulo)}</b><br>${r.creadas} novedad(es) creada(s), ${r.omitidas} sin cambios.${lista}`;
+  caja.style.display='block';
+}
+
+async function aplicarNovedadATodos(){
+  ocultar('novFormError'); ocultar('novOk');
+  if(editandoNovedadId){ mostrarError('novFormError','Estás editando una novedad. Cancelá la edición para aplicar a todos.'); return; }
+  const cuerpo=cuerpoNovedad(false);
+  const total=Object.keys(empleadosCache||{}).length;
+  if(!confirm(`Se va a cargar esta misma novedad para los ${total} empleados del mes ${cuerpo.periodo}.\n\nA quien ya tenga novedades cargadas no se le toca nada.\n\n¿Confirmás?`)) return;
+  try{
+    const r=await api('/novedades/lote','POST',Object.assign({}, cuerpo, {empleado_ids:null}));
+    cancelarNovedad();
+    mostrarResultadoLote(r,'Novedad aplicada al plantel');
+    await cargarNovedades();
+  }catch(e){ mostrarError('novFormError',e.message); }
+}
+
+async function copiarMesAnterior(){
+  const destino=$('novPeriodo').value;
+  const origen=mesAnterior(destino);
+  if(!origen){ alert('Elegí primero el mes.'); return; }
+  if(!confirm(`Se van a copiar las novedades de ${origen} al mes ${destino}, tal como quedaron.\n\nA quien ya tenga novedades en ${destino} no se le toca nada.\n\n¿Confirmás?`)) return;
+  try{
+    const r=await api('/novedades/copiar','POST',{periodo_origen:origen,periodo_destino:destino,empleado_ids:null});
+    mostrarResultadoLote(r,`Novedades copiadas de ${origen} a ${destino}`);
+    await cargarNovedades();
+  }catch(e){
+    const caja=$('novLoteMsg'); caja.className='error';
+    caja.textContent=e.message; caja.style.display='block';
+  }
 }
 
 async function guardarNovedad(){

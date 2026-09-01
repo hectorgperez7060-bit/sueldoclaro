@@ -289,6 +289,51 @@ class NovedadMensualUpdate(BaseModel):
         return DatosNovedadMensual(**self._datos())
 
 
+class NovedadLoteIn(NovedadMensualUpdate):
+    """La misma novedad para varios empleados a la vez.
+
+    ``empleado_ids`` vacío significa todo el plantel activo del período. Existe
+    porque cargar de a uno diez legajos con el mismo mes es la parte que hace que
+    la gente termine poniendo cualquier cosa.
+    """
+
+    empleado_ids: Optional[List[str]] = None
+
+    def _datos(self):
+        datos = self.model_dump(exclude={"empleado_ids"})
+        datos["adicionales_convencionales"] = tuple(datos["adicionales_convencionales"])
+        datos["cantidades_adicionales"] = tuple(datos["cantidades_adicionales"].items())
+        datos["feriados_uocra_detalle"] = tuple(datos["feriados_uocra_detalle"])
+        datos["horas_extra_uocra_detalle"] = tuple(datos["horas_extra_uocra_detalle"])
+        return datos
+
+
+class NovedadCopiaIn(BaseModel):
+    """Traer al período nuevo las novedades que ya se cargaron en otro."""
+
+    periodo_origen: str
+    periodo_destino: str
+    empleado_ids: Optional[List[str]] = None
+
+    @model_validator(mode="after")
+    def _validar(self):
+        from domain.entities.novedad import DatosNovedadMensual
+
+        DatosNovedadMensual(periodo=self.periodo_origen)
+        DatosNovedadMensual(periodo=self.periodo_destino)
+        if self.periodo_origen == self.periodo_destino:
+            raise ValueError("El período de origen y el de destino no pueden ser el mismo")
+        return self
+
+
+class ResultadoLoteNovedades(BaseModel):
+    """Qué pasó con cada empleado. Nunca se cae todo por uno que falla."""
+
+    creadas: int
+    omitidas: int
+    detalle: List[dict] = Field(default_factory=list)
+
+
 class NovedadMensualOut(BaseModel):
     id: str
     empleado_id: str
