@@ -684,7 +684,7 @@ tr:last-child td{border-bottom:0}tbody tr:hover{background:#f8fcfb}
         <div class="cabecera-seccion"><h3 id="panelVersionTitulo">Versión</h3><button class="chico secundario" onclick="cerrarPanelVersion()">Cerrar</button></div>
         <p id="panelVersionMeta" style="font-size:.85rem;color:#4b5563"></p>
         <div class="aviso" id="panelVersionFaltantes" style="display:none"></div>
-        <div style="margin:10px 0"><button class="chico" onclick="descargarRecibosDeVersion()">Descargar todos los recibos</button></div>
+        <div style="margin:10px 0;display:flex;gap:8px;flex-wrap:wrap"><button class="chico" onclick="descargarRecibosDeVersion()">Descargar todos los recibos</button><button class="chico secundario" onclick="controlarArcaVersion()">Controlar ARCA</button><button class="chico secundario" id="btnSoecraVersion" onclick="descargarSoecraVersion()">Planilla SOECRA</button></div>
         <table id="tablaVersionDetalle" class="tabla-movil"><thead><tr><th>Empleado</th><th class="num">Bruto</th><th class="num">Descuentos</th><th class="num">Neto</th><th>Conceptos</th><th></th></tr></thead><tbody></tbody></table>
       </div>
       <div id="panelCierre" style="display:none;margin-top:18px;border-top:1px solid #d1d5db;padding-top:16px">
@@ -1661,6 +1661,32 @@ async function verVersion(id){
     tb.appendChild(tr);
   });
   $('panelVersion').style.display='block';
+}
+
+async function controlarArcaVersion(){
+  if(!versionAbierta) return;
+  try{
+    const r=await api('/exportaciones/carpetas/'+versionAbierta+'/arca-control');
+    if(r.listo_para_txt){
+      alert('Control ARCA completo. La carpeta tiene los datos necesarios para construir el TXT.');
+      return;
+    }
+    const items=(r.faltantes||[]).map(x=>'• '+(x.concepto?x.campo+' ('+x.concepto+')':x.campo)).join('\n');
+    alert('Todavía no se genera el TXT ARCA. Falta:\n'+items+'\n\nCompletá la ficha y volvé a liquidar para conservar los datos.');
+  }catch(e){ alert(e.message); }
+}
+
+async function descargarSoecraVersion(){
+  if(!versionAbierta) return;
+  try{
+    const r=await fetch('/exportaciones/carpetas/'+versionAbierta+'/soecra.csv',{
+      headers:{Authorization:'Bearer '+token()}
+    });
+    if(!r.ok){ const d=await r.json().catch(()=>({detail:'No se pudo generar la planilla'})); throw new Error(typeof d.detail==='string'?d.detail:JSON.stringify(d.detail)); }
+    const blob=await r.blob(), url=URL.createObjectURL(blob), a=document.createElement('a');
+    a.href=url; a.download=(r.headers.get('content-disposition')||'').match(/filename="([^"]+)"/)?.[1]||'control-soecra.csv';
+    a.click(); setTimeout(()=>URL.revokeObjectURL(url),1000);
+  }catch(e){ alert(e.message); }
 }
 
 function cerrarPanelVersion(){ $('panelVersion').style.display='none'; versionAbierta=null; }
