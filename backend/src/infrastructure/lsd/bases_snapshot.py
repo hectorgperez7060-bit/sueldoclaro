@@ -27,6 +27,11 @@ def _info(codigo: str):
             "grupo": GrupoARCA.DESCUENTO, "codigo_tipo_arca": "820000",
             "integra_os": False, "integra_lrt": False, "verificado": True,
         }
+    if "SINDICAL" in codigo or "SOLIDARIO" in codigo:
+        return {
+            "grupo": GrupoARCA.DESCUENTO, "codigo_tipo_arca": "820000",
+            "integra_os": False, "integra_lrt": False, "verificado": True,
+        }
     if codigo.startswith(("NO_REM_2026_08_749_", "NO_REM_2026_08_761_")):
         # Familia oficial ARCA 540000. La clasificación de la suma es la que
         # declara el acta SOECRA: no integra seguridad social en agosto.
@@ -55,6 +60,10 @@ def codigo_empleador(codigo: str) -> str:
         return "SOLIDSOE"
     if codigo.startswith("CUOTA_SINDICAL_SOECRA_"):
         return "CUOTASOE"
+    if "SINDICAL" in codigo:
+        return "SINDICAL"
+    if "SOLIDARIO" in codigo:
+        return "SOLIDARIO"
     if codigo.startswith("NO_REM_2026_08_749_"):
         return "NR749AGO"
     if codigo.startswith("NO_REM_2026_08_761_"):
