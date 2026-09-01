@@ -57,6 +57,8 @@ def _faltantes(carpeta: m.CarpetaMensual) -> list[dict]:
         if doc.get("forma_pago") == "3" and len("".join(filter(str.isdigit, doc.get("cbu", "")))) != 22:
             faltantes.append({"empleado_id": eid, "campo": "cbu_22_digitos"})
         for concepto in detalle.get("conceptos", []):
+            if str(concepto.get("tipo", "")).upper() == "CONTRIBUCION":
+                continue
             codigo = str(concepto.get("codigo", ""))
             try:
                 codigo_empleador(codigo)
@@ -123,15 +125,17 @@ async def descargar_arca(
             conceptos = []
             total_haberes = Decimal("0")
             for c in detalle.get("conceptos", []):
-                codigo = str(c["codigo"])
                 tipo = str(c.get("tipo", "")).upper()
+                if tipo == "CONTRIBUCION":
+                    continue
+                codigo = str(c["codigo"])
                 importe = Decimal(str(c["importe"]))
-                if tipo != "DESCUENTO":
+                if tipo not in {"DEDUCCION", "DESCUENTO"}:
                     total_haberes += importe
                 conceptos.append(ConceptoLSD(
                     codigo=codigo_empleador(codigo),
                     importe=importe,
-                    signo="D" if tipo == "DESCUENTO" else "C",
+                    signo="D" if tipo in {"DEDUCCION", "DESCUENTO"} else "C",
                     cantidad=Decimal(str(c.get("cantidad") or 0)),
                     unidad=(str(c.get("unidad") or "$")[:1]),
                 ))
