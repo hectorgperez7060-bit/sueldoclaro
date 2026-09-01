@@ -913,15 +913,27 @@ function alternarMenu(){
   const layout=document.querySelector('.app-layout');
   if(!layout) return;
   const abierto=layout.classList.toggle('menu-abierto');
+  actualizarBotonMenu(abierto);
+}
+
+function actualizarBotonMenu(abierto){
   const boton=$('botonMenu');
-  if(boton) boton.setAttribute('aria-expanded', abierto?'true':'false');
+  if(!boton) return;
+  boton.setAttribute('aria-expanded', abierto?'true':'false');
+  boton.textContent=abierto?'✕ Cerrar menú':'☰ Menú';
+}
+
+function abrirMenuInicialEnTelefono(){
+  if(!window.matchMedia('(max-width: 900px)').matches) return;
+  const layout=document.querySelector('.app-layout');
+  if(layout) layout.classList.add('menu-abierto');
+  actualizarBotonMenu(true);
 }
 
 function cerrarMenu(){
   const layout=document.querySelector('.app-layout');
   if(layout) layout.classList.remove('menu-abierto');
-  const boton=$('botonMenu');
-  if(boton) boton.setAttribute('aria-expanded','false');
+  actualizarBotonMenu(false);
 }
 
 window.addEventListener('hashchange', ()=>{
@@ -1004,6 +1016,8 @@ async function entrar(){
   catch(e){ salir(); mostrarError('authError',e.message); return; }
   // Al entrar (o al recargar la página) se abre la sección que indica el hash.
   aplicarHash();
+  // En el teléfono mostramos de entrada qué puede hacer la aplicación.
+  abrirMenuInicialEnTelefono();
 }
 function toggleAlta(){ const a=$('alta'); a.style.display = a.style.display==='none'?'block':'none'; }
 function toggleEstablecimiento(){ const a=$('formEstablecimiento'); a.style.display=a.style.display==='none'?'block':'none'; }
