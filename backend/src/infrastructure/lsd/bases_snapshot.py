@@ -75,12 +75,14 @@ def calcular_bases_snapshot(
     base_os_sin_tope = Decimal("0")
     base_lrt = Decimal("0")
     for c in conceptos:
+        tipo = str(c.get("tipo", "")).upper()
+        if tipo == "CONTRIBUCION":
+            continue
         codigo = str(c.get("codigo", ""))
         info = _info(codigo)
         if info is None:
             raise ValueError(f"Concepto sin homologación ARCA: {codigo}")
         importe = Decimal(str(c.get("importe", 0)))
-        tipo = str(c.get("tipo", "")).upper()
         if tipo == "REMUNERATIVO":
             remunerativo += importe
         if isinstance(info, dict):
@@ -90,9 +92,9 @@ def calcular_bases_snapshot(
                 raise ValueError(f"Concepto ARCA pendiente de verificar: {codigo}")
             integra_os = info.incidencias.integra_obra_social
             integra_lrt = info.incidencias.integra_lrt
-        if integra_os and tipo != "DESCUENTO":
+        if integra_os and tipo not in {"DEDUCCION", "DESCUENTO"}:
             base_os_sin_tope += importe
-        if integra_lrt and tipo != "DESCUENTO":
+        if integra_lrt and tipo not in {"DEDUCCION", "DESCUENTO"}:
             base_lrt += importe
 
     tope, fuente = TOPES_SIPA_MAX[periodo]
