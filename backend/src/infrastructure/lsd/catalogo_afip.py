@@ -113,10 +113,10 @@ CATALOGO: Dict[str, ConceptoARCA] = {
 
     # -------- REMUNERATIVOS --------
     "BASICO":         ConceptoARCA("110000", _R, "Sueldo básico", incidencias=_INC_REM, bases_potenciales=[1, 2, 3, 4, 5, 8, 9, 10], verificado=True, fuente=_FUENTE_G18, clase_tope=ClaseTopeARCA.MENSUAL),
-    "ANTIGUEDAD":     ConceptoARCA("120000", _R, "Antigüedad", incidencias=_INC_REM, bases_potenciales=[1, 2, 3, 4, 5, 8, 9, 10], verificado=True, fuente=_FUENTE_G18, clase_tope=ClaseTopeARCA.MENSUAL),
+    "ANTIGUEDAD":     ConceptoARCA("160001", _R, "Antigüedad", incidencias=_INC_REM, bases_potenciales=[1, 2, 3, 4, 5, 8, 9, 10], verificado=True, fuente=_FUENTE_G18, clase_tope=ClaseTopeARCA.MENSUAL),
     "PRESENTISMO":    ConceptoARCA("120000", _R, "Presentismo", incidencias=_INC_REM, bases_potenciales=[1, 2, 3, 4, 5, 8, 9, 10], verificado=True, fuente=_FUENTE_G18, clase_tope=ClaseTopeARCA.MENSUAL),
-    "HORAS_EXTRA_50": ConceptoARCA("130000", _R, "Horas extra 50%", incidencias=_INC_REM, bases_potenciales=[1, 2, 3, 4, 5, 8, 9, 10], verificado=True, fuente=_FUENTE_G18, clase_tope=ClaseTopeARCA.MENSUAL),
-    "HORAS_EXTRA_100": ConceptoARCA("130000", _R, "Horas extra 100%", incidencias=_INC_REM, bases_potenciales=[1, 2, 3, 4, 5, 8, 9, 10], verificado=True, fuente=_FUENTE_G18, clase_tope=ClaseTopeARCA.MENSUAL),
+    "HORAS_EXTRA_50": ConceptoARCA("130001", _R, "Horas extra 50%", incidencias=_INC_REM, bases_potenciales=[1, 2, 3, 4, 5, 8, 9, 10], verificado=True, fuente=_FUENTE_G18, clase_tope=ClaseTopeARCA.MENSUAL),
+    "HORAS_EXTRA_100": ConceptoARCA("130002", _R, "Horas extra 100%", incidencias=_INC_REM, bases_potenciales=[1, 2, 3, 4, 5, 8, 9, 10], verificado=True, fuente=_FUENTE_G18, clase_tope=ClaseTopeARCA.MENSUAL),
     "SAC":            ConceptoARCA("120000", _R, "SAC (Sueldo Anual Complementario)", incidencias=_INC_REM, bases_potenciales=[1, 2, 3, 4, 5, 8, 9, 10], verificado=True, fuente=_FUENTE_G18, clase_tope=ClaseTopeARCA.SAC),
     "VACACIONES":     ConceptoARCA("150000", _R, "Vacaciones (Licencia ordinaria)", incidencias=_INC_REM, bases_potenciales=[1, 2, 3, 4, 5, 8, 9, 10], requiere_cantidad_dias=True, verificado=True, fuente=_FUENTE_G18, clase_tope=ClaseTopeARCA.VACACIONES),
 
