@@ -449,6 +449,8 @@ tr:last-child td{border-bottom:0}tbody tr:hover{background:#f8fcfb}
             <div><label>Código obra social (6)</label><input id="eArcaObraSocial" maxlength="6"></div>
             <div><label>Días trabajados</label><input id="eArcaDias" type="number" min="0" max="31"></div>
             <div><label>Horas trabajadas</label><input id="eArcaHoras" type="number" min="0" max="999"></div>
+            <div><label>Detracción Ley 27.541</label><input id="eArcaDetraccion" type="number" min="0" step="0.01" placeholder="0 si no corresponde"></div>
+            <div><label>¿Importe confirmado?</label><select id="eArcaDetraccionOk"><option value="false">Pendiente</option><option value="true">Sí, confirmado</option></select></div>
           </div>
         </details>
 
@@ -702,7 +704,8 @@ tr:last-child td{border-bottom:0}tbody tr:hover{background:#f8fcfb}
         <div class="cabecera-seccion"><h3 id="panelVersionTitulo">Versión</h3><button class="chico secundario" onclick="cerrarPanelVersion()">Cerrar</button></div>
         <p id="panelVersionMeta" style="font-size:.85rem;color:#4b5563"></p>
         <div class="aviso" id="panelVersionFaltantes" style="display:none"></div>
-        <div style="margin:10px 0;display:flex;gap:8px;flex-wrap:wrap"><button class="chico" onclick="descargarRecibosDeVersion()">Descargar todos los recibos</button><button class="chico secundario" onclick="controlarArcaVersion()">Controlar ARCA</button><button class="chico secundario" id="btnSoecraVersion" onclick="descargarSoecraVersion()">Planilla SOECRA</button></div>
+        <div style="margin:10px 0;display:flex;gap:8px;flex-wrap:wrap"><button class="chico" onclick="descargarRecibosDeVersion()">Descargar todos los recibos</button><button class="chico secundario" onclick="controlarArcaVersion()">Controlar ARCA</button><button class="chico secundario" onclick="descargarArcaVersion()">Descargar TXT ARCA</button><button class="chico secundario" onclick="descargarMapaArcaVersion()">Mapa de conceptos ARCA</button><button class="chico secundario" id="btnSoecraVersion" onclick="descargarSoecraVersion()">Planilla SOECRA</button></div>
+        <div class="fila" style="max-width:520px;margin:8px 0"><div><label>Fecha de pago para ARCA</label><input id="fechaArcaPago" type="date"></div><div><label>Fecha de rúbrica (si corresponde)</label><input id="fechaArcaRubrica" type="date"></div></div>
         <table id="tablaVersionDetalle" class="tabla-movil"><thead><tr><th>Empleado</th><th class="num">Bruto</th><th class="num">Descuentos</th><th class="num">Neto</th><th>Conceptos</th><th></th></tr></thead><tbody></tbody></table>
       </div>
       <div id="panelCierre" style="display:none;margin-top:18px;border-top:1px solid #d1d5db;padding-top:16px">
@@ -1694,6 +1697,64 @@ async function controlarArcaVersion(){
   }catch(e){ alert(e.message); }
 }
 
+async function descargarArcaVersion(){
+  if(!versionAbierta) return;
+  const fecha=$('fechaArcaPago').value;
+  if(!fecha){ alert('Indicá la fecha real de pago.'); return; }
+  const rubrica=$('fechaArcaRubrica').value;
+  try{
+    let ruta='/exportaciones/carpetas/'+versionAbierta+'/arca.txt?fecha_pago='+encodeURIComponent(fecha);
+    if(rubrica) ruta+='&fecha_rubrica='+encodeURIComponent(rubrica);
+    const r=await fetch(ruta,{headers:{Authorization:'Bearer '+token()}});
+    if(!r.ok){
+      const d=await r.json().catch(()=>({detail:'No se pudo generar el TXT'}));
+      const detalle=d.detail&&d.detail.faltantes
+        ? d.detail.faltantes.map(x=>'• '+x.campo+(x.concepto?' ('+x.concepto+')':'')).join('\n')
+        : (typeof d.detail==='string'?d.detail:JSON.stringify(d.detail));
+      throw new Error(detalle);
+    }
+    const blob=await r.blob(), url=URL.createObjectURL(blob), a=document.createElement('a');
+    a.href=url; a.download=(r.headers.get('content-disposition')||'').match(/filename="([^"]+)"/)?.[1]||'ARCA-LSD.txt';
+    a.click(); setTimeout(()=>URL.revokeObjectURL(url),1000);
+  }catch(e){ alert('TXT ARCA bloqueado:\n'+e.message); }
+}
+
+async function descargarArcaVersion(){
+  if(!versionAbierta) return;
+  const pago=prompt('Fecha efectiva de pago para ARCA (AAAA-MM-DD):',localStorage.getItem('sc_arca_fecha_pago')||'');
+  if(!pago) return;
+  const rubrica=prompt('Fecha de rúbrica (AAAA-MM-DD, dejá vacío si no corresponde):',localStorage.getItem('sc_arca_fecha_rubrica')||'');
+  localStorage.setItem('sc_arca_fecha_pago',pago);
+  if(rubrica) localStorage.setItem('sc_arca_fecha_rubrica',rubrica);
+  try{
+    const qs=new URLSearchParams({fecha_pago:pago,numero_liquidacion:'1'});
+    if(rubrica) qs.set('fecha_rubrica',rubrica);
+    const r=await fetch('/exportaciones/carpetas/'+versionAbierta+'/arca.txt?'+qs,{
+      headers:{Authorization:'Bearer '+token()}
+    });
+    if(!r.ok){
+      const d=await r.json().catch(()=>({detail:'No se pudo generar el TXT ARCA'}));
+      const detalle=typeof d.detail==='string'?d.detail:(d.detail?.mensaje||JSON.stringify(d.detail));
+      throw new Error(detalle);
+    }
+    const blob=await r.blob(),url=URL.createObjectURL(blob),a=document.createElement('a');
+    a.href=url;a.download=(r.headers.get('content-disposition')||'').match(/filename="([^"]+)"/)?.[1]||'ARCA-LSD.txt';
+    a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+  }catch(e){alert(e.message);}
+}
+
+async function descargarMapaArcaVersion(){
+  if(!versionAbierta) return;
+  try{
+    const r=await fetch('/exportaciones/carpetas/'+versionAbierta+'/arca-conceptos.csv',{
+      headers:{Authorization:'Bearer '+token()}
+    });
+    if(!r.ok){const d=await r.json().catch(()=>({detail:'No se pudo generar el mapa'}));throw new Error(typeof d.detail==='string'?d.detail:JSON.stringify(d.detail));}
+    const blob=await r.blob(),url=URL.createObjectURL(blob),a=document.createElement('a');
+    a.href=url;a.download='mapa-conceptos-ARCA.csv';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+  }catch(e){alert(e.message);}
+}
+
 async function descargarSoecraVersion(){
   if(!versionAbierta) return;
   try{
@@ -2111,6 +2172,8 @@ function editarEmpleado(id){
   $('eArcaObraSocial').value=pa.codigo_obra_social||'';
   $('eArcaDias').value=pa.dias_trabajados??'';
   $('eArcaHoras').value=pa.horas_trabajadas??'';
+  $('eArcaDetraccion').value=pa.detraccion_ley_27541??'';
+  $('eArcaDetraccionOk').value=pa.detraccion_confirmada===true?'true':'false';
   $('eTareaPrincipal').value = '';
   $('resultadoEncuadramiento').style.display='none';
 
@@ -2123,7 +2186,8 @@ function editarEmpleado(id){
 function cancelarEdicion(){
   editandoEmpleadoId = null;
   obraSocialSugeridaAnterior = '';
-  ['eNombre','eApellido','eCuil','eFecha','eNacimiento','eDomicilio','eLegajo','eObraSocial','eLugarDesde','eCbu','eRemun','eFormaPago','eLocalidad','eFilial','eSindicato','eTareaPrincipal','eArcaTipoEmp','eArcaOperacion','eArcaSituacion','eArcaCondicion','eArcaActividad','eArcaModalidad','eArcaSiniestrado','eArcaLocalidad','eArcaObraSocial','eArcaDias','eArcaHoras'].forEach(i=>$(i).value='');
+  ['eNombre','eApellido','eCuil','eFecha','eNacimiento','eDomicilio','eLegajo','eObraSocial','eLugarDesde','eCbu','eRemun','eFormaPago','eLocalidad','eFilial','eSindicato','eTareaPrincipal','eArcaTipoEmp','eArcaOperacion','eArcaSituacion','eArcaCondicion','eArcaActividad','eArcaModalidad','eArcaSiniestrado','eArcaLocalidad','eArcaObraSocial','eArcaDias','eArcaHoras','eArcaDetraccion'].forEach(i=>$(i).value='');
+  $('eArcaDetraccionOk').value='false';
   $('resultadoEncuadramiento').style.display='none';
   $('eEstablecimiento').value='';
   $('eHijos').value='0';
@@ -2294,6 +2358,8 @@ async function crearEmpleado(){
         codigo_obra_social:$('eArcaObraSocial').value.trim(),
         dias_trabajados:$('eArcaDias').value===''?'':Number($('eArcaDias').value),
         horas_trabajadas:$('eArcaHoras').value===''?0:Number($('eArcaHoras').value),
+        detraccion_ley_27541:$('eArcaDetraccion').value===''?0:$('eArcaDetraccion').value,
+        detraccion_confirmada:$('eArcaDetraccionOk').value==='true',
         scvo:true, reduccion:false
       }
     };

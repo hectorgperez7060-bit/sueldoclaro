@@ -48,6 +48,7 @@ from infrastructure.database.repositories import (
     TenantRepo,
 )
 from infrastructure.database.session import tenant_session
+from infrastructure.lsd.bases_snapshot import calcular_bases_snapshot
 
 
 def resolver_horas_extra(
@@ -895,6 +896,16 @@ class LiquidarPeriodo:
                     }
                     for c in res.conceptos
                 ]
+                try:
+                    bases_lsd, trazabilidad_lsd = calcular_bases_snapshot(
+                        conceptos, periodo_str, dict(getattr(emp, "perfil_arca", None) or {}),
+                    )
+                    bases_lsd_out = [str(base) for base in bases_lsd]
+                    error_lsd = None
+                except ValueError as exc:
+                    bases_lsd_out, trazabilidad_lsd = None, {}
+                    error_lsd = str(exc)
+
                 await liq_repo.agregar_detalle(
                     uuid.UUID(tenant_id), liq.id, emp.id, conceptos,
                     bruto=res.bruto.monto, deducciones=res.total_deducciones.monto, neto=res.neto.monto,
@@ -913,6 +924,10 @@ class LiquidarPeriodo:
                         "cct_numero": emp.cct_numero,
                         "modalidad_contrato": getattr(emp, "modalidad_contrato", "") or "",
                         "lugar_trabajo": getattr(emp, "lugar_trabajo", "") or "",
+                        "cbu": getattr(emp, "cbu", "") or "",
+                        "forma_pago": getattr(emp, "forma_pago", "") or "",
+                        "cantidad_hijos": int(getattr(emp, "cantidad_hijos", 0) or 0),
+                        "conyuge_a_cargo": bool(getattr(emp, "conyuge_a_cargo", False)),
                     },
                     # Perfil ARCA fotografiado: una exportación histórica no puede
                     # consultar la ficha actual porque los códigos pudieron cambiar.
@@ -959,6 +974,9 @@ class LiquidarPeriodo:
                     "pendiente_aprobacion_contador": bool(
                         vista_previa_contador or escala_provisoria
                     ),
+                    "bases_lsd": bases_lsd_out,
+                    "trazabilidad_lsd": trazabilidad_lsd,
+                    "error_lsd": error_lsd,
                 })
 
             # Una ejecución de "liquidar todos" es atómica: si un empleado no
