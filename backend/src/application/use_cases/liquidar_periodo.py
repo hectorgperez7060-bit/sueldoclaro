@@ -47,7 +47,9 @@ from infrastructure.database.repositories import (
     ParametrosRepo,
     TenantRepo,
 )
-from infrastructure.database.session import tenant_session\nfrom infrastructure.lsd.bases_snapshot import calcular_bases_snapshot\n
+from infrastructure.database.session import tenant_session
+from infrastructure.lsd.bases_snapshot import calcular_bases_snapshot
+
 
 def resolver_horas_extra(
     empleados: list,
