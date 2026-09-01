@@ -37,3 +37,16 @@ def test_ui_conserva_navegacion_y_secciones_funcionales():
         assert f'id="{seccion}"' in HTML
     assert "function irA(" in HTML
     assert "function alternarMenu(" in HTML
+
+
+def test_service_worker_no_cachea_datos_privados():
+    main = (
+        __import__("pathlib").Path(__file__).resolve().parents[2]
+        / "src" / "main.py"
+    ).read_text(encoding="utf-8")
+
+    assert '@app.get("/manifest.webmanifest"' in main
+    assert '@app.get("/sw.js"' in main
+    assert '@app.get("/icon-{size}.png"' in main
+    assert "if(!SHELL.includes(u.pathname)) return;" in main
+    assert "/liquidaciones" not in main.split('script = """', 1)[1].split('"""', 1)[0]
