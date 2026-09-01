@@ -61,7 +61,7 @@ def create_app() -> FastAPI:
 
     @app.get("/", include_in_schema=False)
     async def home():
-        return HTMLResponse(UI_HTML)
+        return HTMLResponse(\n            UI_HTML,\n            headers={"Cache-Control": "no-store, max-age=0"},\n        )
 
     @app.get("/manifest.webmanifest", include_in_schema=False)
     async def manifest():
@@ -93,7 +93,7 @@ def create_app() -> FastAPI:
 
     @app.get("/sw.js", include_in_schema=False)
     async def service_worker():
-        script = """const CACHE='sueldo-claro-shell-v1';
+        script = """const CACHE='sueldo-claro-shell-v2';
 const SHELL=['/','/manifest.webmanifest','/icon-192.png','/icon-512.png'];
 self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(SHELL)).then(()=>self.skipWaiting())));
 self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));
@@ -106,7 +106,7 @@ self.addEventListener('fetch',e=>{
 });"""
         return Response(
             script, media_type="application/javascript",
-            headers={"Service-Worker-Allowed": "/", "Cache-Control": "no-cache"},
+            headers={"Service-Worker-Allowed": "/", "Cache-Control": "no-store, max-age=0"},
         )
 
     @app.get("/empresa", tags=["empresa"])
