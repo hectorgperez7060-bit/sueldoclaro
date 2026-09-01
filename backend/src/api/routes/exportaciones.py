@@ -25,6 +25,11 @@ _FUNERARIAS = {"749/18", "761/19"}
 _URL_SOECRA = "https://soecra.com.ar/ddjj-empresas/"
 
 
+def _es_concepto_lsd(concepto: dict) -> bool:
+    tipo = str(concepto.get("tipo", "")).upper()
+    return "EMPLEADOR" not in tipo
+
+
 def _unidad_lsd(valor: str) -> str:
     u = str(valor or "").strip().lower()
     if u in {"%", "porcentaje"}:
