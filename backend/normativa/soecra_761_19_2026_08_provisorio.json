@@ -850,7 +850,7 @@
             "canal_pago": "CuotaQ",
             "url_pago": "https://www.cuotaq.com/soecra",
             "vigencia_declarada": "julio y agosto de 2026 por prórroga",
-            "reserva_documental": "acuerdo no homologado; verificar el texto del art. 76 en la versión homologada del CCT El acta del 17/07/2026 no extiende el aporte a las sumas no remunerativas, a diferencia del punto 4 del acta del CCT 749/18: la base queda limitada a lo remunerativo hasta que se verifique el texto homologado.",
+            "reserva_documental": "acuerdo no homologado; verificar el texto del art. 76 en la versión homologada del CCT. El acta del 17/07/2026 no extiende el aporte a las sumas no remunerativas, a diferencia del punto 4 del acta del CCT 749/18: la base queda limitada a lo remunerativo hasta que se verifique el texto homologado.",
             "base_deduccion_texto_convencional": "total de remuneraciones (CCT 761/19 arts. 75 y 76)",
             "sumas_no_remunerativas_incluidas": false
           }
@@ -871,7 +871,7 @@
             "canal_pago": "CuotaQ",
             "url_pago": "https://www.cuotaq.com/soecra",
             "regla_vencimiento": "dentro de los 15 días posteriores al mes vencido",
-            "reserva_documental": "verificar contra el texto homologado antes de habilitar la retención El acta del 17/07/2026 no extiende el aporte a las sumas no remunerativas, a diferencia del punto 4 del acta del CCT 749/18: la base queda limitada a lo remunerativo hasta que se verifique el texto homologado.",
+            "reserva_documental": "verificar contra el texto homologado antes de habilitar la retención. El acta del 17/07/2026 no extiende el aporte a las sumas no remunerativas, a diferencia del punto 4 del acta del CCT 749/18: la base queda limitada a lo remunerativo hasta que se verifique el texto homologado.",
             "base_deduccion_texto_convencional": "total de remuneraciones (CCT 761/19 arts. 75 y 76)",
             "sumas_no_remunerativas_incluidas": false
           }

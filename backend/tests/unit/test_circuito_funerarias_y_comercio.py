@@ -274,3 +274,33 @@ def test_ninguna_carga_normativa_declara_una_base_de_deduccion_inexistente():
         "hay cargas normativas con una base de deducción que el motor no conoce: "
         f"{invalidos}. Valores admitidos: {BASES_DEDUCCION_VALIDAS}"
     )
+
+
+def test_la_migracion_056_corrige_la_base_en_una_base_ya_instalada():
+    """054 ya corrió en producción: el arreglo necesita su propia migración."""
+    sql = (BACKEND / "migrations" / "056_corregir_base_deduccion_soecra_761_19.sql").read_text(
+        encoding="utf-8")
+
+    # Toca los dos parámetros de SOECRA y ninguno más.
+    assert sql.count("UPDATE public.parametro_legal") == 2
+    for codigo in ("APORTE_SOLIDARIO_SOECRA_761/19", "CUOTA_SINDICAL_SOECRA_761/19"):
+        assert codigo in sql
+    assert "'remunerativa'" in sql
+    assert "base_deduccion_texto_convencional" in sql
+
+    # Idempotente: si ya está corregido, el UPDATE no alcanza ninguna fila.
+    assert "IS DISTINCT FROM 'remunerativa'" in sql
+
+    # Transaccional y con control final que falla antes de dejar basura.
+    assert sql.count("BEGIN;") == 1 and sql.count("COMMIT;") == 1
+    assert "RAISE EXCEPTION" in sql
+
+    # No toca importes ni estados documentales.
+    for prohibido in ("UPDATE public.escala_salarial", "habilitada_liquidacion",
+                      "is_verified = true", "VERIFICADA_OFICIAL"):
+        assert prohibido not in sql
+
+
+def test_no_hay_dos_migraciones_con_el_numero_056():
+    numeros = [p.name[:3] for p in (BACKEND / "migrations").glob("056_*.sql")]
+    assert len(numeros) == 1, "el número 056 ya está usado por otra migración"
