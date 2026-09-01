@@ -1719,6 +1719,30 @@ async function descargarArcaVersion(){
   }catch(e){ alert('TXT ARCA bloqueado:\n'+e.message); }
 }
 
+async function descargarArcaVersion(){
+  if(!versionAbierta) return;
+  const pago=prompt('Fecha efectiva de pago para ARCA (AAAA-MM-DD):',localStorage.getItem('sc_arca_fecha_pago')||'');
+  if(!pago) return;
+  const rubrica=prompt('Fecha de rúbrica (AAAA-MM-DD, dejá vacío si no corresponde):',localStorage.getItem('sc_arca_fecha_rubrica')||'');
+  localStorage.setItem('sc_arca_fecha_pago',pago);
+  if(rubrica) localStorage.setItem('sc_arca_fecha_rubrica',rubrica);
+  try{
+    const qs=new URLSearchParams({fecha_pago:pago,numero_liquidacion:'1'});
+    if(rubrica) qs.set('fecha_rubrica',rubrica);
+    const r=await fetch('/exportaciones/carpetas/'+versionAbierta+'/arca.txt?'+qs,{
+      headers:{Authorization:'Bearer '+token()}
+    });
+    if(!r.ok){
+      const d=await r.json().catch(()=>({detail:'No se pudo generar el TXT ARCA'}));
+      const detalle=typeof d.detail==='string'?d.detail:(d.detail?.mensaje||JSON.stringify(d.detail));
+      throw new Error(detalle);
+    }
+    const blob=await r.blob(),url=URL.createObjectURL(blob),a=document.createElement('a');
+    a.href=url;a.download=(r.headers.get('content-disposition')||'').match(/filename="([^"]+)"/)?.[1]||'ARCA-LSD.txt';
+    a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+  }catch(e){alert(e.message);}
+}
+
 async function descargarSoecraVersion(){
   if(!versionAbierta) return;
   try{
