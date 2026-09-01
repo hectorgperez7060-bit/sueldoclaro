@@ -8,7 +8,15 @@ HTML = r"""<!DOCTYPE html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>SUELDOCLARO — Liquidación de sueldos</title>
+<title>Sueldo Claro — Gestión laboral</title>
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png">
+<link rel="apple-touch-icon" href="/icon-192.png">
+<meta name="theme-color" content="#087f72">
+<meta name="application-name" content="Sueldo Claro">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Sueldo Claro">
 <style>
   :root{--verde:#0f766e;--verde2:#0d9488;--gris:#f4f6f8;--txt:#1f2937;--borde:#e5e7eb}
   *{box-sizing:border-box;margin:0;padding:0}
@@ -98,6 +106,66 @@ HTML = r"""<!DOCTYPE html>
     .paso{flex-basis:calc(50% - 6px);font-size:.76rem;padding:7px}
     .contexto-empresa{align-items:flex-start;flex-direction:column}
   }
+
+/* Rediseño profesional 2026 — capa visual sin alterar flujos ni cálculos */
+:root{
+  --verde:#087f72;--verde2:#0b9485;--verde-oscuro:#0b4f4a;
+  --tinta:#173332;--muted:#647775;--fondo:#f1f6f5;--borde:#dbe7e5;
+  --sombra:0 12px 34px rgba(17,66,62,.08);--radio:16px
+}
+html{scroll-behavior:smooth}
+body{
+  background:
+    radial-gradient(circle at 92% -10%,rgba(13,148,136,.12),transparent 28rem),
+    linear-gradient(180deg,#f7fbfa 0,#eef4f3 100%);
+  color:var(--tinta);letter-spacing:-.01em
+}
+header{background:linear-gradient(120deg,var(--verde-oscuro),var(--verde));padding:16px max(20px,calc((100vw - 1320px)/2));box-shadow:0 8px 28px rgba(11,79,74,.18)}
+header h1{font-size:1.35rem}.contenedor{max-width:1380px;margin:22px auto;padding:0 22px}
+.aviso{border:0;border-left:4px solid #f0aa24;background:#fff8e6;color:#7c5511;box-shadow:0 4px 16px rgba(124,85,17,.05);border-radius:12px}
+.tarjeta{border:1px solid rgba(209,224,221,.9);border-radius:var(--radio);box-shadow:var(--sombra);padding:22px}
+h2{font-size:1.18rem;letter-spacing:-.02em}
+input,select,textarea{border:1px solid #cbdad7;border-radius:10px;padding:11px 12px;color:var(--tinta);transition:.18s ease}
+input:hover,select:hover,textarea:hover{border-color:#9fc5bf}
+input:focus,select:focus,textarea:focus{outline:3px solid rgba(13,148,136,.15);border-color:var(--verde2)}
+button{font-weight:650;border-radius:10px;transition:transform .15s ease,box-shadow .15s ease,background .15s ease}
+button:hover{transform:translateY(-1px);box-shadow:0 7px 18px rgba(8,127,114,.16)}
+button.secundario{background:#fff}
+.app-layout{grid-template-columns:268px minmax(0,1fr);gap:24px}
+.lateral{top:18px;border:1px solid rgba(199,218,214,.9);border-radius:20px;padding:18px;box-shadow:var(--sombra);overflow:hidden}
+.marca-lateral{padding:2px 4px 14px;border-bottom:1px solid var(--borde)}
+.marca-lateral strong{font-size:1.2rem;letter-spacing:-.02em}
+.selector-empresa{margin-top:14px;background:linear-gradient(145deg,#ecfbf8,#f8fffd);border-color:#b7ece4;padding:12px}
+.navegacion{gap:4px}.navegacion button{padding:11px 12px;border-radius:11px;color:#344e4c}
+.navegacion button:hover,.navegacion button.activo{transform:none;box-shadow:none;background:#e2f5f1;border-color:#bce8df;color:#075f57}
+.contexto-empresa{background:linear-gradient(115deg,#e8fbf5,#f5fffb);border-color:#b7ead9;border-radius:14px;padding:14px 17px;box-shadow:0 6px 20px rgba(15,118,110,.05)}
+.pasos{gap:10px}.paso{border-radius:12px;padding:10px 11px;background:rgba(255,255,255,.86)}
+.paso.activo{background:#f1fffb;border-color:#5fd5c8}
+table{border:1px solid var(--borde);border-radius:12px;overflow:hidden;border-collapse:separate;border-spacing:0}
+th{background:#edf5f3;color:#31504d;font-size:.8rem;text-transform:uppercase;letter-spacing:.025em}
+tr:last-child td{border-bottom:0}tbody tr:hover{background:#f8fcfb}
+.etiqueta{font-weight:650;padding:4px 10px}
+.neto{letter-spacing:-.025em}
+#instalarApp{display:none;width:100%;margin:0 0 10px;background:linear-gradient(120deg,#f4b52e,#ef9f18);color:#4f3400;border:0}
+#estadoInstalacion{display:none;font-size:.72rem;color:#52706d;line-height:1.3;margin:0 2px 10px}
+@media(max-width:900px){
+  .contenedor{margin:10px auto;padding:0 12px}.app-layout{grid-template-columns:1fr;gap:12px}
+  .boton-menu{position:sticky;top:8px;z-index:30;background:rgba(255,255,255,.94);backdrop-filter:blur(12px);box-shadow:0 7px 24px rgba(20,65,62,.12);min-height:48px}
+  .app-layout.menu-abierto .lateral{display:block;position:relative;z-index:25}
+  .lateral{position:static;border-radius:16px}.contexto-empresa{padding:13px 15px}
+  .pasos{display:grid;grid-template-columns:1fr 1fr}.paso{min-width:0}
+}
+@media(max-width:640px){
+  header{padding:12px 15px}.contenedor{padding:0 9px}.tarjeta{padding:16px;border-radius:14px}
+  .aviso{font-size:.78rem;padding:9px 11px;margin-bottom:12px}
+  .fila{gap:8px}.navegacion button{min-height:44px}.contexto-empresa{font-size:.9rem}
+  h2{font-size:1.05rem}.pasos{gap:7px}.paso{padding:8px}
+}
+@media(display-mode:standalone){
+  header{padding-top:max(16px,env(safe-area-inset-top))}
+  .boton-menu{top:max(8px,env(safe-area-inset-top))}
+}
+
 </style>
 </head>
 <body>
@@ -163,7 +231,11 @@ HTML = r"""<!DOCTYPE html>
           <button onclick="irA('seccionLiquidar',this)"><span class="icono">🧮</span>Liquidar</button>
           <button onclick="irA('seccionHistorial',this)"><span class="icono">📁</span>Recibos e historial</button>
         </nav>
-        <div class="lateral-pie"><button class="chico secundario" onclick="salir()">Cerrar sesión</button></div>
+        <div class="lateral-pie">
+          <button id="instalarApp" class="chico" onclick="instalarAplicacion()">⬇ Instalar Sueldo Claro</button>
+          <div id="estadoInstalacion"></div>
+          <button class="chico secundario" onclick="salir()">Cerrar sesión</button>
+        </div>
       </aside>
       <main class="contenido-app">
         <button id="botonMenu" class="boton-menu secundario" onclick="alternarMenu()" aria-expanded="false">☰ Menú</button>
@@ -2483,6 +2555,37 @@ async function descargarReciboPdf(empId, reintento=true){
   a.href=url; a.download=`recibo-${ultimaLiq.periodo}-${(emp.apellido||'empleado').replace(/\\s+/g,'-')}.pdf`;
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(()=>URL.revokeObjectURL(url),60000);
+}
+
+let eventoInstalacion=null;
+window.addEventListener('beforeinstallprompt',e=>{
+  e.preventDefault(); eventoInstalacion=e;
+  const boton=$('instalarApp'); if(boton) boton.style.display='block';
+});
+window.addEventListener('appinstalled',()=>{
+  eventoInstalacion=null;
+  const boton=$('instalarApp'); if(boton) boton.style.display='none';
+  const estado=$('estadoInstalacion');
+  if(estado){estado.textContent='Sueldo Claro quedó instalada.';estado.style.display='block'}
+});
+async function instalarAplicacion(){
+  if(eventoInstalacion){
+    eventoInstalacion.prompt();
+    await eventoInstalacion.userChoice;
+    eventoInstalacion=null;
+    return;
+  }
+  const estado=$('estadoInstalacion');
+  const esIOS=/iphone|ipad|ipod/i.test(navigator.userAgent);
+  if(estado){
+    estado.textContent=esIOS
+      ?'En iPhone/iPad: tocá Compartir y luego “Agregar a pantalla de inicio”.'
+      :'Abrí el menú del navegador y elegí “Instalar aplicación” o “Agregar a pantalla de inicio”.';
+    estado.style.display='block';
+  }
+}
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>navigator.serviceWorker.register('/sw.js').catch(()=>{}));
 }
 
 if(token()) entrar();
