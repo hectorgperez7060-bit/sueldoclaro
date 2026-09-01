@@ -161,6 +161,20 @@ tr:last-child td{border-bottom:0}tbody tr:hover{background:#f8fcfb}
   .fila{gap:8px}.navegacion button{min-height:44px}.contexto-empresa{font-size:.9rem}
   h2{font-size:1.05rem}.pasos{gap:7px}.paso{padding:8px}
 }
+
+/* Mapa de uso para personas sin conocimientos contables */
+.mapa-uso{margin-top:22px;padding-top:20px;border-top:1px solid var(--borde)}
+.mapa-uso-cabecera p{font-size:.88rem;color:var(--muted);margin-top:5px;max-width:760px;line-height:1.5}
+.mapa-uso-pasos{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:15px}
+.mapa-uso-paso{position:relative;display:flex;align-items:flex-start;gap:11px;width:100%;margin:0;padding:15px;text-align:left;background:#f8fcfb;color:var(--tinta);border:1px solid var(--borde);border-radius:14px;box-shadow:none;min-height:102px}
+.mapa-uso-paso:hover{background:#effaf7;border-color:#8dd8ce;box-shadow:0 8px 20px rgba(8,127,114,.09)}
+.mapa-uso-numero{display:grid;place-items:center;flex:none;width:30px;height:30px;border-radius:50%;background:var(--verde);color:#fff;font-weight:800}
+.mapa-uso-paso strong{display:block;color:var(--verde-oscuro);font-size:.96rem;margin:1px 0 4px}
+.mapa-uso-paso small{display:block;color:var(--muted);font-size:.79rem;line-height:1.35;font-weight:450}
+.mapa-uso-flecha{position:absolute;right:11px;top:11px;color:#79a7a1;font-size:.9rem}
+.mapa-uso-aviso{margin-top:13px;padding:12px 14px;border-radius:12px;background:#edf8f5;color:#315d58;font-size:.82rem;line-height:1.45}
+@media(max-width:900px){.mapa-uso-pasos{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:560px){.mapa-uso-pasos{grid-template-columns:1fr}.mapa-uso-paso{min-height:0}}
 @media(display-mode:standalone){
   header{padding-top:max(16px,env(safe-area-inset-top))}
   .boton-menu{top:max(8px,env(safe-area-inset-top))}
@@ -271,6 +285,22 @@ tr:last-child td{border-bottom:0}tbody tr:hover{background:#f8fcfb}
           <div id="kpiEstadoLiq" style="font-size:.78rem;color:#6b7280;margin-top:3px"></div>
         </div>
       </div>
+
+      <section class="mapa-uso" aria-labelledby="tituloMapaUso">
+        <div class="mapa-uso-cabecera">
+          <h3 id="tituloMapaUso">Cómo usar Sueldo Claro</h3>
+          <p>No necesitás saber contabilidad. Seguí estos pasos en orden; cada tarjeta te lleva al lugar correspondiente.</p>
+        </div>
+        <div class="mapa-uso-pasos">
+          <button type="button" class="mapa-uso-paso" onclick="irA('seccionEmpresas')"><span class="mapa-uso-numero">1</span><span><strong>Cargá la empresa</strong><small>Ingresá la razón social, el CUIT y la información básica del empleador.</small></span><span class="mapa-uso-flecha">→</span></button>
+          <button type="button" class="mapa-uso-paso" onclick="irA('seccionEstablecimientos')"><span class="mapa-uso-numero">2</span><span><strong>Indicá dónde trabajan</strong><small>Agregá los domicilios de trabajo y los datos reales de la ART contratada.</small></span><span class="mapa-uso-flecha">→</span></button>
+          <button type="button" class="mapa-uso-paso" onclick="irA('seccionEmpleados')"><span class="mapa-uso-numero">3</span><span><strong>Agregá los empleados</strong><small>Cargá sus datos, la tarea que realizan, el convenio y la categoría.</small></span><span class="mapa-uso-flecha">→</span></button>
+          <button type="button" class="mapa-uso-paso" onclick="irA('seccionNovedades')"><span class="mapa-uso-numero">4</span><span><strong>Contá qué pasó este mes</strong><small>Informá faltas, horas extra, feriados, vacaciones, premios y otros cambios.</small></span><span class="mapa-uso-flecha">→</span></button>
+          <button type="button" class="mapa-uso-paso" onclick="irA('seccionLiquidar')"><span class="mapa-uso-numero">5</span><span><strong>Calculá y revisá</strong><small>La app muestra sueldo bruto, descuentos, sueldo neto y cualquier dato pendiente.</small></span><span class="mapa-uso-flecha">→</span></button>
+          <button type="button" class="mapa-uso-paso" onclick="irA('seccionHistorial')"><span class="mapa-uso-numero">6</span><span><strong>Descargá y conservá</strong><small>Obtené el recibo y consultá después cada versión guardada en el historial.</small></span><span class="mapa-uso-flecha">→</span></button>
+        </div>
+        <div class="mapa-uso-aviso"><strong>Importante:</strong> si falta un dato necesario, Sueldo Claro lo señala y evita completar importes inventados. Podés usarla en autogestión o solicitar revisión profesional.</div>
+      </section>
       <h3 style="margin:18px 0 8px;font-size:.95rem">Accesos rápidos</h3>
       <div style="display:flex;flex-wrap:wrap;gap:8px">
         <button class="chico" onclick="irA('seccionEmpleados')">👥 Empleados</button>
