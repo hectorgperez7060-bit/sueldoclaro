@@ -11,6 +11,9 @@ from decimal import Decimal
 from typing import Dict
 
 from domain.entities.empleado import Empleado
+from domain.entities.jornada import (
+    describir_jornada, excede_limite_parcial, horas_desde_reglas,
+)
 from domain.entities.carpeta_mensual import (
     construir_contenido_carpeta, huella_carpeta, obligaciones_desde_contenido,
 )
@@ -200,6 +203,9 @@ class LiquidarPeriodo:
 
             detalles_out = []
             bloqueos = []
+            # Horas de jornada completa por convenio: sirven para controlar el
+            # límite del art. 92 ter y para dejar la jornada escrita en el recibo.
+            horas_jornada = await params_repo.horas_jornada_por_cct()
             for emp in empleados:
                 cct_cfg = await params_repo.cct_config(emp.cct_numero, fecha_ref)
                 zona_escala, error_zona = await params_repo.zona_escala(
@@ -253,6 +259,30 @@ class LiquidarPeriodo:
                         "nota": evaluacion.nota,
                         "escala_desde": escala.valid_from.isoformat(),
                     }
+
+                # LCT art. 92 ter: por encima de los 2/3 de la jornada habitual el
+                # contrato deja de ser a tiempo parcial y corresponde la
+                # remuneración de jornada completa. El motor no lo resuelve solo:
+                # prorratear seria pagar de menos y pagar completo sin que nadie
+                # lo decida seria cambiarle el contrato al empleador.
+                if excede_limite_parcial(emp.proporcion_jornada):
+                    horas_cct = horas_jornada.get(emp.cct_numero)
+                    detalle = describir_jornada(emp.proporcion_jornada, horas_cct)
+                    bloqueos.append({
+                        "empleado_id": str(emp.id),
+                        "cct_numero": emp.cct_numero,
+                        "categoria": emp.categoria,
+                        "provisorio": False,
+                        "requiere_confirmacion": False,
+                        "motivo": (
+                            f"Jornada {detalle}: supera las dos terceras partes de la "
+                            "jornada del convenio. El art. 92 ter de la LCT obliga a "
+                            "abonar la remuneración de jornada completa, así que no "
+                            "corresponde prorratear el básico. Corregí las horas "
+                            "semanales en el legajo o cargalo como jornada completa."
+                        ),
+                    })
+                    continue
 
                 sin_regla_jornada = parametros.conceptos_sin_regla_jornada(
                     emp.cct_numero, emp.categoria, emp.proporcion_jornada
@@ -923,6 +953,9 @@ class LiquidarPeriodo:
                         "categoria": emp.categoria,
                         "cct_numero": emp.cct_numero,
                         "modalidad_contrato": getattr(emp, "modalidad_contrato", "") or "",
+                        "jornada": describir_jornada(
+                            emp.proporcion_jornada, horas_jornada.get(emp.cct_numero)
+                        ),
                         "lugar_trabajo": getattr(emp, "lugar_trabajo", "") or "",
                         "cbu": getattr(emp, "cbu", "") or "",
                         "forma_pago": getattr(emp, "forma_pago", "") or "",

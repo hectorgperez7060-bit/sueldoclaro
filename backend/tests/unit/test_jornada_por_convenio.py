@@ -87,3 +87,52 @@ def test_el_recorte_que_este_arreglo_evita():
     ahora = (basico * proporcion_jornada(44, Decimal("44"))).quantize(Decimal("0.01"))
     assert ahora == basico
     assert basico - antes == Decimal("106744.65")
+
+
+# --------------------------------------- LCT art. 92 ter: límite de dos tercios
+
+from domain.entities.jornada import (  # noqa: E402
+    LIMITE_JORNADA_PARCIAL,
+    describir_jornada,
+    excede_limite_parcial,
+)
+
+
+@pytest.mark.parametrize("horas,completas", [(22, 44), (24, 48), (Decimal("22.5"), 45),
+                                             (29, 44), (32, 48)])
+def test_la_jornada_parcial_legitima_no_dispara_el_limite(horas, completas):
+    assert not excede_limite_parcial(proporcion_jornada(horas, Decimal(completas)))
+
+
+@pytest.mark.parametrize("horas,completas", [(30, 44), (40, 48), (35, 45)])
+def test_por_encima_de_dos_tercios_el_contrato_ya_no_es_parcial(horas, completas):
+    """Art. 92 ter: en ese tramo corresponde la remuneración de jornada completa."""
+    assert excede_limite_parcial(proporcion_jornada(horas, Decimal(completas)))
+
+
+def test_la_jornada_completa_no_dispara_el_limite():
+    """Trabajar la jornada completa no es 'superar los dos tercios'."""
+    assert not excede_limite_parcial(Decimal("1"))
+    assert not excede_limite_parcial(proporcion_jornada(44, Decimal("44")))
+
+
+def test_el_limite_es_exactamente_dos_tercios():
+    assert not excede_limite_parcial(LIMITE_JORNADA_PARCIAL)
+    assert excede_limite_parcial(LIMITE_JORNADA_PARCIAL + Decimal("0.0001"))
+
+
+@pytest.mark.parametrize("proporcion,horas,esperado", [
+    (Decimal("1"), Decimal("44"), "completa 44 h"),
+    (Decimal("0.5"), Decimal("44"), "parcial 22 de 44 h"),
+    (Decimal("0.5"), Decimal("45"), "parcial 22.5 de 45 h"),
+    (Decimal("1"), Decimal("48"), "completa 48 h"),
+    (Decimal("0.5"), None, "parcial (50%)"),
+    (Decimal("1"), None, "completa"),
+])
+def test_el_recibo_dice_la_jornada_en_horas_no_en_fracciones(proporcion, horas, esperado):
+    assert describir_jornada(proporcion, horas) == esperado
+
+
+def test_la_descripcion_no_usa_notacion_cientifica():
+    """30.00 tiene que salir '30', no '3E+1'."""
+    assert "E+" not in describir_jornada(proporcion_jornada(30, Decimal("44")), Decimal("44"))

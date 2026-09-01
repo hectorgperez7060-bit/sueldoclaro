@@ -86,3 +86,42 @@ def proporcion_jornada(
             f"se cargan como novedad del mes, no como jornada."
         )
     return horas / completa
+
+
+# LCT art. 92 ter, apartado 1: el contrato a tiempo parcial es aquel en el que se
+# trabaja "un número de horas al día, a la semana o al mes, inferior a las dos
+# terceras (2/3) partes de la jornada habitual de la actividad". El apartado
+# siguiente agrega que, si se supera esa proporción, el empleador debe abonar la
+# remuneración de un trabajador de jornada completa.
+LIMITE_JORNADA_PARCIAL = Decimal(2) / Decimal(3)
+
+
+def excede_limite_parcial(proporcion: Decimal) -> bool:
+    """¿La jornada pactada supera los 2/3 sin llegar a la jornada completa?
+
+    En ese tramo el contrato ya no es a tiempo parcial a los efectos del art. 92
+    ter: prorratear el básico sería pagar de menos.
+    """
+    valor = Decimal(str(proporcion))
+    return LIMITE_JORNADA_PARCIAL < valor < Decimal("1")
+
+
+def _horas(valor: Decimal) -> str:
+    """30.00 -> "30"; 22.50 -> "22.5". Sin notación científica."""
+    texto = f"{Decimal(str(valor)).quantize(Decimal('0.01')):f}"
+    return texto.rstrip("0").rstrip(".") if "." in texto else texto
+
+
+def describir_jornada(
+    proporcion: Decimal, horas_convenio: Optional[Decimal] = None
+) -> str:
+    """Texto para el recibo: qué jornada se le liquidó a esta persona."""
+    valor = Decimal(str(proporcion if proporcion is not None else 1))
+    if horas_convenio:
+        completas = Decimal(str(horas_convenio))
+        if valor == Decimal("1"):
+            return f"completa {_horas(completas)} h"
+        return f"parcial {_horas(valor * completas)} de {_horas(completas)} h"
+    if valor == Decimal("1"):
+        return "completa"
+    return f"parcial ({_horas(valor * 100)}%)"
