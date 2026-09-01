@@ -84,3 +84,24 @@ def test_cementerio_municipal_no_se_encuadra_automaticamente():
 
     assert resultado["candidatos"] == []
     assert any("municipal" in texto.lower() for texto in resultado["faltantes"])
+
+
+def test_politica_operativa_configura_reglas_sin_inventar_cuota():
+    sql = (
+        BACKEND / "migrations" / "055_politica_provisoria_general_y_soecra.sql"
+    ).read_text(encoding="utf-8")
+
+    assert "presentismo_divisor = 10" in sql
+    assert "aplica_presentismo = true" in sql
+    assert "antiguedad_pct_por_anio = 0.01" in sql
+    assert "aplica_cuota_sindical = false" in sql
+    assert "cuota_sindical_pct = 0" in sql
+
+
+def test_dashboard_no_tiene_lista_blanca_de_convenios_provisorios():
+    fuente = (BACKEND / "src" / "api" / "routes" / "convenios.py").read_text(
+        encoding="utf-8"
+    )
+
+    assert 'cct.numero in {"389/04", "659/13"}' not in fuente
+    assert "escalas_provisorias_publicadas" in fuente
