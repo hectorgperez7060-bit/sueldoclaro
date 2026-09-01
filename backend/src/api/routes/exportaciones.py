@@ -41,6 +41,19 @@ async def _carpeta(s, carpeta_id: str) -> m.CarpetaMensual:
     return carpeta
 
 
+def _unidad_lsd(unidad: str) -> str:
+    u = str(unidad or "").lower()
+    if "%" in u:
+        return "%"
+    if "hora" in u:
+        return "H"
+    if "día" in u or "dia" in u:
+        return "D"
+    if "mes" in u:
+        return "M"
+    return "$"
+
+
 def _faltantes(carpeta: m.CarpetaMensual) -> list[dict]:
     _, snapshot, detalles = _datos(carpeta)
     empleados = snapshot.get("empleados", {})
@@ -137,7 +150,7 @@ async def descargar_arca(
                     importe=importe,
                     signo="D" if tipo in {"DEDUCCION", "DESCUENTO"} else "C",
                     cantidad=Decimal(str(c.get("cantidad") or 0)),
-                    unidad=(str(c.get("unidad") or "$")[:1]),
+                    unidad=_unidad_lsd(c.get("unidad", "")),
                 ))
             trabajadores.append(TrabajadorLSD(
                 cuil=doc["cuil"], legajo=doc.get("legajo", ""),
