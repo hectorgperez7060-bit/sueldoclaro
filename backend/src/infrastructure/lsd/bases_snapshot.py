@@ -22,6 +22,11 @@ def _info(codigo: str):
     info = concepto_arca(codigo)
     if info is not None:
         return info
+    if codigo.startswith(("APORTE_SOLIDARIO_SOECRA_", "CUOTA_SINDICAL_SOECRA_")):
+        return {
+            "grupo": GrupoARCA.DESCUENTO, "codigo_tipo_arca": "820000",
+            "integra_os": False, "integra_lrt": False, "verificado": True,
+        }
     if codigo.startswith(("NO_REM_2026_08_749_", "NO_REM_2026_08_761_")):
         # Familia oficial ARCA 540000. La clasificación de la suma es la que
         # declara el acta SOECRA: no integra seguridad social en agosto.
@@ -46,6 +51,10 @@ def codigo_empleador(codigo: str) -> str:
     }
     if codigo in conocidos:
         return conocidos[codigo]
+    if codigo.startswith("APORTE_SOLIDARIO_SOECRA_"):
+        return "SOLIDSOE"
+    if codigo.startswith("CUOTA_SINDICAL_SOECRA_"):
+        return "CUOTASOE"
     if codigo.startswith("NO_REM_2026_08_749_"):
         return "NR749AGO"
     if codigo.startswith("NO_REM_2026_08_761_"):
