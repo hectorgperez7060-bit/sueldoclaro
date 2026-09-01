@@ -25,6 +25,17 @@ _FUNERARIAS = {"749/18", "761/19"}
 _URL_SOECRA = "https://soecra.com.ar/ddjj-empresas/"
 
 
+def _unidad_lsd(valor: str) -> str:
+    u = str(valor or "").strip().lower()
+    if u in {"%", "porcentaje"}:
+        return "%"
+    if u in {"h", "hora", "horas"}:
+        return "H"
+    if u in {"d", "día", "dia", "días", "dias"}:
+        return "D"
+    return "$"
+
+
 def _datos(carpeta: m.CarpetaMensual):
     contenido = carpeta.contenido or {}
     return contenido, contenido.get("snapshot_parametros", {}), contenido.get("detalles", [])
