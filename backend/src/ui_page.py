@@ -704,7 +704,8 @@ tr:last-child td{border-bottom:0}tbody tr:hover{background:#f8fcfb}
         <div class="cabecera-seccion"><h3 id="panelVersionTitulo">Versión</h3><button class="chico secundario" onclick="cerrarPanelVersion()">Cerrar</button></div>
         <p id="panelVersionMeta" style="font-size:.85rem;color:#4b5563"></p>
         <div class="aviso" id="panelVersionFaltantes" style="display:none"></div>
-        <div style="margin:10px 0;display:flex;gap:8px;flex-wrap:wrap"><button class="chico" onclick="descargarRecibosDeVersion()">Descargar todos los recibos</button><button class="chico secundario" onclick="controlarArcaVersion()">Controlar ARCA</button><button class="chico secundario" id="btnSoecraVersion" onclick="descargarSoecraVersion()">Planilla SOECRA</button></div>
+        <div style="margin:10px 0;display:flex;gap:8px;flex-wrap:wrap"><button class="chico" onclick="descargarRecibosDeVersion()">Descargar todos los recibos</button><button class="chico secundario" onclick="controlarArcaVersion()">Controlar ARCA</button><button class="chico secundario" onclick="descargarArcaVersion()">Descargar TXT ARCA</button><button class="chico secundario" id="btnSoecraVersion" onclick="descargarSoecraVersion()">Planilla SOECRA</button></div>
+        <div class="fila" style="max-width:520px;margin:8px 0"><div><label>Fecha de pago para ARCA</label><input id="fechaArcaPago" type="date"></div><div><label>Fecha de rúbrica (si corresponde)</label><input id="fechaArcaRubrica" type="date"></div></div>
         <table id="tablaVersionDetalle" class="tabla-movil"><thead><tr><th>Empleado</th><th class="num">Bruto</th><th class="num">Descuentos</th><th class="num">Neto</th><th>Conceptos</th><th></th></tr></thead><tbody></tbody></table>
       </div>
       <div id="panelCierre" style="display:none;margin-top:18px;border-top:1px solid #d1d5db;padding-top:16px">
@@ -1694,6 +1695,28 @@ async function controlarArcaVersion(){
     const items=(r.faltantes||[]).map(x=>'• '+(x.concepto?x.campo+' ('+x.concepto+')':x.campo)).join('\n');
     alert('Todavía no se genera el TXT ARCA. Falta:\n'+items+'\n\nCompletá la ficha y volvé a liquidar para conservar los datos.');
   }catch(e){ alert(e.message); }
+}
+
+async function descargarArcaVersion(){
+  if(!versionAbierta) return;
+  const fecha=$('fechaArcaPago').value;
+  if(!fecha){ alert('Indicá la fecha real de pago.'); return; }
+  const rubrica=$('fechaArcaRubrica').value;
+  try{
+    let ruta='/exportaciones/carpetas/'+versionAbierta+'/arca.txt?fecha_pago='+encodeURIComponent(fecha);
+    if(rubrica) ruta+='&fecha_rubrica='+encodeURIComponent(rubrica);
+    const r=await fetch(ruta,{headers:{Authorization:'Bearer '+token()}});
+    if(!r.ok){
+      const d=await r.json().catch(()=>({detail:'No se pudo generar el TXT'}));
+      const detalle=d.detail&&d.detail.faltantes
+        ? d.detail.faltantes.map(x=>'• '+x.campo+(x.concepto?' ('+x.concepto+')':'')).join('\n')
+        : (typeof d.detail==='string'?d.detail:JSON.stringify(d.detail));
+      throw new Error(detalle);
+    }
+    const blob=await r.blob(), url=URL.createObjectURL(blob), a=document.createElement('a');
+    a.href=url; a.download=(r.headers.get('content-disposition')||'').match(/filename="([^"]+)"/)?.[1]||'ARCA-LSD.txt';
+    a.click(); setTimeout(()=>URL.revokeObjectURL(url),1000);
+  }catch(e){ alert('TXT ARCA bloqueado:\n'+e.message); }
 }
 
 async function descargarSoecraVersion(){
