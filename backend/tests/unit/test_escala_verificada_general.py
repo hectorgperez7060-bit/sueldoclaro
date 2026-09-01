@@ -57,6 +57,24 @@ def test_provisoria_confirmada_liquida():
     assert ev.puede_liquidar is True and ev.escala is not None
 
 
+def test_provisoria_documentada_prevalece_sobre_habilitacion_definitiva():
+    escala = _escala(
+        date(2026, 8, 1), date(2026, 8, 31),
+        verificada=False, provisoria=True,
+    )
+    escala = EscalaSalarial(
+        escala.cct_numero, escala.categoria, escala.basico,
+        escala.valid_from, escala.valid_to, escala.is_verified, escala.fuente,
+        escala.provisoria, escala.zona, escala.unidad_escala,
+        False, "PROVISORIA",
+    )
+    pendiente = evaluar_escala(escala, confirmado=False)
+    confirmada = evaluar_escala(escala, confirmado=True)
+    assert pendiente.requiere_confirmacion is True
+    assert confirmada.puede_liquidar is True
+    assert "publicada" in confirmada.nota.lower()
+
+
 def test_sin_escala_bloquea():
     ev = evaluar_escala(None)
     assert ev.estado == "bloqueada" and ev.puede_liquidar is False
