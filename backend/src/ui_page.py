@@ -2849,7 +2849,13 @@ async function instalarAplicacion(){
   }
 }
 if('serviceWorker' in navigator){
-  window.addEventListener('load',()=>navigator.serviceWorker.register('/sw.js').catch(()=>{}));
+  let recargaPorActualizacion=false;
+  navigator.serviceWorker.addEventListener('controllerchange',()=>{
+    if(recargaPorActualizacion) return;
+    recargaPorActualizacion=true;
+    window.location.reload();
+  });
+  window.addEventListener('load',()=>navigator.serviceWorker.register('/sw.js').then(reg=>reg.update()).catch(()=>{}));
 }
 
 if(token()) entrar();
