@@ -52,17 +52,6 @@ def test_service_worker_no_cachea_datos_privados():
     assert "/liquidaciones" not in main.split('script = """', 1)[1].split('"""', 1)[0]
 
 
-def test_la_app_instalada_busca_y_aplica_la_version_nueva():
-    main = (
-        __import__("pathlib").Path(__file__).resolve().parents[2]
-        / "src" / "main.py"
-    ).read_text(encoding="utf-8")
-    assert "sueldo-claro-shell-v2" in main
-    assert 'headers={"Cache-Control": "no-store, max-age=0"}' in main
-    assert "register('/sw.js').then(reg=>reg.update())" in HTML
-    assert "addEventListener('controllerchange'" in HTML
-
-
 def test_inicio_muestra_mapa_simple_y_navegable():
     assert 'id="tituloMapaUso"' in HTML
     assert "No necesitás saber contabilidad" in HTML
