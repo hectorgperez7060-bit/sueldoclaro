@@ -200,20 +200,40 @@ async def gestor_normativo(
             and esc_publicadas_habilitadas == escalas_esperadas
         )
         motor_periodo_habilitado = escala_completa and esc_habilitadas == escalas_esperadas
-        vista_previa_habilitada = False
+        escalas_provisorias_publicadas = len({
+            (e.categoria, getattr(e, "zona", "") or "") for e in esc
+            if getattr(e, "provisoria", False) and (e.fuente or "").strip()
+        })
+        # Política GENERAL: no depende del número de convenio. Una escala
+        # provisoria vigente y con fuente puede liquidarse con confirmación
+        # expresa. La falta de una categoría o zona sólo bloquea ese caso.
+        vista_previa_habilitada = bool(
+            estructura_registrada
+            and escalas_provisorias_publicadas
+            and not motor_periodo_habilitado
+        )
         if cct.numero in {"260/75", "40/89"} and estructura_completa and escala_completa:
             vista_previa_habilitada = not motor_periodo_habilitado
-        elif (
-            cct.numero in {"389/04", "659/13"}
-            and estructura_registrada
-            and cats_ok == len(nombres_categorias)
-            and cobertura_publicada
-        ):
-            # UTHGRA y FATFA publicaron escalas completas, pero todavía no
-            # existe acto homologatorio localizable. Se permite liquidar sólo
-            # con la confirmación expresa de escala provisoria que ya exige el
-            # motor.
-            vista_previa_habilitada = not motor_periodo_habilitado
+        mensaje_motor = None
+        if vista_previa_habilitada:
+            if cct.numero == "40/89":
+                mensaje_motor = (
+                    "Disponibles: general, larga distancia, lácteos, auxilio, diarios, "
+                    "combustibles, asfalto caliente, peligrosas, residuos, taller, "
+                    "caudales, clearing, expreso/mudanzas, aguas gaseosas, logística, "
+                    "pozos petrolíferos, transporte de automóviles, transporte pesado, "
+                    "zafra azucarera y bitrenes"
+                )
+            elif cct.numero == "761/19":
+                mensaje_motor = (
+                    "Escalas publicadas: liquidación provisoria disponible sólo con "
+                    "categoría y zona documentadas; otras combinaciones permanecen pendientes"
+                )
+            else:
+                mensaje_motor = (
+                    "Escala publicada y trazable: liquidación provisoria disponible "
+                    "con confirmación expresa; la firma profesional es un paso separado"
+                )
         if estructura_completa and escala_completa and motor_periodo_habilitado:
             estado = "completo"
         elif esc or par:
@@ -237,18 +257,7 @@ async def gestor_normativo(
                 "parametros": len(par), "completa": escala_completa,
                 "motor_habilitado": motor_periodo_habilitado,
                 "vista_previa_habilitada": vista_previa_habilitada,
-                "mensaje_motor": (
-                    "Disponibles: general, larga distancia, lácteos, auxilio, diarios, combustibles, asfalto caliente, peligrosas, residuos, taller, caudales, clearing, expreso/mudanzas, aguas gaseosas, logística, pozos petrolíferos, transporte de automóviles, transporte pesado, zafra azucarera y bitrenes"
-                    if cct.numero == "40/89" and vista_previa_habilitada
-                    else (
-                        "Escala oficial FATFA publicada; liquidación provisoria disponible con confirmación expresa, pendiente de homologación"
-                        if cct.numero == "659/13" and vista_previa_habilitada
-                        else (
-                            "Escala UTHGRA publicada; motor disponible en prueba con confirmación expresa, pendiente de homologación"
-                            if cct.numero == "389/04" and vista_previa_habilitada else None
-                        )
-                    )
-                ),
+                "mensaje_motor": mensaje_motor,
             },
         })
     return salida
