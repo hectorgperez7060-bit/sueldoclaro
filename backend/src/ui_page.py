@@ -991,17 +991,22 @@ async function crearEmpresa(){
 }
 
 async function recargarEmpresaActiva(){
-  await cargarEmpresas();
-  empresaCache=await api('/empresa');
-  await cargarConvenios();
-  await cargarEstablecimientos();
-  await cargarEmpleados();
-  await cargarNovedades();
-  await mostrarEstadoNormativo();
-  await cargarCarpetas();
-  await cargarEmpresasSeccion();
-  await cargarInicio();
-  await cargarGestorNormativo();
+  const primeraTanda=await Promise.all([
+    cargarEmpresas(),
+    api('/empresa'),
+    cargarConvenios(),
+    cargarEstablecimientos(),
+    cargarEmpleados(),
+    cargarCarpetas(),
+    cargarEmpresasSeccion(),
+  ]);
+  empresaCache=primeraTanda[1];
+  await Promise.all([
+    cargarNovedades(),
+    mostrarEstadoNormativo(),
+    cargarInicio(),
+    cargarGestorNormativo(),
+  ]);
 }
 
 async function entrar(){
@@ -1012,12 +1017,11 @@ async function entrar(){
   $('periodo').value = hoy.toISOString().slice(0,7);
   $('periodoGestor').value = $('periodo').value;
   $('novPeriodo').value = $('periodo').value;
+  // El menú y la sección son interfaz: no esperan consultas al servidor.
+  aplicarHash();
+  abrirMenuInicialEnTelefono();
   try{ await recargarEmpresaActiva(); }
   catch(e){ salir(); mostrarError('authError',e.message); return; }
-  // Al entrar (o al recargar la página) se abre la sección que indica el hash.
-  aplicarHash();
-  // En el teléfono mostramos de entrada qué puede hacer la aplicación.
-  abrirMenuInicialEnTelefono();
 }
 function toggleAlta(){ const a=$('alta'); a.style.display = a.style.display==='none'?'block':'none'; }
 function toggleEstablecimiento(){ const a=$('formEstablecimiento'); a.style.display=a.style.display==='none'?'block':'none'; }
