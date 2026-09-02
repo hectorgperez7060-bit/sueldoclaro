@@ -991,22 +991,29 @@ async function crearEmpresa(){
 }
 
 async function recargarEmpresaActiva(){
-  await cargarEmpresas();
-  empresaCache=await api('/empresa');
-  await cargarConvenios();
-  await cargarEstablecimientos();
-  await cargarEmpleados();
-  await cargarNovedades();
-  await mostrarEstadoNormativo();
-  await cargarCarpetas();
-  await cargarEmpresasSeccion();
-  await cargarInicio();
-  await cargarGestorNormativo();
+  const primeraTanda=await Promise.all([
+    cargarEmpresas(),
+    api('/empresa'),
+    cargarConvenios(),
+    cargarEstablecimientos(),
+    cargarEmpleados(),
+    cargarCarpetas(),
+    cargarEmpresasSeccion(),
+  ]);
+  empresaCache=primeraTanda[1];
+  await Promise.all([
+    cargarNovedades(),
+    mostrarEstadoNormativo(),
+    cargarInicio(),
+    cargarGestorNormativo(),
+  ]);
 }
 
 async function entrar(){
   document.body.classList.add('sesion-activa');
   $('auth').style.display='none'; $('app').style.display='block';
+  // La navegación es visible de inmediato; no depende de ninguna consulta.
+  abrirMenuInicialEnTelefono();
   $('quien').textContent='Sesión iniciada';
   const hoy = new Date();
   $('periodo').value = hoy.toISOString().slice(0,7);
