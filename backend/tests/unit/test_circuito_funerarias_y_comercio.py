@@ -159,6 +159,22 @@ def test_cocherias_no_retiene_nada_sindical_porque_sus_aportes_estan_bloqueados(
     assert sindicales == []
 
 
+def test_la_suma_no_remunerativa_de_cocherias_tiene_nombre_humano():
+    parametro = ParametroLegal(
+        "NO_REM_2026_08_749_A_2_ADM_POLIVALENTE_A", Decimal("114617.66"),
+        "ARS", "empleado", VIGENCIA, valid_to=date(2026, 8, 31),
+        cct_numero="749/18",
+        incidencias={"categoria": "Agrupamiento A - Categoría Segunda - Administrativo Polivalente A"},
+    )
+    _, res = _liquidar(
+        "749/18", "Agrupamiento A - Categoría Segunda - Administrativo Polivalente A",
+        "1280935.75", afiliado=False, extras=[parametro],
+    )
+
+    concepto = _concepto(res, parametro.codigo)
+    assert concepto.descripcion == "Suma no remunerativa - acuerdo SOECRA agosto 2026"
+
+
 def test_comercio_liquida_el_recibo_en_el_mismo_circuito():
     _, res = _liquidar("130/75", "Administrativo A", "1200000.00",
                        afiliado=True, presentismo=True)
