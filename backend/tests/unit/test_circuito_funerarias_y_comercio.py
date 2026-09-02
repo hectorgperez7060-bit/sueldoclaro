@@ -144,19 +144,49 @@ def test_el_aporte_solidario_no_alcanza_al_afiliado():
     assert _concepto(res, "APORTE_SOLIDARIO_SOECRA_761/19") is None
 
 
-def test_cocherias_no_retiene_nada_sindical_porque_sus_aportes_estan_bloqueados():
-    """El CCT 749/18 tiene los arts. 55, 56 y 61 en disputa documental.
+def _obligaciones_cocherias():
+    comunes = {
+        "base_deduccion": "sindical", "destino_pago": "SOECRA",
+        "canal_pago": "CuotaQ", "url_pago": "https://www.cuotaq.com/soecra",
+    }
+    return [
+        _deduccion("FONDO_FALLECIMIENTO_SOECRA_749/18", "0.01", "ded_todos", "749/18",
+                   {**comunes, "codigo_boleta": "SOECRA_FONDO_FALLECIMIENTO"}),
+        _deduccion("CUOTA_SINDICAL_SOECRA_749/18", "0.015", "ded_afil", "749/18",
+                   {**comunes, "codigo_boleta": "SOECRA_CUOTA_SINDICAL"}),
+        ParametroLegal(
+            "FONDO_CONVENCIONAL_SOECRA_749/18", Decimal("0.015"), "%", "contrib_emp",
+            VIGENCIA, valid_to=date(2026, 8, 31), cct_numero="749/18",
+            incidencias={"base_contribucion": "sindical", "destino_pago": "SOECRA",
+                         "codigo_boleta": "SOECRA_FONDO_CONVENCIONAL",
+                         "canal_pago": "CuotaQ", "url_pago": "https://www.cuotaq.com/soecra"},
+        ),
+    ]
 
-    Mientras no se resuelva, ninguna liquidación puede retenerle nada al
-    trabajador por ese concepto: la ausencia es el comportamiento correcto.
-    """
+
+@pytest.mark.parametrize("afiliado,espera_cuota", [(False, False), (True, True)])
+def test_cocherias_calcula_sepelio_fondo_patronal_y_cuota_solo_al_afiliado(
+    afiliado, espera_cuota
+):
+    nr = ParametroLegal(
+        "NO_REM_2026_08_749_A_2_ADM_POLIVALENTE_A", Decimal("114617.66"),
+        "ARS", "no_rem", VIGENCIA, valid_to=date(2026, 8, 31), cct_numero="749/18",
+        incidencias={"categoria": "Agrupamiento A - Categoría Segunda - Administrativo Polivalente A",
+                     "aporte_sindicato": True},
+    )
     _, res = _liquidar(
         "749/18", "Agrupamiento A - Categoría Segunda - Administrativo Polivalente A",
-        "1280935.75", afiliado=True,
+        "1280935.75", afiliado=afiliado, extras=[nr, *_obligaciones_cocherias()],
     )
-    sindicales = [c for c in res.conceptos
-                  if "SOECRA" in c.codigo or c.codigo == "CUOTA_SINDICAL"]
-    assert sindicales == []
+    sepelio = _concepto(res, "FONDO_FALLECIMIENTO_SOECRA_749/18")
+    cuota = _concepto(res, "CUOTA_SINDICAL_SOECRA_749/18")
+    fondo = _concepto(res, "FONDO_CONVENCIONAL_SOECRA_749/18")
+
+    assert sepelio and fondo
+    assert bool(cuota) is espera_cuota
+    assert sepelio.base_calculo.monto > res.total_remunerativo.monto
+    assert fondo.base_calculo == sepelio.base_calculo
+    assert sepelio.destino_pago == fondo.destino_pago == "SOECRA"
 
 
 def test_la_suma_no_remunerativa_de_cocherias_tiene_nombre_humano():
@@ -173,6 +203,20 @@ def test_la_suma_no_remunerativa_de_cocherias_tiene_nombre_humano():
 
     concepto = _concepto(res, parametro.codigo)
     assert concepto.descripcion == "Suma no remunerativa - acuerdo SOECRA agosto 2026"
+
+
+def test_migracion_soecra_749_declara_las_tres_obligaciones_y_base_no_remunerativa():
+    sql = (BACKEND / "migrations" / "057_obligaciones_soecra_749_18.sql").read_text(
+        encoding="utf-8"
+    )
+    for codigo in (
+        "FONDO_FALLECIMIENTO_SOECRA_749/18",
+        "CUOTA_SINDICAL_SOECRA_749/18",
+        "FONDO_CONVENCIONAL_SOECRA_749/18",
+    ):
+        assert codigo in sql
+    assert "aporte_sindicato" in sql
+    assert "'ded_todos'" in sql and "'ded_afil'" in sql and "'contrib_emp'" in sql
 
 
 def test_comercio_liquida_el_recibo_en_el_mismo_circuito():
