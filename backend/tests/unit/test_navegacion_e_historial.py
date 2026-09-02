@@ -54,6 +54,7 @@ def test_la_url_conserva_la_seccion_y_se_respeta_al_recargar():
     # aplicarHash se llama al entrar, después de cargar los datos de la empresa.
     entrar = UI[UI.index("async function entrar()"):]
     assert "aplicarHash();" in entrar[:entrar.index("\nfunction toggleAlta")]
+    assert entrar.index("aplicarHash();") < entrar.index("await recargarEmpresaActiva();")
 
 
 def test_en_telefono_el_menu_lateral_se_abre_y_se_cierra():
