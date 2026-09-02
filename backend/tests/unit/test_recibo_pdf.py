@@ -298,6 +298,7 @@ def test_porcentajes_conservan_el_valor_completo():
     assert _unit("1.00000000% por año") == "1% por año"
     assert _unit("8.33%") == "8,33%"
     assert _unit("1/12.0000") == "8,33%"
+    assert _unit("1/10.0000") == "10%"
 
 
 def test_fechas_del_recibo_siempre_se_muestran_dia_mes_anio():
