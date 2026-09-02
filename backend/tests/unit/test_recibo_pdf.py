@@ -191,11 +191,13 @@ def test_los_datos_largos_no_quedan_truncados():
 
 
 # --------------------------------------------------------------------------- #
-# 10. Vista previa mientras no haya firma acreditada.
+# 10. Ejemplar emitido por el empleador, pendiente de firma y entrega.
 # --------------------------------------------------------------------------- #
-def test_sin_firma_el_pdf_se_identifica_como_vista_previa():
+def test_sin_firma_el_pdf_queda_listo_para_firma_sin_exigir_contador():
     _, _, texto = _texto(_datos())
-    assert "VISTA PREVIA — SIN FIRMA NI CONSTANCIA DE ENTREGA" in texto
+    assert "EMITIDO POR EL EMPLEADOR — PENDIENTE DE FIRMA Y CONSTANCIA DE ENTREGA" in texto
+    assert "REVISIÓN PROFESIONAL OPCIONAL" in texto
+    assert "APROBACIÓN POR CONTADOR" not in texto
     assert "Firma del empleador" in texto
     assert "Firma o aceptación del trabajador" in texto
     assert "Fecha de recepción" in texto
@@ -205,7 +207,7 @@ def test_sin_firma_el_pdf_se_identifica_como_vista_previa():
 def test_una_firma_incompleta_sigue_siendo_vista_previa():
     datos = _datos(firma={"tipo": "digital"})
     _, _, texto = _texto(datos)
-    assert "VISTA PREVIA — SIN FIRMA NI CONSTANCIA DE ENTREGA" in texto
+    assert "PENDIENTE DE FIRMA Y CONSTANCIA DE ENTREGA" in texto
 
 
 def test_una_firma_enviada_por_el_cliente_no_se_considera_acreditada():
@@ -215,7 +217,7 @@ def test_una_firma_enviada_por_el_cliente_no_se_considera_acreditada():
         "fecha_recepcion": "2026-09-05",
     })
     _, _, texto = _texto(datos)
-    assert "VISTA PREVIA — SIN FIRMA NI CONSTANCIA DE ENTREGA" in texto
+    assert "PENDIENTE DE FIRMA Y CONSTANCIA DE ENTREGA" in texto
     assert "Firma registrada" not in texto
 
 

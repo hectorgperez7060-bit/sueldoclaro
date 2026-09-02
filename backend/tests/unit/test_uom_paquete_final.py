@@ -122,15 +122,16 @@ def test_fuentes_oficiales_uom_quedan_identificadas_por_hash():
                for f in fuentes["fuentes"])
 
 
-def test_uom_calcula_como_borrador_pendiente_de_contador():
+def test_ningun_convenio_salta_la_habilitacion_ni_exige_contador_para_liquidar():
     caso = (ROOT / "src/application/use_cases/liquidar_periodo.py").read_text(encoding="utf-8")
     pdf = (ROOT / "src/infrastructure/pdf/recibo.py").read_text(encoding="utf-8")
     convenios = (ROOT / "src/api/routes/convenios.py").read_text(encoding="utf-8")
-    assert 'emp.cct_numero == "260/75"' in caso
-    assert '"pendiente_aprobacion_contador": bool(' in caso
-    assert "vista_previa_contador or escala_provisoria" in caso
-    assert '"APROBACION_PROFESIONAL_PENDIENTE"' in caso
-    assert "PENDIENTE DE REVISIÓN Y APROBACIÓN POR CONTADOR PÚBLICO" in pdf
+    assert "habilitar_vista_previa_uom" not in caso
+    assert "pendiente_aprobacion_contador" not in caso
+    assert '"APROBACION_PROFESIONAL_PENDIENTE"' not in caso
+    assert '"AUTOGESTION_EMPLEADOR"' in caso
+    assert "REVISIÓN PROFESIONAL OPCIONAL" in pdf
+    assert "PENDIENTE DE REVISIÓN Y APROBACIÓN POR CONTADOR PÚBLICO" not in pdf
     assert 'cct.numero in {"260/75", "40/89"}' in convenios
 
 

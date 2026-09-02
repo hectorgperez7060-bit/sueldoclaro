@@ -14,7 +14,8 @@ Reglas de construcción:
   no entra, se parte en dos renglones. Un domicilio cortado con "..." no cumple.
 - Nada se inventa. Un dato ausente se muestra como "No informado" y los datos del
   último depósito, si faltan, se declaran pendientes.
-- Un PDF sin firma acreditada es una VISTA PREVIA y lo dice en el encabezado.
+- El PDF descargado queda listo para firma y entrega. Mientras no exista firma
+  o aceptación acreditada, lo informa sin convertir al contador en requisito.
 - Un importe pendiente nunca se muestra como $ 0,00: se muestra como pendiente.
 - Los porcentajes del gráfico se derivan de los mismos importes mostrados y su
   redondeo visible suma exactamente 100,0 %.
@@ -38,7 +39,8 @@ AMBER_BG, AMBER_LINE, AMBER_INK = Color(1, .96, .80), Color(.85, .55, 0), Color(
 
 NO_INFORMADO = "No informado"
 DEPOSITO_PENDIENTE = "Datos del último depósito pendientes de completar"
-VISTA_PREVIA = "VISTA PREVIA — SIN FIRMA NI CONSTANCIA DE ENTREGA"
+PARA_FIRMA = "EMITIDO POR EL EMPLEADOR — PENDIENTE DE FIRMA Y CONSTANCIA DE ENTREGA"
+REVISION_OPCIONAL = "REVISIÓN PROFESIONAL OPCIONAL"
 GRUPO_ART = "ART"
 ART_PENDIENTE = "ART pendiente de contrato/cálculo"
 SUBTOTAL_SIN_ART = "Subtotal conocido del costo laboral — ART pendiente"
@@ -560,14 +562,14 @@ def generar_recibo_pdf(data: dict[str, Any]) -> bytes:
     concepts = list(data["conceptos"])
     contributions = [r for r in concepts if r["tipo"] == "contribucion"]
     worker = [r for r in concepts if r["tipo"] != "contribucion"]
-    # La ruta pública sólo genera vistas previas. Una firma válida deberá venir
+    # La ruta pública genera el ejemplar para firma y entrega. Una firma válida deberá venir
     # de un registro persistido y verificado por el servidor, nunca del cuerpo
     # enviado por el navegador.
     firma = None
 
     # Encabezado documental compacto.
     c.setFillColor(GREEN); c.setStrokeColor(GREEN); c.rect(20, 808, 555, 25, fill=1, stroke=0)
-    titulo = "RECIBO DE HABERES" if firma else "RECIBO DE HABERES · VISTA PREVIA"
+    titulo = "RECIBO DE HABERES" if firma else "RECIBO DE HABERES · PARA FIRMA Y ENTREGA"
     _text(c, 28, 817, titulo, 9.2, True, white)
     _text(c, 567, 817, f"PERÍODO {data['periodo']}", 8, True, white, right=True)
 
@@ -575,14 +577,12 @@ def generar_recibo_pdf(data: dict[str, Any]) -> bytes:
     if not firma:
         c.setFillColor(AMBER_BG); c.setStrokeColor(AMBER_LINE)
         c.rect(24, y - 11, 547, 15, fill=1, stroke=1)
-        _text(c, 297, y - 6, VISTA_PREVIA, 7, True, AMBER_INK, right=True)
+        _text(c, 297, y - 6, PARA_FIRMA, 6.8, True, AMBER_INK, right=True)
         y -= 17
-    if data.get("pendiente_aprobacion_contador"):
-        c.setFillColor(AMBER_BG); c.setStrokeColor(AMBER_LINE)
+    if not firma:
+        c.setFillColor(PALE); c.setStrokeColor(GREEN)
         c.rect(24, y - 11, 547, 15, fill=1, stroke=1)
-        _text(c, 297, y - 6,
-              "NÚMEROS REALES · PENDIENTE DE REVISIÓN Y APROBACIÓN POR CONTADOR PÚBLICO",
-              6.7, True, AMBER_INK, right=True)
+        _text(c, 297, y - 6, REVISION_OPCIONAL, 6.8, True, GREEN, right=True)
         y -= 17
 
     y = _section(c, y, "1. DATOS DEL EMPLEADOR, TRABAJADOR Y PAGO")

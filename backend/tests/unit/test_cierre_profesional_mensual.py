@@ -49,6 +49,10 @@ def test_regla_normativa_real_impide_revision_pero_aprobacion_uom_no_es_circular
     assert faltantes_para_revision(contenido, [{"estado": "verificada"}])
     contenido["control_normativo"]["pendientes"] = [{"codigo": "APROBACION_CONTADOR_UOM"}]
     assert faltantes_para_revision(contenido, [{"estado": "verificada"}]) == []
+    contenido["control_normativo"]["pendientes"] = [
+        {"codigo": "APROBACION_PROFESIONAL_PENDIENTE"}
+    ]
+    assert faltantes_para_revision(contenido, [{"estado": "verificada"}]) == []
 
 
 def test_transicion_de_obligaciones_es_secuencial_y_exige_comprobante():
@@ -80,11 +84,12 @@ def test_api_exige_contador_verificado_y_hash_inmutable():
     assert 'carpeta.estado != "calculada"' in ruta
 
 
-def test_interfaz_expone_cierre_practico_sin_autocertificacion():
+def test_interfaz_expone_control_practico_y_revision_opcional_sin_autocertificacion():
     ui = (ROOT / "src/ui_page.py").read_text(encoding="utf-8")
     for token in (
-        "Revisar cierre", "Salida / boleta", "Confirmar importe", "Registrar pago",
-        "Verificar comprobante", "Aprobar y firmar revisión profesional",
+        "Controlar período", "Salida / boleta", "Confirmar importe", "Registrar pago",
+        "Verificar comprobante", "Registrar revisión de contador",
+        "Revisión profesional opcional",
     ):
         assert token in ui
     assert "matricula_vigente=true" not in ui

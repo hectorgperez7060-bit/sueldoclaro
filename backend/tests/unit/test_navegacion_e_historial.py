@@ -230,6 +230,6 @@ def test_el_recibo_actual_se_prepara_en_un_formulario_sin_ventanas_prompt():
     bloque = UI[UI.index("function abrirDatosRecibo("):UI.index("let eventoInstalacion")]
     descarga = bloque[bloque.index("async function descargarReciboPdf("):]
 
-    assert "Datos del recibo" in bloque
+    assert "Emitir recibo por el empleador" in bloque
     assert "prompt(" not in descarga
     assert "Completá los cuatro datos marcados" in descarga

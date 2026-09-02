@@ -73,7 +73,7 @@ def test_recibo_compacta_impresion_para_una_hoja_a4():
 def test_recibo_se_descarga_desde_backend_sin_repaginar_en_safari():
     assert "async function descargarReciboPdf" in HTML
     assert "fetch('/recibos/pdf'" in HTML
-    assert "Descargar PDF" in HTML
+    assert "Generar recibo para firma" in HTML
 
 
 def test_ui_adapta_tablas_y_acciones_a_celular():

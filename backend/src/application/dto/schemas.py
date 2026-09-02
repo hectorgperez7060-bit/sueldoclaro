@@ -419,7 +419,6 @@ class DetalleOut(BaseModel):
     conceptos: List[ConceptoOut]
     escala_provisoria: Optional[dict] = None
     vista_previa: bool = False
-    pendiente_aprobacion_contador: bool = False
 
 
 class LiquidacionOut(BaseModel):

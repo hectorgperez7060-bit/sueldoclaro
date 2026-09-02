@@ -27,7 +27,7 @@ from domain.payroll_engine.camioneros import (
 )
 from domain.payroll_engine.uom import (
     armar_recibo_uom, calcular_adicional_uom, calcular_base_uom, calcular_compensacion_abril_julio_uom,
-    calcular_complemento_imgr, calcular_gratificacion_uom, habilitar_vista_previa_uom,
+    calcular_complemento_imgr, calcular_gratificacion_uom,
 )
 from domain.payroll_engine.uocra import (
     ComponentesFondoCese, DecisionProfesionalFcl, FeriadoDetalladoUocra,
@@ -222,23 +222,12 @@ class LiquidarPeriodo:
                     emp.cct_numero, emp.categoria, fecha_ref, zona_escala
                 )
                 amparos = await params_repo.amparos(emp.cct_numero)
-                vista_previa_contador = bool(
-                    emp.cct_numero in {"260/75", "40/89"} and escala is not None
-                    and escala.is_verified
-                    and not getattr(escala, "habilitada_liquidacion", True)
-                )
-                escala_documentada = escala
-                vigente_uom = (
-                    habilitar_vista_previa_uom(escala_documentada)
-                    if vista_previa_contador else escala
-                )
-
                 # Regla GENERAL (cualquier CCT/categoría/período): solo se usa
                 # una escala vigente verificada o una fila provisoria vigente
                 # confirmada expresamente. Nunca se estima ni se pone en cero.
                 escala_provisoria = None
                 evaluacion = evaluar_escala(
-                    vigente_uom, confirmado=confirmar_provisorios
+                    escala, confirmado=confirmar_provisorios
                 )
                 if cct_cfg is None or not evaluacion.puede_liquidar:
                     bloqueos.append({
@@ -999,13 +988,10 @@ class LiquidarPeriodo:
                     "aviso_cuota_afiliado": aviso_cuota_afiliado,
                     "aviso_art101": aviso_cuota_afiliado,
                     "escala_provisoria": escala_provisoria,
-                    "vista_previa": vista_previa_contador,
+                    "vista_previa": False,
                     "modo_servicio": (
-                        "AUTOGESTION_SIN_FIRMA"
-                        if escala_provisoria else "CALCULO_SIN_CIERRE_PROFESIONAL"
-                    ),
-                    "pendiente_aprobacion_contador": bool(
-                        vista_previa_contador or escala_provisoria
+                        "AUTOGESTION_EMPLEADOR_ESCALA_PROVISORIA_CONFIRMADA"
+                        if escala_provisoria else "AUTOGESTION_EMPLEADOR"
                     ),
                     "bases_lsd": bases_lsd_out,
                     "trazabilidad_lsd": trazabilidad_lsd,
@@ -1039,16 +1025,6 @@ class LiquidarPeriodo:
                     "cct_numero": p.cct_numero,
                     "verificado": p.is_verified,
                     "fuente": p.fuente,
-                })
-            if any(d.get("pendiente_aprobacion_contador") for d in detalles_out):
-                reglas_pendientes.append({
-                    "codigo": "APROBACION_PROFESIONAL_PENDIENTE",
-                    "cct_numero": "MULTIPLE",
-                    "verificado": False,
-                    "fuente": (
-                        "Liquidación de autogestión: pendiente de revisión y "
-                        "firma efectiva por contador público"
-                    ),
                 })
             contenido_carpeta = construir_contenido_carpeta(
                 periodo=periodo_str, tipo=tipo, liquidacion_id=str(liq.id),
