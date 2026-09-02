@@ -1,6 +1,7 @@
 """Descarga de recibos PDF generados por el backend."""
 from __future__ import annotations
 
+from datetime import date
 from decimal import Decimal
 from typing import Literal, Optional
 
@@ -19,7 +20,7 @@ class ConceptoPdf(BaseModel):
     descripcion: str
     tipo: Literal["remunerativo", "no_remunerativo", "deduccion", "contribucion"]
     importe: Decimal
-    base_calculo: Decimal
+    base_calculo: Optional[Decimal] = None
     unidad: str
     cantidad: Decimal
     # Metadatos ya calculados por el motor. Permiten agrupar el costo laboral por
@@ -41,10 +42,9 @@ class DatosPagoPdf(BaseModel):
 class DatosCargasPdf(BaseModel):
     """Último depósito de aportes y contribuciones (Ley 17.250 art. 12)."""
 
-    fecha: Optional[str] = None
-    lugar: Optional[str] = None
-    periodo: Optional[str] = None
-    banco: Optional[str] = None
+    fecha: date
+    periodo: str = Field(pattern=r"^\d{4}-(0[1-9]|1[0-2])$")
+    banco: str = Field(min_length=1)
 
 
 class ReciboPdfIn(BaseModel):
@@ -52,7 +52,7 @@ class ReciboPdfIn(BaseModel):
     empresa: dict
     empleado: dict
     pago: DatosPagoPdf
-    cargas_sociales: DatosCargasPdf = Field(default_factory=DatosCargasPdf)
+    cargas_sociales: DatosCargasPdf
     conceptos: list[ConceptoPdf]
     bruto: Decimal
     total_deducciones: Decimal

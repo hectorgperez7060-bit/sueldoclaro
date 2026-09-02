@@ -143,9 +143,13 @@ def validar_datos_legales(data: dict[str, Any]) -> None:
     if not data.get("conceptos"):
         raise ValueError("El recibo no contiene conceptos liquidados")
     for index, concept in enumerate(data["conceptos"], 1):
-        for field in ("descripcion", "tipo", "importe", "base_calculo", "unidad", "cantidad"):
+        for field in ("descripcion", "tipo", "importe", "unidad", "cantidad"):
             if concept.get(field) is None or str(concept.get(field)).strip() == "":
                 raise ValueError(f"Concepto {index}: falta {field}")
+        if concept.get("base_calculo") is None and concept.get("codigo") != "ART_IMPORTE_DECLARADO":
+            raise ValueError(f"Concepto {index}: falta base_calculo")
+    for path in ("cargas_sociales.fecha", "cargas_sociales.periodo", "cargas_sociales.banco"):
+        _require(data, path)
 
 
 # --------------------------------------------------------------------------- #
@@ -233,7 +237,8 @@ def _row(c: Canvas, y: float, row: dict[str, Any], size: float, height: float, s
     if shaded:
         c.setFillColor(HexColor("#F3F4F6")); c.rect(28, bottom, 540, height, fill=1, stroke=0)
     _draw_fit(c, 32, y, row["descripcion"], 256, size, max_lines=1, min_size=4.2)
-    _text(c, 370, y, _money(row["base_calculo"]), size, right=True)
+    base = row.get("base_calculo")
+    _text(c, 370, y, _money(base) if base is not None else "Informada", size, right=True)
     _draw_fit(c, 380, y, _unit(row["unidad"]), 84, size, max_lines=1, min_size=4.2)
     _text(c, 508, y, row["cantidad"], size, right=True)
     _text(c, 562, y, _money(row["importe"]), size, True, right=True)

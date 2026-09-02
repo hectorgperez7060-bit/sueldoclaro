@@ -1857,9 +1857,19 @@ function pedirMetadatosRecibo(carpeta){
   if(!lugarPago) return null;
   const formaPago=prompt('Forma de pago:',localStorage.getItem('sc_forma_pago')||'');
   if(!formaPago) return null;
+  const cargasFecha=prompt('Fecha del último depósito de aportes (AAAA-MM-DD):',localStorage.getItem('sc_fecha_cargas')||'');
+  if(!/^\d{4}-(0[1-9]|1[0-2])-([0-2]\d|3[01])$/.test(cargasFecha||'')) return null;
+  const cargasPeriodo=prompt('Período al que corresponde el último depósito (AAAA-MM):',localStorage.getItem('sc_periodo_cargas')||'');
+  if(!/^\d{4}-(0[1-9]|1[0-2])$/.test(cargasPeriodo||'')) return null;
+  const cargasBanco=prompt('Banco o entidad donde se hizo el último depósito:',localStorage.getItem('sc_banco_cargas')||'');
+  if(!cargasBanco) return null;
   localStorage.setItem('sc_empresa_domicilio',domicilio);
   localStorage.setItem('sc_fecha_pago_hist',fechaPago);
-  metadatosRecibo={carpeta:carpeta.id,razon,cuit,domicilio,fechaPago,lugarPago,formaPago};
+  localStorage.setItem('sc_fecha_cargas',cargasFecha);
+  localStorage.setItem('sc_periodo_cargas',cargasPeriodo);
+  localStorage.setItem('sc_banco_cargas',cargasBanco);
+  metadatosRecibo={carpeta:carpeta.id,razon,cuit,domicilio,fechaPago,lugarPago,formaPago,
+                   cargasFecha,cargasPeriodo,cargasBanco};
   return metadatosRecibo;
 }
 
@@ -1905,7 +1915,7 @@ function cuerpoReciboHistorico(carpeta, detalle, meta, doc){
     empleado,
     pago:{fecha:meta.fechaPago,lugar:meta.lugarPago,forma:meta.formaPago,
           establecimiento:doc.lugar_trabajo||'',domicilio_trabajo:''},
-    cargas_sociales:{},
+    cargas_sociales:{fecha:meta.cargasFecha,periodo:meta.cargasPeriodo,banco:meta.cargasBanco},
     conceptos:(detalle.conceptos||[]).map(c=>({
       codigo:c.codigo||'',descripcion:c.descripcion,tipo:c.tipo,importe:c.importe,
       base_calculo:c.base_calculo,unidad:c.unidad,cantidad:c.cantidad,
@@ -2560,10 +2570,14 @@ async function liquidar(confirmarProvisorios=false){
     });
     ultimaLiq = d;
     if(!d.detalles.length){
-      const motivos=(d.bloqueos||[]).map(b=>`<li>${esc(b.categoria||'Empleado')}: ${esc(b.motivo)}</li>`).join('');
-      const confirmables=(d.bloqueos||[]).filter(b=>b.requiere_confirmacion);
-      const confirmar=confirmables.length?`<div style="margin-top:10px;padding:10px;border:1px solid #f59e0b;background:#fffbeb;border-radius:8px"><b>Hay una escala provisoria publicada y documentada.</b><br><small>Podés aceptarla para este cálculo. La fuente, la vigencia y tu confirmación quedarán registradas; esto no exige aprobación de un contador.</small><br><button class="chico" style="margin-top:8px" onclick="liquidar(true)">Aceptar escala provisoria y calcular</button></div>`:'';
-      $('resultados').innerHTML=motivos?`<div class="error" style="display:block"><b>No se pudo calcular:</b><ul>${motivos}</ul></div>${confirmar}`:'<p style="margin-top:12px">No hay empleados para liquidar.</p>';
+      const bloqueos=d.bloqueos||[];
+      const confirmables=bloqueos.filter(b=>b.requiere_confirmacion);
+      const definitivos=bloqueos.filter(b=>!b.requiere_confirmacion);
+      const motivos=definitivos.map(b=>`<li>${esc(b.categoria||'Empleado')}: ${esc(b.motivo)}</li>`).join('');
+      const porConfirmar=confirmables.map(b=>`<li>${esc(b.categoria||'Empleado')}: ${esc(b.motivo)}</li>`).join('');
+      const error=motivos?`<div class="error" style="display:block"><b>No se pudo calcular:</b><ul>${motivos}</ul></div>`:'';
+      const confirmar=confirmables.length?`<div style="margin-top:10px;padding:10px;border:1px solid #f59e0b;background:#fffbeb;border-radius:8px;color:#92400e"><b>Antes de calcular, confirmá la escala provisoria utilizada.</b><ul>${porConfirmar}</ul><small>La fuente, la vigencia y tu confirmación quedarán registradas. Esto no exige aprobación de un contador.</small><br><button class="chico" style="margin-top:8px" onclick="liquidar(true)">Aceptar escala provisoria y calcular</button></div>`:'';
+      $('resultados').innerHTML=(error+confirmar)||'<p style="margin-top:12px">No hay empleados para liquidar.</p>';
       return;
     }
     renderLiquidacion();
@@ -2772,23 +2786,39 @@ function verRecibo(empId){
   w.document.write(html); w.document.close();
 }
 
+function esConceptoArt(c){
+  const codigo=String(c&&c.codigo||'').toLowerCase();
+  const descripcion=String(c&&c.descripcion||'').toLowerCase();
+  return codigo.startsWith('art_')||codigo.startsWith('cuota_art')
+    ||descripcion.includes('riesgos del trabajo')||descripcion.includes('a.r.t')
+    ||descripcion==='art'||descripcion.startsWith('art ')||descripcion.startsWith('art -');
+}
+
+function claveArt(empId,campo){
+  return `sc_${localStorage.getItem('sc_tenant')||'empresa'}_${empId}_${campo}`;
+}
+
 function abrirDatosRecibo(empId){
   if(!ultimaLiq) return;
   const emp=empleadosCache[empId]||{};
+  const det=ultimaLiq.detalles.find(x=>x.empleado_id===empId);
+  if(!det) return;
+  const artCalculada=(det.conceptos||[]).find(esConceptoArt);
   const formasPago={'1':'Efectivo','2':'Cheque','3':'Acreditación en cuenta','4':'Otra'};
   const panel=$('datos-recibo-'+empId); if(!panel) return;
   panel.innerHTML=`<div style="margin-top:12px;padding:14px;border:1px solid #8dd8ce;border-radius:12px;background:#f2fbf9">
     <b style="color:var(--verde)">Emitir recibo por el empleador</b>
-    <p style="font-size:.82rem;color:#52706d;margin:4px 0 10px">Completá los datos marcados. Se generará el ejemplar para firmar y entregar al trabajador; no necesita aprobación previa de un contador. Los datos del último depósito quedarán señalados si faltan.</p>
+    <p style="font-size:.82rem;color:#52706d;margin:4px 0 10px">Completá los datos marcados. Se generará el ejemplar para firmar y entregar al trabajador; no necesita aprobación previa de un contador.</p>
     <div class="fila">
       <div><label>Domicilio legal del empleador *</label><input id="recDomicilio-${empId}" value="${esc(localStorage.getItem('sc_empresa_domicilio')||'')}"></div>
       <div><label>Fecha efectiva de pago *</label><input id="recFecha-${empId}" type="date" value="${new Date().toISOString().slice(0,10)}"></div>
       <div><label>Lugar de pago *</label><input id="recLugar-${empId}" value="${esc(emp.lugar_trabajo||localStorage.getItem('sc_lugar_pago')||'')}"></div>
       <div><label>Forma de pago *</label><input id="recForma-${empId}" value="${esc(formasPago[emp.forma_pago]||localStorage.getItem('sc_forma_pago')||'')}"></div>
-      <div><label>Fecha del último depósito de cargas</label><input id="recCargasFecha-${empId}" type="date" value="${esc(localStorage.getItem('sc_fecha_cargas')||'')}"></div>
-      <div><label>Banco o canal del depósito</label><input id="recCargasLugar-${empId}" value="${esc(localStorage.getItem('sc_lugar_cargas')||'ARCA')}"></div>
+      <div><label>Fecha del último depósito de aportes *</label><input id="recCargasFecha-${empId}" type="date" value="${esc(localStorage.getItem('sc_fecha_cargas')||'')}"></div>
+      <div><label>Período de ese depósito *</label><input id="recCargasPeriodo-${empId}" type="month" value="${esc(localStorage.getItem('sc_periodo_cargas')||'')}"></div>
+      <div><label>Banco o entidad del depósito *</label><input id="recCargasBanco-${empId}" value="${esc(localStorage.getItem('sc_banco_cargas')||'')}"></div>
     </div>
-    <details style="margin:10px 0;padding:9px;border:1px solid #b9d9d4;border-radius:8px;background:#fff"><summary><b>¿Qué hago si aparece ART pendiente?</b></summary><p style="font-size:.82rem;color:#4b5563;margin:7px 0 0">Buscá en la póliza, factura o aviso mensual de tu ART: nombre de la aseguradora, porcentaje sobre la masa salarial, importe fijo por trabajador y vigencia. No copies la alícuota de otra empresa: el contrato de cada empleador puede ser distinto. Hasta cargar esos datos, Sueldo Claro mostrará el costo laboral sin ART y la marcará como pendiente.</p></details>
+    ${artCalculada?`<div style="margin:10px 0;padding:9px;border:1px solid #86c8be;border-radius:8px;background:#e7f5f2"><b>ART ya incluida:</b> ${esc(artCalculada.descripcion)} · $ ${fmt(artCalculada.importe)}</div>`:`<div style="margin:10px 0;padding:10px;border:1px solid #b9d9d4;border-radius:8px;background:#fff"><b>ART de este trabajador *</b><p style="font-size:.82rem;color:#4b5563;margin:5px 0 8px">Copiá el importe individual exacto de la póliza, factura o detalle mensual. Si sólo tenés un porcentaje y una suma fija, no los multipliques a ojo: pedí a la ART el detalle por trabajador.</p><div class="fila"><div><label>Aseguradora *</label><input id="recArtAseguradora-${empId}" value="${esc(localStorage.getItem(claveArt(empId,'aseguradora'))||'')}"></div><div><label>Importe mensual individual *</label><input id="recArtImporte-${empId}" type="number" min="0.01" step="0.01" value="${esc(localStorage.getItem(claveArt(empId,'importe'))||'')}"></div><div><label>Póliza, factura o referencia *</label><input id="recArtReferencia-${empId}" value="${esc(localStorage.getItem(claveArt(empId,'referencia'))||'')}"></div></div></div>`}
     <div id="recError-${empId}" class="error"></div>
     <button class="chico" onclick="descargarReciboPdf('${empId}')">Generar recibo para firma</button>
     <button class="chico secundario" onclick="$('datos-recibo-${empId}').innerHTML=''">Cancelar</button>
@@ -2807,25 +2837,51 @@ async function descargarReciboPdf(empId, reintento=true){
   const lugarPago=valor('recLugar-'+empId);
   const formaPago=valor('recForma-'+empId);
   const fechaCargas=valor('recCargasFecha-'+empId);
-  const lugarCargas=valor('recCargasLugar-'+empId);
-  if(!domicilioEmpresa||!fechaPago||!lugarPago||!formaPago){
-    mostrarError('recError-'+empId,'Completá los cuatro datos marcados con *.'); return;
+  const periodoCargas=valor('recCargasPeriodo-'+empId);
+  const bancoCargas=valor('recCargasBanco-'+empId);
+  const artCalculada=(det.conceptos||[]).some(esConceptoArt);
+  const artAseguradora=artCalculada?'':valor('recArtAseguradora-'+empId);
+  const artImporte=artCalculada?0:Number(valor('recArtImporte-'+empId)||0);
+  const artReferencia=artCalculada?'':valor('recArtReferencia-'+empId);
+  if(!domicilioEmpresa||!fechaPago||!lugarPago||!formaPago
+      ||!fechaCargas||!/^\d{4}-\d{2}$/.test(periodoCargas)||!bancoCargas){
+    mostrarError('recError-'+empId,'Completá los datos del empleador, del pago y los tres datos del último depósito.'); return;
+  }
+  if(!artCalculada&&(!artAseguradora||artImporte<=0||!artReferencia)){
+    mostrarError('recError-'+empId,'Completá aseguradora, importe individual y referencia de ART.'); return;
   }
   localStorage.setItem('sc_empresa_domicilio',domicilioEmpresa);
   localStorage.setItem('sc_lugar_pago',lugarPago);
   localStorage.setItem('sc_forma_pago',formaPago);
   localStorage.setItem('sc_fecha_cargas',fechaCargas);
-  localStorage.setItem('sc_lugar_cargas',lugarCargas);
+  localStorage.setItem('sc_periodo_cargas',periodoCargas);
+  localStorage.setItem('sc_banco_cargas',bancoCargas);
+  if(!artCalculada){
+    localStorage.setItem(claveArt(empId,'aseguradora'),artAseguradora);
+    localStorage.setItem(claveArt(empId,'importe'),String(artImporte));
+    localStorage.setItem(claveArt(empId,'referencia'),artReferencia);
+  }
+  const conceptos=det.conceptos.map(c=>({
+    codigo:c.codigo||'',descripcion:c.descripcion,tipo:c.tipo,importe:c.importe,
+    base_calculo:c.base_calculo,unidad:c.unidad,cantidad:c.cantidad,
+    destino_pago:c.destino_pago||null,codigo_boleta:c.codigo_boleta||null
+  }));
+  if(!artCalculada){
+    conceptos.push({
+      codigo:'ART_IMPORTE_DECLARADO',
+      descripcion:`ART - ${artAseguradora} (importe informado por el empleador)`,
+      tipo:'contribucion',importe:artImporte,base_calculo:null,
+      unidad:'importe informado',cantidad:1,destino_pago:artAseguradora,
+      codigo_boleta:artReferencia
+    });
+  }
   const body={
     periodo:ultimaLiq.periodo,
     empresa:{...empresaCache,domicilio:domicilioEmpresa},
     empleado:{...emp,antiguedad:antigTexto(emp.fecha_ingreso,ultimaLiq.periodo)},
     pago:{fecha:fechaPago,lugar:lugarPago,forma:formaPago},
-    cargas_sociales:{fecha:fechaCargas,lugar:lugarCargas},
-    conceptos:det.conceptos.map(c=>({
-      codigo:c.codigo||'',descripcion:c.descripcion,tipo:c.tipo,importe:c.importe,
-      base_calculo:c.base_calculo,unidad:c.unidad,cantidad:c.cantidad
-    })),
+    cargas_sociales:{fecha:fechaCargas,periodo:periodoCargas,banco:bancoCargas},
+    conceptos,
     bruto:det.bruto,total_deducciones:det.total_deducciones,neto:det.neto
   };
   const r=await fetch('/recibos/pdf',{
