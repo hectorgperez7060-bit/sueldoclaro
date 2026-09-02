@@ -1012,19 +1012,16 @@ async function recargarEmpresaActiva(){
 async function entrar(){
   document.body.classList.add('sesion-activa');
   $('auth').style.display='none'; $('app').style.display='block';
-  // La navegación es visible de inmediato; no depende de ninguna consulta.
-  abrirMenuInicialEnTelefono();
   $('quien').textContent='Sesión iniciada';
   const hoy = new Date();
   $('periodo').value = hoy.toISOString().slice(0,7);
   $('periodoGestor').value = $('periodo').value;
   $('novPeriodo').value = $('periodo').value;
+  // El menú y la sección son interfaz: no esperan consultas al servidor.
+  aplicarHash();
+  abrirMenuInicialEnTelefono();
   try{ await recargarEmpresaActiva(); }
   catch(e){ salir(); mostrarError('authError',e.message); return; }
-  // Al entrar (o al recargar la página) se abre la sección que indica el hash.
-  aplicarHash();
-  // En el teléfono mostramos de entrada qué puede hacer la aplicación.
-  abrirMenuInicialEnTelefono();
 }
 function toggleAlta(){ const a=$('alta'); a.style.display = a.style.display==='none'?'block':'none'; }
 function toggleEstablecimiento(){ const a=$('formEstablecimiento'); a.style.display=a.style.display==='none'?'block':'none'; }
