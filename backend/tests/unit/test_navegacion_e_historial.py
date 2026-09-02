@@ -232,4 +232,5 @@ def test_el_recibo_actual_se_prepara_en_un_formulario_sin_ventanas_prompt():
 
     assert "Emitir recibo por el empleador" in bloque
     assert "prompt(" not in descarga
-    assert "Completá los cuatro datos marcados" in descarga
+    assert "los tres datos del último depósito" in descarga
+    assert "Completá aseguradora, importe individual y referencia de ART" in descarga
