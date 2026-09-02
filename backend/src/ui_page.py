@@ -195,7 +195,7 @@ tr:last-child td{border-bottom:0}tbody tr:hover{background:#f8fcfb}
   <small id="quien"></small>
 </header>
 <div class="contenedor">
-  <div class="aviso">⚠️ Versión de prueba con <b>parámetros de EJEMPLO</b> (escalas y alícuotas sin verificar por contador). No usar para sueldos reales todavía.</div>
+  <div class="aviso"><b>Autogestión responsable:</b> Sueldo Claro calcula con las reglas cargadas y bloquea lo que no está listo. La veracidad de los datos declarados corresponde a quien los ingresa; la revisión profesional es opcional.</div>
 
   <div id="auth">
     <div class="tarjeta" style="max-width:460px;margin:0 auto">
@@ -707,18 +707,18 @@ tr:last-child td{border-bottom:0}tbody tr:hover{background:#f8fcfb}
         <div class="cabecera-seccion"><h3 id="panelVersionTitulo">Versión</h3><button class="chico secundario" onclick="cerrarPanelVersion()">Cerrar</button></div>
         <p id="panelVersionMeta" style="font-size:.85rem;color:#4b5563"></p>
         <div class="aviso" id="panelVersionFaltantes" style="display:none"></div>
-        <div style="margin:10px 0;display:flex;gap:8px;flex-wrap:wrap"><button class="chico" onclick="descargarRecibosDeVersion()">Descargar todos los recibos</button><button class="chico secundario" onclick="controlarArcaVersion()">Controlar ARCA</button><button class="chico secundario" onclick="descargarArcaVersion()">Descargar TXT ARCA</button><button class="chico secundario" onclick="descargarMapaArcaVersion()">Mapa de conceptos ARCA</button><button class="chico secundario" id="btnSoecraVersion" onclick="descargarSoecraVersion()">Planilla SOECRA</button></div>
+        <div style="margin:10px 0;display:flex;gap:8px;flex-wrap:wrap"><button class="chico" onclick="descargarRecibosDeVersion()">Descargar recibos para firma</button><button class="chico secundario" onclick="controlarArcaVersion()">Controlar ARCA</button><button class="chico secundario" onclick="descargarArcaVersion()">Descargar TXT ARCA</button><button class="chico secundario" onclick="descargarMapaArcaVersion()">Mapa de conceptos ARCA</button><button class="chico secundario" id="btnSoecraVersion" onclick="descargarSoecraVersion()">Planilla SOECRA</button></div>
         <div class="fila" style="max-width:520px;margin:8px 0"><div><label>Fecha de pago para ARCA</label><input id="fechaArcaPago" type="date"></div><div><label>Fecha de rúbrica (si corresponde)</label><input id="fechaArcaRubrica" type="date"></div></div>
         <table id="tablaVersionDetalle" class="tabla-movil"><thead><tr><th>Empleado</th><th class="num">Bruto</th><th class="num">Descuentos</th><th class="num">Neto</th><th>Conceptos</th><th></th></tr></thead><tbody></tbody></table>
       </div>
       <div id="panelCierre" style="display:none;margin-top:18px;border-top:1px solid #d1d5db;padding-top:16px">
-        <div class="cabecera-seccion"><h3>Cierre profesional del período</h3><button class="chico secundario" onclick="cerrarPanelCierre()">Cerrar</button></div>
+        <div class="cabecera-seccion"><h3>Control del período</h3><button class="chico secundario" onclick="cerrarPanelCierre()">Cerrar</button></div>
         <p id="cierreResumen" style="font-size:.9rem;color:#4b5563"></p>
         <div class="error" id="cierreError"></div><div class="ok" id="cierreOk"></div>
         <div id="cierreFaltantes" style="margin:10px 0"></div>
         <table id="tablaObligaciones" class="tabla-movil"><thead><tr><th>Salida / boleta</th><th>Destino</th><th>Importe</th><th>Estado</th><th>Comprobante</th><th>Acción</th></tr></thead><tbody></tbody></table>
-        <div style="margin-top:14px"><label>Observaciones del contador</label><textarea id="cierreObservaciones" rows="2" placeholder="Control realizado, salvedades o referencia del papel de trabajo"></textarea></div>
-        <button class="chico" style="margin-top:10px" onclick="aprobarCierre()">Aprobar y firmar revisión profesional</button>
+        <div style="margin-top:14px;padding-top:12px;border-top:1px solid #d1d5db"><b>Revisión profesional opcional</b><p style="font-size:.82rem;color:#6b7280;margin:4px 0 8px">No impide que el empleador liquide, emita recibos ni prepare ARCA y las obligaciones sindicales.</p><label>Observaciones del contador revisor</label><textarea id="cierreObservaciones" rows="2" placeholder="Control realizado, salvedades o referencia del papel de trabajo"></textarea></div>
+        <button class="chico secundario" style="margin-top:10px" onclick="aprobarCierre()">Registrar revisión de contador</button>
         <div id="cierreRevisiones" style="margin-top:12px;font-size:.85rem"></div>
       </div>
     </div>
@@ -1663,7 +1663,7 @@ async function cargarCarpetas(){
         +`<td data-label="Creada (Argentina)">${fechaHora(c.created_at)}</td>`
         +`<td data-label="Huella" title="${esc(c.hash_sha256||'')}"><code>${huella}${huella?'…':''}</code></td>`
         +`<td data-label="Acción"><button class="chico secundario" onclick="verVersion('${c.id}')">Ver liquidación</button> `
-        +`<button class="chico secundario" onclick="abrirCierre('${c.id}')">Revisar cierre</button></td>`;
+        +`<button class="chico secundario" onclick="abrirCierre('${c.id}')">Controlar período</button></td>`;
       tb.appendChild(tr);
     });
     $('tablaCarpetas').style.display=lista.length?'table':'none';
@@ -1981,8 +1981,8 @@ async function abrirCierre(id){
     const d=await api('/carpetas-mensuales/'+id+'/cierre');
     $('cierreResumen').textContent=`${d.carpeta.periodo} · versión ${d.carpeta.version} · estado ${d.carpeta.estado} · huella ${(d.carpeta.hash_sha256||'').slice(0,12)}…`;
     $('cierreFaltantes').innerHTML=d.faltantes.length
-      ? `<div style="background:#fef3c7;color:#92400e;padding:10px;border-radius:8px"><b>Falta para aprobar:</b> ${d.faltantes.map(esc).join(' · ')}</div>`
-      : '<div style="background:#d1fae5;color:#065f46;padding:10px;border-radius:8px"><b>Controles completos.</b> Ya puede firmar un contador habilitado.</div>';
+      ? `<div style="background:#fef3c7;color:#92400e;padding:10px;border-radius:8px"><b>Tareas pendientes del período:</b> ${d.faltantes.map(esc).join(' · ')}</div>`
+      : '<div style="background:#d1fae5;color:#065f46;padding:10px;border-radius:8px"><b>Controles completos.</b> El período puede continuar por autogestión. Si querés, también puede revisarlo un contador.</div>';
     const tb=$('tablaObligaciones').querySelector('tbody'); tb.innerHTML='';
     d.obligaciones.forEach(o=>{
       const siguiente=siguienteEstadoObligacion[o.estado];
@@ -1996,8 +1996,8 @@ async function abrirCierre(id){
       tb.appendChild(tr);
     });
     $('cierreRevisiones').innerHTML=d.revisiones.length
-      ? '<b>Revisiones firmadas:</b> '+d.revisiones.map(r=>`${esc(r.nombre_apellido)} · matrícula ${esc(r.matricula)} · ${fechaHora(r.firmado_at)}`).join('<br>')
-      : '<span style="color:#6b7280">Aún no hay revisión profesional firmada.</span>';
+      ? '<b>Revisiones profesionales registradas:</b> '+d.revisiones.map(r=>`${esc(r.nombre_apellido)} · matrícula ${esc(r.matricula)} · ${fechaHora(r.firmado_at)}`).join('<br>')
+      : '<span style="color:#6b7280">Revisión profesional no solicitada · opcional.</span>';
   }catch(e){
     $('cierreResumen').textContent='No se pudo cargar el detalle del cierre.';
     mostrarError('cierreError',e.message);
@@ -2562,7 +2562,7 @@ async function liquidar(confirmarProvisorios=false){
     if(!d.detalles.length){
       const motivos=(d.bloqueos||[]).map(b=>`<li>${esc(b.categoria||'Empleado')}: ${esc(b.motivo)}</li>`).join('');
       const confirmables=(d.bloqueos||[]).filter(b=>b.requiere_confirmacion);
-      const confirmar=confirmables.length?`<div style="margin-top:10px;padding:10px;border:1px solid #f59e0b;background:#fffbeb;border-radius:8px"><b>Hay una escala publicada y documentada disponible.</b><br><small>Se calculará en modo AUTOGESTIÓN SIN FIRMA. La cuenta, la fuente y la versión quedarán registradas. Sólo será una liquidación profesional firmada después de la revisión efectiva de un contador.</small><br><button class="chico" style="margin-top:8px" onclick="liquidar(true)">Confirmar escala y calcular</button></div>`:'';
+      const confirmar=confirmables.length?`<div style="margin-top:10px;padding:10px;border:1px solid #f59e0b;background:#fffbeb;border-radius:8px"><b>Hay una escala provisoria publicada y documentada.</b><br><small>Podés aceptarla para este cálculo. La fuente, la vigencia y tu confirmación quedarán registradas; esto no exige aprobación de un contador.</small><br><button class="chico" style="margin-top:8px" onclick="liquidar(true)">Aceptar escala provisoria y calcular</button></div>`:'';
       $('resultados').innerHTML=motivos?`<div class="error" style="display:block"><b>No se pudo calcular:</b><ul>${motivos}</ul></div>${confirmar}`:'<p style="margin-top:12px">No hay empleados para liquidar.</p>';
       return;
     }
@@ -2588,7 +2588,7 @@ function renderLiquidacion(){
         filas += `<tr><td>${c.descripcion} ${amparo}</td><td>${tipo}</td><td class="num">$ ${fmt(c.importe)}</td></tr>`;
       });
       html += `<div class="detalle">
-        <b>${emp.apellido}, ${emp.nombre}</b> <span class="etiqueta">CCT ${emp.cct_numero}</span> <span class="etiqueta">${d.periodo}</span> ${det.escala_provisoria?'<span class="etiqueta" style="background:#fffbeb;color:#92400e">AUTOGESTIÓN · ESCALA PROVISORIA CONFIRMADA · SIN FIRMA</span>':''} ${det.pendiente_aprobacion_contador?'<span class="etiqueta" style="background:#fff3cd;color:#7c5700">NÚMEROS REALES · PENDIENTE APROBACIÓN CONTADOR</span>':det.vista_previa?'<span class="etiqueta" style="background:#fff3cd;color:#7c5700">VISTA PREVIA</span>':''}
+        <b>${emp.apellido}, ${emp.nombre}</b> <span class="etiqueta">CCT ${emp.cct_numero}</span> <span class="etiqueta">${d.periodo}</span> <span class="etiqueta" style="background:#d1fae5;color:#065f46">AUTOGESTIÓN DEL EMPLEADOR</span> ${det.escala_provisoria?'<span class="etiqueta" style="background:#fffbeb;color:#92400e">ESCALA PROVISORIA CONFIRMADA</span>':''} ${det.vista_previa?'<span class="etiqueta" style="background:#fff3cd;color:#7c5700">MOTOR EN VALIDACIÓN · NO EMITIR</span>':''}
         <table><thead><tr><th>Concepto</th><th>Tipo</th><th class="num">Importe</th></tr></thead><tbody>${filas}</tbody></table>
         <div style="display:flex;justify-content:space-between;margin-top:10px;flex-wrap:wrap;gap:8px">
           <span>Bruto: <b>$ ${fmt(det.bruto)}</b> &nbsp;·&nbsp; Descuentos: <b>$ ${fmt(det.total_deducciones)}</b></span>
@@ -2596,7 +2596,7 @@ function renderLiquidacion(){
         </div>
         <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
           <button class="chico" onclick="abrirAjusteManual('${det.empleado_id}')">✏️ Revisar y ajustar antes de imprimir</button>
-          <button class="chico secundario" onclick="abrirDatosRecibo('${det.empleado_id}')">📄 Preparar recibo PDF</button>
+          <button class="chico secundario" onclick="abrirDatosRecibo('${det.empleado_id}')">📄 Emitir recibo para firma</button>
         </div>
         <div id="datos-recibo-${det.empleado_id}"></div><div id="ajuste-${det.empleado_id}"></div>
         </div>`;
@@ -2741,7 +2741,7 @@ function verRecibo(empId){
    +'<button class="btn" onclick="window.print()">⬇ Descargar / Imprimir PDF</button>'
    +'<div class="hoja">'
    +'<div class="barra"><div class="marca-recibo"><svg viewBox="0 0 64 64" role="img" aria-label="Logo Sueldo Claro"><path d="M12 7h27l10 10v25H12z" fill="none" stroke="#fff" stroke-width="5" stroke-linejoin="round"/><path d="M39 7v11h10M20 24h19M20 33h12" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/><path d="m31 45 8 8 15-18" fill="none" stroke="#fbbf24" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg><div><b>Sueldo Claro</b><h1>RECIBO DE HABERES</h1></div></div><small>Anexo III · Dto. 407/2026 · Período '+per+'</small></div>'
-   +'<div class="aviso">'+(det.pendiente_aprobacion_contador?'NÚMEROS REALES DE FUENTES OFICIALES — PENDIENTE DE REVISIÓN Y APROBACIÓN POR CONTADOR PÚBLICO.':'Documento de prueba — valores a verificar por contador matriculado.')+'</div>'
+   +'<div class="aviso">AUTOGESTIÓN DEL EMPLEADOR · La revisión profesional es opcional. Para emitir el ejemplar legal, usá “Emitir recibo para firma”.</div>'
    +'<h2>A · Cabecera</h2><div class="grid2">'
    +'<div class="caja"><b>EMPLEADOR</b>'
    +'<div class="dato"><span>Razón social</span><b>'+(empresaCache.razon_social||'—')+'</b></div>'
@@ -2778,8 +2778,8 @@ function abrirDatosRecibo(empId){
   const formasPago={'1':'Efectivo','2':'Cheque','3':'Acreditación en cuenta','4':'Otra'};
   const panel=$('datos-recibo-'+empId); if(!panel) return;
   panel.innerHTML=`<div style="margin-top:12px;padding:14px;border:1px solid #8dd8ce;border-radius:12px;background:#f2fbf9">
-    <b style="color:var(--verde)">Datos del recibo</b>
-    <p style="font-size:.82rem;color:#52706d;margin:4px 0 10px">Revisalos juntos una sola vez. Los datos del último depósito pueden quedar pendientes.</p>
+    <b style="color:var(--verde)">Emitir recibo por el empleador</b>
+    <p style="font-size:.82rem;color:#52706d;margin:4px 0 10px">Completá los datos marcados. Se generará el ejemplar para firmar y entregar al trabajador; no necesita aprobación previa de un contador. Los datos del último depósito quedarán señalados si faltan.</p>
     <div class="fila">
       <div><label>Domicilio legal del empleador *</label><input id="recDomicilio-${empId}" value="${esc(localStorage.getItem('sc_empresa_domicilio')||'')}"></div>
       <div><label>Fecha efectiva de pago *</label><input id="recFecha-${empId}" type="date" value="${new Date().toISOString().slice(0,10)}"></div>
@@ -2788,8 +2788,9 @@ function abrirDatosRecibo(empId){
       <div><label>Fecha del último depósito de cargas</label><input id="recCargasFecha-${empId}" type="date" value="${esc(localStorage.getItem('sc_fecha_cargas')||'')}"></div>
       <div><label>Banco o canal del depósito</label><input id="recCargasLugar-${empId}" value="${esc(localStorage.getItem('sc_lugar_cargas')||'ARCA')}"></div>
     </div>
+    <details style="margin:10px 0;padding:9px;border:1px solid #b9d9d4;border-radius:8px;background:#fff"><summary><b>¿Qué hago si aparece ART pendiente?</b></summary><p style="font-size:.82rem;color:#4b5563;margin:7px 0 0">Buscá en la póliza, factura o aviso mensual de tu ART: nombre de la aseguradora, porcentaje sobre la masa salarial, importe fijo por trabajador y vigencia. No copies la alícuota de otra empresa: el contrato de cada empleador puede ser distinto. Hasta cargar esos datos, Sueldo Claro mostrará el costo laboral sin ART y la marcará como pendiente.</p></details>
     <div id="recError-${empId}" class="error"></div>
-    <button class="chico" onclick="descargarReciboPdf('${empId}')">Descargar PDF</button>
+    <button class="chico" onclick="descargarReciboPdf('${empId}')">Generar recibo para firma</button>
     <button class="chico secundario" onclick="$('datos-recibo-${empId}').innerHTML=''">Cancelar</button>
   </div>`;
   panel.scrollIntoView({behavior:'smooth',block:'nearest'});
@@ -2825,8 +2826,7 @@ async function descargarReciboPdf(empId, reintento=true){
       codigo:c.codigo||'',descripcion:c.descripcion,tipo:c.tipo,importe:c.importe,
       base_calculo:c.base_calculo,unidad:c.unidad,cantidad:c.cantidad
     })),
-    bruto:det.bruto,total_deducciones:det.total_deducciones,neto:det.neto,
-    pendiente_aprobacion_contador:Boolean(det.pendiente_aprobacion_contador)
+    bruto:det.bruto,total_deducciones:det.total_deducciones,neto:det.neto
   };
   const r=await fetch('/recibos/pdf',{
     method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token()},

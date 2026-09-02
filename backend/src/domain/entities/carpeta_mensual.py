@@ -111,9 +111,16 @@ def faltantes_para_revision(contenido: dict, obligaciones: list[dict]) -> list[s
     """Lista breve y determinística de controles que impiden firmar la carpeta."""
     faltantes = []
     control = contenido.get("control_normativo", {})
+    # Compatibilidad con carpetas anteriores: esos códigos convertían la
+    # intervención del contador en un requisito universal. Una revisión puede
+    # agregarse, pero su ausencia no es una falta normativa ni bloquea al empleador.
+    codigos_revision_opcional = {
+        "APROBACION_CONTADOR_UOM",
+        "APROBACION_PROFESIONAL_PENDIENTE",
+    }
     pendientes_reales = [
         p for p in control.get("pendientes", [])
-        if p.get("codigo") != "APROBACION_CONTADOR_UOM"
+        if p.get("codigo") not in codigos_revision_opcional
     ]
     if pendientes_reales:
         faltantes.append("Existen reglas normativas o aprobaciones pendientes")
