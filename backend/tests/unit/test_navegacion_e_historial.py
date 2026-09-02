@@ -71,7 +71,21 @@ def test_en_telefono_el_menu_arranca_abierto_y_muestra_sus_accesos():
     assert "window.matchMedia('(max-width: 900px)').matches" in UI
     entrar = UI[UI.index("async function entrar()"):]
     assert "abrirMenuInicialEnTelefono();" in entrar[:entrar.index("\nfunction toggleAlta")]
+    assert entrar.index("abrirMenuInicialEnTelefono();") < entrar.index("await recargarEmpresaActiva();")
     assert "✕ Cerrar menú" in UI
+
+
+def test_el_ingreso_agrupa_las_consultas_en_dos_tandas():
+    bloque = UI[UI.index("async function recargarEmpresaActiva()"):
+                UI.index("async function entrar()")]
+    assert bloque.count("Promise.all(") == 2
+    for llamada in (
+        "cargarEmpresas()", "api('/empresa')", "cargarConvenios()",
+        "cargarEstablecimientos()", "cargarEmpleados()", "cargarCarpetas()",
+        "cargarEmpresasSeccion()", "cargarNovedades()",
+        "mostrarEstadoNormativo()", "cargarInicio()", "cargarGestorNormativo()",
+    ):
+        assert llamada in bloque
 
 
 def test_cambiar_de_seccion_no_destruye_lo_ya_cargado():
