@@ -59,6 +59,8 @@ def _desc_nr(codigo: str) -> str:
         "SANIDAD_SUMA_NR": "Suma no remunerativa (acuerdo FATSA)",
         "SANIDAD_DIA": "Día de la Sanidad (pago único)",
         "UTHGRA_ACUERDO_2026_SEGUNDA": "Acuerdo 2026 Segunda Cuota - suma no remunerativa",
+        "NO_REM_2026_08_749_": "Suma no remunerativa - acuerdo SOECRA agosto 2026",
+        "NO_REM_2026_08_761_": "Suma no remunerativa - acuerdo SOECRA agosto 2026",
     }
     for pref, desc in prefijos.items():
         if codigo.startswith(pref):

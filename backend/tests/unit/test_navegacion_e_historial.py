@@ -220,3 +220,12 @@ def test_la_ficha_documental_no_participa_del_calculo():
     bloque = bloque[:bloque.index('"cct": emp.cct_numero')]
     for prohibido in ("importe", "base_calculo"):
         assert prohibido not in bloque
+
+
+def test_el_recibo_actual_se_prepara_en_un_formulario_sin_ventanas_prompt():
+    bloque = UI[UI.index("function abrirDatosRecibo("):UI.index("let eventoInstalacion")]
+    descarga = bloque[bloque.index("async function descargarReciboPdf("):]
+
+    assert "Datos del recibo" in bloque
+    assert "prompt(" not in descarga
+    assert "Completá los cuatro datos marcados" in descarga

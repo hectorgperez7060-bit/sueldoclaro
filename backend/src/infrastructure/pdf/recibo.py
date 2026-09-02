@@ -32,7 +32,7 @@ from reportlab.lib.pagesizes import A4
 from reportlab.pdfbase.pdfmetrics import stringWidth
 from reportlab.pdfgen.canvas import Canvas
 
-GREEN, PALE = HexColor("#087F73"), HexColor("#E5E7EB")
+GREEN, PALE = HexColor("#087F73"), HexColor("#E7F5F2")
 DARK, GRAY, LINE = HexColor("#111827"), HexColor("#4B5563"), HexColor("#6B7280")
 AMBER_BG, AMBER_LINE, AMBER_INK = Color(1, .96, .80), Color(.85, .55, 0), Color(.50, .28, 0)
 
@@ -201,8 +201,8 @@ def _text(c: Canvas, x: float, y: float, value: Any, size: float = 7, bold: bool
 
 
 def _section(c: Canvas, y: float, title: str) -> float:
-    c.setFillColor(PALE); c.setStrokeColor(LINE); c.rect(24, y - 14, 547, 17, fill=1, stroke=1)
-    _text(c, 30, y - 9, title, 8, True, DARK)
+    c.setFillColor(GREEN); c.setStrokeColor(GREEN); c.rect(24, y - 14, 547, 17, fill=1, stroke=1)
+    _text(c, 30, y - 9, title, 8, True, white)
     return y - 20
 
 
@@ -239,7 +239,7 @@ def _row(c: Canvas, y: float, row: dict[str, Any], size: float, height: float, s
 
 
 def _concept_band(c: Canvas, y: float, title: str) -> float:
-    c.setFillColor(HexColor("#D1D5DB")); c.setStrokeColor(LINE)
+    c.setFillColor(HexColor("#CDEBE5")); c.setStrokeColor(GREEN)
     c.rect(28, y - 5, 540, 13, fill=1, stroke=1)
     _text(c, 32, y - 1, title, 6.5, True, DARK)
     return y - 13
@@ -563,9 +563,10 @@ def generar_recibo_pdf(data: dict[str, Any]) -> bytes:
     firma = None
 
     # Encabezado documental compacto.
-    c.setStrokeColor(DARK); c.setLineWidth(.8); c.line(24, 810, 571, 810)
-    _text(c, 24, 818, "RECIBO DE HABERES" if firma else "RECIBO DE HABERES · VISTA PREVIA", 10, True)
-    _text(c, 571, 818, f"PERÍODO {data['periodo']}", 8.5, True, right=True)
+    c.setFillColor(GREEN); c.setStrokeColor(GREEN); c.rect(20, 808, 555, 25, fill=1, stroke=0)
+    titulo = "RECIBO DE HABERES" if firma else "RECIBO DE HABERES · VISTA PREVIA"
+    _text(c, 28, 817, titulo, 9.2, True, white)
+    _text(c, 567, 817, f"PERÍODO {data['periodo']}", 8, True, white, right=True)
 
     y = 800
     if not firma:

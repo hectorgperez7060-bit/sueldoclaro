@@ -2596,9 +2596,9 @@ function renderLiquidacion(){
         </div>
         <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
           <button class="chico" onclick="abrirAjusteManual('${det.empleado_id}')">✏️ Revisar y ajustar antes de imprimir</button>
-          <button class="chico secundario" onclick="descargarReciboPdf('${det.empleado_id}')">📄 Descargar recibo PDF — una hoja A4</button>
+          <button class="chico secundario" onclick="abrirDatosRecibo('${det.empleado_id}')">📄 Preparar recibo PDF</button>
         </div>
-        <div id="ajuste-${det.empleado_id}"></div>
+        <div id="datos-recibo-${det.empleado_id}"></div><div id="ajuste-${det.empleado_id}"></div>
         </div>`;
     });
     const bloqueos=(d.bloqueos||[]).map(b=>`<li>${esc(b.categoria||'Empleado')}: ${esc(b.motivo)}</li>`).join('');
@@ -2772,24 +2772,44 @@ function verRecibo(empId){
   w.document.write(html); w.document.close();
 }
 
+function abrirDatosRecibo(empId){
+  if(!ultimaLiq) return;
+  const emp=empleadosCache[empId]||{};
+  const formasPago={'1':'Efectivo','2':'Cheque','3':'Acreditación en cuenta','4':'Otra'};
+  const panel=$('datos-recibo-'+empId); if(!panel) return;
+  panel.innerHTML=`<div style="margin-top:12px;padding:14px;border:1px solid #8dd8ce;border-radius:12px;background:#f2fbf9">
+    <b style="color:var(--verde)">Datos del recibo</b>
+    <p style="font-size:.82rem;color:#52706d;margin:4px 0 10px">Revisalos juntos una sola vez. Los datos del último depósito pueden quedar pendientes.</p>
+    <div class="fila">
+      <div><label>Domicilio legal del empleador *</label><input id="recDomicilio-${empId}" value="${esc(localStorage.getItem('sc_empresa_domicilio')||'')}"></div>
+      <div><label>Fecha efectiva de pago *</label><input id="recFecha-${empId}" type="date" value="${new Date().toISOString().slice(0,10)}"></div>
+      <div><label>Lugar de pago *</label><input id="recLugar-${empId}" value="${esc(emp.lugar_trabajo||localStorage.getItem('sc_lugar_pago')||'')}"></div>
+      <div><label>Forma de pago *</label><input id="recForma-${empId}" value="${esc(formasPago[emp.forma_pago]||localStorage.getItem('sc_forma_pago')||'')}"></div>
+      <div><label>Fecha del último depósito de cargas</label><input id="recCargasFecha-${empId}" type="date" value="${esc(localStorage.getItem('sc_fecha_cargas')||'')}"></div>
+      <div><label>Banco o canal del depósito</label><input id="recCargasLugar-${empId}" value="${esc(localStorage.getItem('sc_lugar_cargas')||'ARCA')}"></div>
+    </div>
+    <div id="recError-${empId}" class="error"></div>
+    <button class="chico" onclick="descargarReciboPdf('${empId}')">Descargar PDF</button>
+    <button class="chico secundario" onclick="$('datos-recibo-${empId}').innerHTML=''">Cancelar</button>
+  </div>`;
+  panel.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+
 async function descargarReciboPdf(empId, reintento=true){
   if(!ultimaLiq) return;
   const det=ultimaLiq.detalles.find(x=>x.empleado_id===empId);
   const emp=empleadosCache[empId]||{};
   if(!det) return;
-  const domicilioEmpresa=prompt('Domicilio legal del empleador (obligatorio):',localStorage.getItem('sc_empresa_domicilio')||'');
-  if(!domicilioEmpresa) return;
-  const fechaPago=prompt('Fecha real de pago del sueldo (AAAA-MM-DD):',new Date().toISOString().slice(0,10));
-  if(!fechaPago) return;
-  const lugarPago=prompt('Lugar real de pago:',emp.lugar_trabajo||localStorage.getItem('sc_lugar_pago')||'');
-  if(!lugarPago) return;
-  const formasPago={'1':'Efectivo','2':'Cheque','3':'Acreditación en cuenta','4':'Otra'};
-  const formaPago=prompt('Forma real de pago:',formasPago[emp.forma_pago]||localStorage.getItem('sc_forma_pago')||'');
-  if(!formaPago) return;
-  const fechaCargas=prompt('Fecha de pago de cargas sociales (AAAA-MM-DD):',localStorage.getItem('sc_fecha_cargas')||'');
-  if(!fechaCargas) return;
-  const lugarCargas=prompt('Lugar/canal de pago de cargas sociales:',localStorage.getItem('sc_lugar_cargas')||'ARCA');
-  if(!lugarCargas) return;
+  const valor=id=>($(id)?.value||'').trim();
+  const domicilioEmpresa=valor('recDomicilio-'+empId);
+  const fechaPago=valor('recFecha-'+empId);
+  const lugarPago=valor('recLugar-'+empId);
+  const formaPago=valor('recForma-'+empId);
+  const fechaCargas=valor('recCargasFecha-'+empId);
+  const lugarCargas=valor('recCargasLugar-'+empId);
+  if(!domicilioEmpresa||!fechaPago||!lugarPago||!formaPago){
+    mostrarError('recError-'+empId,'Completá los cuatro datos marcados con *.'); return;
+  }
   localStorage.setItem('sc_empresa_domicilio',domicilioEmpresa);
   localStorage.setItem('sc_lugar_pago',lugarPago);
   localStorage.setItem('sc_forma_pago',formaPago);
