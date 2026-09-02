@@ -81,6 +81,8 @@ def _desc_ded(codigo: str) -> str:
         "APORTE_ADEF_ASISTENCIA": "Aporte ADEF asistencia social (junio/diciembre)",
         "CUOTA_SINDICAL_ART47": "Cuota sindical ADEF afiliado (art. 47)",
         "FATFA_SOLIDARIO": "Contribución solidaria FATFA 1% (art. 47)",
+        "FONDO_FALLECIMIENTO_SOECRA_749/18": "Sepelio SOECRA 1% (art. 55)",
+        "CUOTA_SINDICAL_SOECRA_749/18": "Cuota sindical SOECRA 1,5% (afiliados)",
     }
     for pref, desc in prefijos.items():
         if codigo.startswith(pref):
@@ -93,6 +95,7 @@ def _desc_contrib_convenio(codigo: str) -> str:
         "CONTRIB_EXTRAORDINARIA_FATSA": "Contribución extraordinaria FATSA/OSPSA",
         "CONTRIB_CAPACITACION_FATSA": "Contribución FATSA para formación y capacitación",
         "FATFA_CAPACITACION": "Contribución patronal capacitación FATFA 1% (art. 48)",
+        "FONDO_CONVENCIONAL_SOECRA_749/18": "Fondo Convencional SOECRA 1,5% (art. 61)",
     }
     for prefijo, descripcion in prefijos.items():
         if codigo.startswith(prefijo):
