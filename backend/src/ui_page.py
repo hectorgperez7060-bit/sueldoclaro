@@ -991,17 +991,25 @@ async function crearEmpresa(){
 }
 
 async function recargarEmpresaActiva(){
-  await cargarEmpresas();
-  empresaCache=await api('/empresa');
-  await cargarConvenios();
-  await cargarEstablecimientos();
-  await cargarEmpleados();
-  await cargarNovedades();
-  await mostrarEstadoNormativo();
-  await cargarCarpetas();
-  await cargarEmpresasSeccion();
-  await cargarInicio();
-  await cargarGestorNormativo();
+  // Antes eran once pedidos en fila india: cada uno esperaba a que terminara el
+  // anterior y el ingreso tardaba lo que sumaban todos. Ahora van en dos tandas.
+  // La primera no depende de nada; la segunda necesita lo que trajo la primera,
+  // así que el orden que importa se respeta y nada se lee antes de existir.
+  await Promise.all([
+    cargarEmpresas(),
+    api('/empresa').then(r => { empresaCache = r; }),
+    cargarConvenios(),
+    cargarEstablecimientos(),
+    cargarEmpleados(),
+    cargarCarpetas(),
+    cargarEmpresasSeccion(),
+  ]);
+  await Promise.all([
+    cargarNovedades(),          // usa empleadosCache
+    mostrarEstadoNormativo(),   // usa convenios y empleadosCache
+    cargarInicio(),             // usa empresaCache, empleadosCache y establecimientosCache
+    cargarGestorNormativo(),    // usa convenios
+  ]);
 }
 
 async function entrar(){
@@ -1012,12 +1020,12 @@ async function entrar(){
   $('periodo').value = hoy.toISOString().slice(0,7);
   $('periodoGestor').value = $('periodo').value;
   $('novPeriodo').value = $('periodo').value;
+  // El menú y la sección son interfaz: se muestran antes de consultar la base.
+  // Quien recién entra ve la aplicación de inmediato y los datos van llegando.
+  aplicarHash();
+  abrirMenuInicialEnTelefono();
   try{ await recargarEmpresaActiva(); }
   catch(e){ salir(); mostrarError('authError',e.message); return; }
-  // Al entrar (o al recargar la página) se abre la sección que indica el hash.
-  aplicarHash();
-  // En el teléfono mostramos de entrada qué puede hacer la aplicación.
-  abrirMenuInicialEnTelefono();
 }
 function toggleAlta(){ const a=$('alta'); a.style.display = a.style.display==='none'?'block':'none'; }
 function toggleEstablecimiento(){ const a=$('formEstablecimiento'); a.style.display=a.style.display==='none'?'block':'none'; }
