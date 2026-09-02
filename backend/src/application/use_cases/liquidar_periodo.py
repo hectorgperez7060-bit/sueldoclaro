@@ -947,7 +947,7 @@ class LiquidarPeriodo:
                     "documental": {
                         "nombre": emp.nombre,
                         "apellido": emp.apellido,
-                        "cuil": emp.cuil.valor,
+                        "cuil": emp.cuil,
                         "legajo": emp.legajo,
                         "fecha_ingreso": emp.fecha_ingreso.isoformat(),
                         "categoria": emp.categoria,
