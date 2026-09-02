@@ -124,7 +124,11 @@ def test_el_detalle_sale_de_contenido_detalles_y_no_se_recalcula():
     assert "(carpeta.contenido&&carpeta.contenido.detalles)||[]" in ver
     for campo in ("d.bruto", "d.total_deducciones", "d.neto"):
         assert campo in ver, campo
-    assert "liquidar" not in ver.lower().replace("liquidación", "").replace("liquidacion", "")
+    # El texto puede explicar que hay que volver a liquidar para generar otra
+    # versión. Lo importante es que al abrir el historial no se invoque el
+    # endpoint de liquidación ni se recalculen los importes conservados.
+    assert "api('/liquidaciones" not in ver
+    assert "liquidar_mensual" not in ver
 
 
 def test_se_pueden_ver_los_conceptos_conservados_de_cada_empleado():

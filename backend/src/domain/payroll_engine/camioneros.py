@@ -146,6 +146,8 @@ def calcular_variables_camioneros(
     }
     if any(v < 0 for v in cantidades.values()):
         raise ValueError("Las novedades Camioneros no pueden ser negativas")
+    if cantidades["unidades_bitrenes"] > Decimal("1"):
+        raise ValueError("la proporción mensual de bitrén debe estar entre 0 y 1")
     factor = ZONAS_CAMIONEROS[novedades.zona]
     resultado: list[ConceptoVariableCamioneros] = []
 

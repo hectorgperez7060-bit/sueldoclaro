@@ -11,7 +11,8 @@ from domain.value_objects.dinero import Dinero
 from domain.value_objects.periodo import Periodo
 
 
-SQL = (Path(__file__).parents[2] / "migrations" / "039_uthgra_389_04_agosto_2026.sql").read_text()
+RAIZ = Path(__file__).parents[2]
+SQL = (RAIZ / "migrations" / "039_uthgra_389_04_agosto_2026.sql").read_text()
 
 
 def _motor():
@@ -93,6 +94,7 @@ def test_uthgra_asistencia_requiere_confirmacion_y_complemento_es_automatico():
 
 def test_gestor_habilita_uthgra_solo_como_prueba_provisoria():
     codigo = (RAIZ / "src" / "api" / "routes" / "convenios.py").read_text()
-    assert 'cct.numero in {"389/04", "659/13"}' in codigo
-    assert "Escala UTHGRA publicada" in codigo
-    assert "pendiente de homologación" in codigo
+    assert 'cct.numero in {"389/04", "659/13"}' not in codigo
+    assert "escalas_provisorias_publicadas" in codigo
+    assert "liquidación provisoria disponible" in codigo
+    assert "confirmación expresa" in codigo

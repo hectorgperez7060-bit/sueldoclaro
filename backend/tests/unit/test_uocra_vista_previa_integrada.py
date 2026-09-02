@@ -37,7 +37,9 @@ def test_migracion_y_ui_exponen_base_anterior_y_bloqueos():
     assert "novBaseUocraAnterior" in ui
     assert "novBaseUocraAnterior" in ui
     convenios = (ROOT / "src/api/routes/convenios.py").read_text()
-    assert "vista_previa_habilitada = False" in convenios
+    assert "Política GENERAL" in convenios
+    assert "vista_previa_habilitada = False" not in convenios
+    assert "and not motor_periodo_habilitado" in convenios
     assert "Liquidación UOCRA bloqueada" in (
         ROOT / "src/application/use_cases/liquidar_periodo.py"
     ).read_text()

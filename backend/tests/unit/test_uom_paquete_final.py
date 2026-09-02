@@ -127,10 +127,11 @@ def test_uom_calcula_como_borrador_pendiente_de_contador():
     pdf = (ROOT / "src/infrastructure/pdf/recibo.py").read_text(encoding="utf-8")
     convenios = (ROOT / "src/api/routes/convenios.py").read_text(encoding="utf-8")
     assert 'emp.cct_numero == "260/75"' in caso
-    assert '"pendiente_aprobacion_contador": vista_previa_contador' in caso
-    assert '"APROBACION_CONTADOR_UOM"' in caso
+    assert '"pendiente_aprobacion_contador": bool(' in caso
+    assert "vista_previa_contador or escala_provisoria" in caso
+    assert '"APROBACION_PROFESIONAL_PENDIENTE"' in caso
     assert "PENDIENTE DE REVISIÓN Y APROBACIÓN POR CONTADOR PÚBLICO" in pdf
-    assert 'cct.numero == "260/75"' in convenios
+    assert 'cct.numero in {"260/75", "40/89"}' in convenios
 
 
 def test_habilitacion_uom_exige_matriz_completa_sin_cambiar_importes():
