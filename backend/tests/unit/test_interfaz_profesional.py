@@ -4,8 +4,25 @@ Pruebas UI estáticas sobre el HTML servido. No tocan motor, fórmulas, migracio
 ni base de datos: solo verifican que la reorganización mantiene las funciones y
 suma el tablero, la sección Empresas, el menú de 7 entradas y el flujo visual.
 """
+from collections import Counter
+import re
+
 from main import create_app
 from ui_page import HTML
+
+
+def test_cada_control_tiene_una_funcion_existente_y_no_hay_funciones_duplicadas():
+    manejadores = re.findall(r'on(?:click|change|input|blur)="([^"]+)"', HTML)
+    llamadas = {
+        nombre
+        for manejador in manejadores
+        for nombre in re.findall(r'(?:^|[;{])\s*([A-Za-z_$][\w$]*)\s*\(', manejador)
+    }
+    funciones = re.findall(r'(?:async\s+)?function\s+([A-Za-z_$][\w$]*)\s*\(', HTML)
+    faltantes = llamadas - set(funciones) - {"$"}
+    duplicadas = [nombre for nombre, cantidad in Counter(funciones).items() if cantidad > 1]
+    assert not faltantes
+    assert not duplicadas
 
 
 def test_menu_lateral_siete_entradas():

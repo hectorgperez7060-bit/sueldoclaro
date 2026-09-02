@@ -28,9 +28,9 @@ def test_ui_muestra_semaforo_normativo():
 
 
 def test_ui_muestra_historial_de_carpetas_mensuales_solo_lectura():
-    assert "Carpeta mensual" in HTML
+    assert "Recibos e historial" in HTML
     assert 'id="tablaCarpetas"' in HTML
-    assert "api('/carpetas-mensuales?periodo='" in HTML
+    assert "const ruta='/carpetas-mensuales'" in HTML
     assert "v${c.version}" in HTML
     assert "(c.hash_sha256||'').slice(0,12)" in HTML
 

@@ -101,14 +101,24 @@ def test_cambiar_de_seccion_no_destruye_lo_ya_cargado():
 # --------------------------------------------------------------------------- #
 # 2. Historial de liquidaciones.
 # --------------------------------------------------------------------------- #
-def test_al_entrar_al_historial_se_cargan_las_carpetas_del_periodo_elegido():
+def test_al_entrar_al_historial_muestra_todas_las_carpetas_y_permite_filtrar():
     assert "seccionHistorial: ()=>cargarCarpetas()" in UI
-    assert "'/carpetas-mensuales?periodo='+encodeURIComponent(periodo)" in UI
+    assert 'id="periodoHistorial"' in UI
+    assert "const ruta='/carpetas-mensuales'+(periodo?'?periodo='" in UI
+    assert "Ver todos los períodos" in UI
 
 
-def test_la_version_mas_reciente_queda_marcada():
-    assert "const ultima=lista.reduce((max,c)=>Math.max(max,Number(c.version)||0),0)" in UI
+def test_la_version_mas_reciente_de_cada_periodo_queda_marcada():
+    assert "const ultimaPorPeriodo={}" in UI
+    assert "Number(c.version)===ultimaPorPeriodo[c.periodo]" in UI
     assert "más reciente" in UI
+
+
+def test_descarga_arca_tiene_una_sola_funcion_y_renueva_la_sesion():
+    assert UI.count("async function descargarArcaVersion(") == 1
+    assert "fetchAutenticado(ruta)" in UI
+    assert 'id="arcaDescargaError"' in UI
+    assert "detalle.faltantes" in UI
 
 
 def test_cada_version_muestra_estado_fecha_y_huella():

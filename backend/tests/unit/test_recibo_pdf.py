@@ -40,10 +40,10 @@ CONCEPTOS_BASE = [
 def _datos(**cambios):
     data = {
         "periodo": "2026-08",
-        "empresa": {"razon_social": "Empresa Prueba S.R.L.", "cuit": "30123456789",
-                    "domicilio": "Maipú 589, Merlo, Provincia de Buenos Aires"},
+        "empresa": {"razon_social": "Empresa Prueba S.R.L.", "cuit": "30000000007",
+                    "domicilio": "Calle de Prueba 123, Ciudad de Prueba"},
         "empleado": {
-            "apellido": "Sanidad", "nombre": "Prueba", "cuil": "27123456780",
+            "apellido": "Sanidad", "nombre": "Prueba", "cuil": "20000000001",
             "legajo": "1", "categoria": "Administrativo de Primera", "cct_numero": "122/75",
             "fecha_ingreso": "2025-01-01", "modalidad_contrato": "Tiempo indeterminado",
             "antiguedad": "1 año",
@@ -51,8 +51,11 @@ def _datos(**cambios):
         "pago": {"fecha": "2026-09-04", "lugar": "Sucursal Merlo",
                  "forma": "Acreditación en cuenta",
                  "establecimiento": "Sucursal Merlo Centro",
-                 "domicilio_trabajo": "Av. Rivadavia 1234, Merlo"},
-        "cargas_sociales": {},
+                 "domicilio_trabajo": "Avenida de Prueba 456, Ciudad de Prueba"},
+        "cargas_sociales": {
+            "fecha": "2026-08-10", "periodo": "2026-07",
+            "banco": "Banco de la Nación Argentina",
+        },
         "conceptos": list(CONCEPTOS_BASE),
         "bruto": Decimal("1148300"), "total_deducciones": Decimal("238790.54"),
         "neto": Decimal("909509.46"),
@@ -72,8 +75,8 @@ def _texto(data):
 # --------------------------------------------------------------------------- #
 def test_contiene_cuit_del_empleador_y_cuil_del_trabajador():
     _, _, texto = _texto(_datos())
-    assert "30123456789" in texto
-    assert "27123456780" in texto
+    assert "30000000007" in texto
+    assert "20000000001" in texto
 
 
 def test_contiene_periodo_fecha_de_ingreso_y_categoria():
@@ -177,16 +180,16 @@ def test_los_datos_largos_no_quedan_truncados():
     datos["empleado"]["apellido"] = "Fernández Iturriaga de Etchevehere"
     datos["empleado"]["categoria"] = "Auxiliar especializado en administración y sistemas"
     datos["empresa"]["domicilio"] = (
-        "Avenida Presidente Juan Domingo Perón 12345, piso 7, oficina 703, Merlo"
+        "Avenida de Prueba Muy Extensa 12345, piso 7, oficina 703, Ciudad de Prueba"
     )
     datos["pago"]["establecimiento"] = "Establecimiento Industrial Parque Norte — Planta 2"
     datos["pago"]["domicilio_trabajo"] = (
-        "Ruta Provincial 24 kilómetro 17,5, Parque Industrial Norte, Moreno"
+        "Ruta Ficticia 24 kilómetro 17,5, Parque Industrial de Prueba"
     )
     _, reader, texto = _texto(datos)
     assert "..." not in texto
     assert "Fernández Iturriaga De Etchevehere" in texto
-    assert "Ruta Provincial 24" in texto
+    assert "Ruta Ficticia 24" in texto
     assert len(reader.pages) == 1
 
 
@@ -224,15 +227,15 @@ def test_una_firma_enviada_por_el_cliente_no_se_considera_acreditada():
 # --------------------------------------------------------------------------- #
 # 11. Ley 17.250 art. 12: fecha, período y banco por separado.
 # --------------------------------------------------------------------------- #
-def test_sin_datos_del_ultimo_deposito_los_declara_pendientes():
-    _, _, texto = _texto(_datos())
-    assert "Datos del último depósito pendientes de completar" in texto
+def test_sin_datos_del_ultimo_deposito_el_recibo_no_se_genera():
+    with pytest.raises(ValueError, match="cargas_sociales.fecha"):
+        generar_recibo_pdf(_datos(cargas_sociales={}))
 
 
-def test_datos_incompletos_del_ultimo_deposito_tambien_quedan_pendientes():
+def test_datos_incompletos_del_ultimo_deposito_tambien_bloquean():
     datos = _datos(cargas_sociales={"fecha": "2026-08-10", "lugar": "ARCA"})
-    _, _, texto = _texto(datos)
-    assert "Datos del último depósito pendientes de completar" in texto
+    with pytest.raises(ValueError, match="cargas_sociales.periodo"):
+        generar_recibo_pdf(datos)
 
 
 def test_el_ultimo_deposito_se_muestra_en_tres_campos_separados():
@@ -248,6 +251,21 @@ def test_el_ultimo_deposito_se_muestra_en_tres_campos_separados():
     assert "Banco o entidad" in texto
     assert "Banco de la Nación Argentina" in texto
     assert "Datos del último depósito pendientes de completar" not in texto
+
+
+def test_art_informada_sin_base_calculada_completa_el_costo_laboral():
+    conceptos = list(CONCEPTOS_BASE) + [{
+        "codigo": "ART_IMPORTE_DECLARADO",
+        "descripcion": "ART - Aseguradora Ejemplo (importe informado por el empleador)",
+        "tipo": "contribucion", "importe": Decimal("42000"),
+        "base_calculo": None, "unidad": "importe informado", "cantidad": Decimal("1"),
+        "destino_pago": "Aseguradora Ejemplo", "codigo_boleta": "Póliza 123",
+    }]
+    _, _, texto = _texto(_datos(conceptos=conceptos))
+    assert "ART - Aseguradora Ejemplo" in texto
+    assert "ART pendiente de contrato/cálculo" not in texto
+    assert "Costo laboral con ART incluida" in texto
+    assert "$ 1.465.450,00" in texto
 
 
 # --------------------------------------------------------------------------- #
@@ -280,7 +298,7 @@ def test_el_pdf_conserva_los_datos_del_pago_en_campos_separados():
         assert etiqueta in texto
     assert "04/09/2026" in texto
     assert "Acreditación en cuenta" in texto
-    assert "Av. Rivadavia 1234, Merlo" in texto
+    assert "Avenida de Prueba 456, Ciudad de Prueba" in texto
 
 
 def test_un_dato_de_pago_no_informado_se_declara_no_informado():
@@ -312,7 +330,7 @@ def test_fechas_del_recibo_siempre_se_muestran_dia_mes_anio():
 def test_recibo_rechaza_datos_legales_incompletos():
     with pytest.raises(ValueError, match="empresa.domicilio"):
         generar_recibo_pdf({
-            "periodo": "2026-08", "empresa": {"razon_social": "X", "cuit": "30123456789"},
+            "periodo": "2026-08", "empresa": {"razon_social": "X", "cuit": "30000000007"},
             "empleado": {}, "pago": {}, "cargas_sociales": {}, "conceptos": [],
         })
 
