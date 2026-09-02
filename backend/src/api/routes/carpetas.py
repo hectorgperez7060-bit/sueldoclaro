@@ -46,19 +46,26 @@ def _out(c: m.CarpetaMensual) -> dict:
 
 @router.get("")
 async def listar(
-    periodo: str = Query(..., description="Período AAAA-MM"),
+    periodo: str | None = Query(default=None, description="Período AAAA-MM; vacío muestra todo"),
     principal: Principal = Depends(require_tenant),
 ):
-    try:
-        if str(Periodo.desde_texto(periodo)) != periodo:
-            raise ValueError
-    except (TypeError, ValueError) as exc:
-        raise HTTPException(
-            status.HTTP_422_UNPROCESSABLE_ENTITY, "El período debe tener formato AAAA-MM"
-        ) from exc
+    if periodo is not None:
+        try:
+            if str(Periodo.desde_texto(periodo)) != periodo:
+                raise ValueError
+        except (TypeError, ValueError) as exc:
+            raise HTTPException(
+                status.HTTP_422_UNPROCESSABLE_ENTITY, "El período debe tener formato AAAA-MM"
+            ) from exc
     tid = uuid.UUID(principal.tenant_id)
     async with tenant_session(principal.tenant_id) as s:
-        return [_out(c) for c in await CarpetaMensualRepo(s).listar_periodo(tid, periodo)]
+        repo = CarpetaMensualRepo(s)
+        carpetas = (
+            await repo.listar_periodo(tid, periodo)
+            if periodo is not None
+            else await repo.listar_todas(tid)
+        )
+        return [_out(c) for c in carpetas]
 
 
 @router.get("/{carpeta_id}")

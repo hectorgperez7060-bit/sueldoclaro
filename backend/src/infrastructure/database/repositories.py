@@ -767,6 +767,19 @@ class CarpetaMensualRepo:
         )
         return list(r.scalars().all())
 
+    async def listar_todas(
+        self, tenant_id: uuid.UUID,
+    ) -> List[m.CarpetaMensual]:
+        r = await self.s.execute(
+            select(m.CarpetaMensual).where(
+                m.CarpetaMensual.tenant_id == tenant_id,
+            ).order_by(
+                m.CarpetaMensual.periodo.desc(),
+                m.CarpetaMensual.version.desc(),
+            )
+        )
+        return list(r.scalars().all())
+
     async def crear_obligaciones(
         self, tenant_id: uuid.UUID, carpeta_id: uuid.UUID, obligaciones: list[dict],
     ) -> List[m.ObligacionPagoMensual]:

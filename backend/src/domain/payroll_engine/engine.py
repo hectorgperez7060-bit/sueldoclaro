@@ -83,6 +83,7 @@ def _desc_ded(codigo: str) -> str:
         "FATFA_SOLIDARIO": "Contribución solidaria FATFA 1% (art. 47)",
         "FONDO_FALLECIMIENTO_SOECRA_749/18": "Sepelio SOECRA 1% (art. 55)",
         "CUOTA_SINDICAL_SOECRA_749/18": "Cuota sindical SOECRA 1,5% (afiliados)",
+        "SEGURO_VIDA_SEPELIO_UTHGRA_389/04": "Seguro de vida y sepelio UTHGRA 1%",
     }
     for pref, desc in prefijos.items():
         if codigo.startswith(pref):
@@ -96,6 +97,7 @@ def _desc_contrib_convenio(codigo: str) -> str:
         "CONTRIB_CAPACITACION_FATSA": "Contribución FATSA para formación y capacitación",
         "FATFA_CAPACITACION": "Contribución patronal capacitación FATFA 1% (art. 48)",
         "FONDO_CONVENCIONAL_SOECRA_749/18": "Fondo Convencional SOECRA 1,5% (art. 61)",
+        "SEGURO_VIDA_SEPELIO_UTHGRA_EMP_389/04": "Seguro de vida y sepelio UTHGRA · empleador 1%",
     }
     for prefijo, descripcion in prefijos.items():
         if codigo.startswith(prefijo):

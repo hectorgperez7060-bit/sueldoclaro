@@ -696,10 +696,14 @@ tr:last-child td{border-bottom:0}tbody tr:hover{background:#f8fcfb}
 
     <div class="tarjeta seccion-app" id="seccionHistorial">
       <div class="cabecera-seccion">
-        <h2>Carpeta mensual</h2>
+        <h2>Recibos e historial</h2>
         <button class="chico secundario" onclick="cargarCarpetas()">Actualizar historial</button>
       </div>
       <p style="font-size:.85rem;color:#6b7280">Cada liquidación conserva una versión de sólo lectura. Las correcciones no borran las anteriores.</p>
+      <div class="fila" style="max-width:520px;margin:10px 0">
+        <div><label>Filtrar por mes (opcional)</label><input id="periodoHistorial" type="month" onchange="cargarCarpetas()"></div>
+        <div style="display:flex;align-items:end"><button class="chico secundario" onclick="$('periodoHistorial').value='';cargarCarpetas()">Ver todos los períodos</button></div>
+      </div>
       <div class="error" id="carpetasError"></div>
       <table id="tablaCarpetas" class="tabla-movil" style="display:none"><thead><tr><th>Mes</th><th>Versión</th><th>Estado</th><th>Creada</th><th>Huella</th><th></th></tr></thead><tbody></tbody></table>
       <p id="sinCarpetas" style="margin-top:10px;color:#6b7280;font-size:.9rem">Todavía no hay carpetas generadas para este mes.</p>
@@ -709,6 +713,7 @@ tr:last-child td{border-bottom:0}tbody tr:hover{background:#f8fcfb}
         <div class="aviso" id="panelVersionFaltantes" style="display:none"></div>
         <div style="margin:10px 0;display:flex;gap:8px;flex-wrap:wrap"><button class="chico" onclick="descargarRecibosDeVersion()">Descargar recibos para firma</button><button class="chico secundario" onclick="controlarArcaVersion()">Controlar ARCA</button><button class="chico secundario" onclick="descargarArcaVersion()">Descargar TXT ARCA</button><button class="chico secundario" onclick="descargarMapaArcaVersion()">Mapa de conceptos ARCA</button><button class="chico secundario" id="btnSoecraVersion" onclick="descargarSoecraVersion()">Planilla SOECRA</button></div>
         <div class="fila" style="max-width:520px;margin:8px 0"><div><label>Fecha de pago para ARCA</label><input id="fechaArcaPago" type="date"></div><div><label>Fecha de rúbrica (si corresponde)</label><input id="fechaArcaRubrica" type="date"></div></div>
+        <div class="error" id="arcaDescargaError"></div>
         <table id="tablaVersionDetalle" class="tabla-movil"><thead><tr><th>Empleado</th><th class="num">Bruto</th><th class="num">Descuentos</th><th class="num">Neto</th><th>Conceptos</th><th></th></tr></thead><tbody></tbody></table>
       </div>
       <div id="panelCierre" style="display:none;margin-top:18px;border-top:1px solid #d1d5db;padding-top:16px">
@@ -826,6 +831,36 @@ async function api(ruta, metodo='GET', body=null, reintento=true){
   return data;
 }
 
+async function fetchAutenticado(ruta, opciones={}, reintento=true){
+  const h={...(opciones.headers||{})};
+  if(token()) h.Authorization='Bearer '+token();
+  const r=await fetch(ruta,{...opciones,headers:h});
+  if(r.status===401 && token() && reintento){
+    if(await renovarSesion()) return fetchAutenticado(ruta,opciones,false);
+    salir();
+  }
+  return r;
+}
+
+async function mensajeErrorDescarga(r, defecto){
+  const d=await r.json().catch(()=>({detail:defecto}));
+  const detalle=d.detail;
+  if(detalle && typeof detalle==='object'){
+    const faltantes=(detalle.faltantes||[]).map(x=>'• '+(x.campo||x)+(x.concepto?' ('+x.concepto+')':'')).join('\n');
+    return (detalle.mensaje||defecto)+(faltantes?'\n'+faltantes:'');
+  }
+  return typeof detalle==='string'?detalle:defecto;
+}
+
+function descargarBlob(r,blob,nombreAlternativo){
+  const url=URL.createObjectURL(blob),a=document.createElement('a');
+  const cabecera=r.headers.get('content-disposition')||'';
+  a.href=url;
+  a.download=cabecera.match(/filename="([^"]+)"/)?.[1]||nombreAlternativo;
+  document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),60000);
+}
+
 function guardarCredenciales(d){
   localStorage.setItem('sc_access', d.access_token);
   localStorage.setItem('sc_refresh', d.refresh_token);
@@ -874,7 +909,12 @@ const HASH_POR_SECCION = Object.fromEntries(SECCIONES.map(([h,id])=>[id,h]));
 // Al entrar por primera vez a una sección se carga lo suyo. No se recalcula
 // nada: sólo se piden datos que ya existen en el servidor.
 const CARGA_SECCION = {
+  seccionInicio: ()=>cargarInicio(),
+  seccionEmpresas: ()=>cargarEmpresasSeccion(),
   seccionConvenios: ()=>cargarGestorNormativo(),
+  seccionEstablecimientos: ()=>cargarEstablecimientos().catch(e=>mostrarError('estError','No se pudieron cargar los establecimientos: '+e.message)),
+  seccionEmpleados: ()=>cargarEmpleados(),
+  seccionNovedades: ()=>cargarNovedades(),
   seccionHistorial: ()=>cargarCarpetas(),
 };
 let seccionActual = 'seccionInicio';
@@ -1085,6 +1125,7 @@ async function cambiarActivoEstablecimiento(id){
   }catch(err){mostrarError('estError',err.message);}
 }
 async function cargarEmpresasSeccion(){
+  ocultar('perfilLaboralError');
   try{
     const empresas=await api('/auth/empresas');
     const activa=localStorage.getItem('sc_tenant');
@@ -1112,7 +1153,7 @@ async function cargarEmpresasSeccion(){
       const tasa=actual.regimen_contribucion_patronal==='PRIVADO_18'?'18%':(actual.regimen_contribucion_patronal==='SERVICIOS_COMERCIO_204'?'20,40%':'pendiente');
       $('perfilLaboralEstado').textContent=(actual.modo_liquidacion==='PRUEBA'?'Simulación':'Producción')+' · resultado '+tasa;
     }
-  }catch(e){ /* silencioso */ }
+  }catch(e){ mostrarError('perfilLaboralError','No se pudieron cargar las empresas: '+e.message); }
 }
 function mostrarVigenciaMipyme(){
   $('campoVigenciaMipyme').style.display=$('empresaCondicionMipyme').value==='CERTIFICADO_VIGENTE'?'block':'none';
@@ -1234,6 +1275,7 @@ function fechaIso(valor,nombre){
 }
 
 async function cargarConvenios(){
+  ocultar('empError');
   try{
     const periodo=$('periodo').value;
     convenios = await api('/convenios'+(periodo?'?periodo='+encodeURIComponent(periodo):''));
@@ -1246,7 +1288,7 @@ async function cargarConvenios(){
     const primeroVigente=convenios.find(c=>c.tiene_escala_vigente);
     if(primeroVigente) selActividad.value=actividadConvenio(primeroVigente);
     llenarConvenios(primeroVigente?primeroVigente.numero:null);
-  }catch(e){ /* silencioso */ }
+  }catch(e){ mostrarError('empError','No se pudieron cargar los convenios: '+e.message); }
 }
 function llenarConvenios(preseleccion=null){
   const actividad=$('eActividad').value;
@@ -1314,6 +1356,7 @@ async function analizarEncuadramiento(){
 }
 
 async function cargarEmpleados(){
+  ocultar('empError');
   try{
     const lista = await api('/empleados');
     empleadosCache = {};
@@ -1332,7 +1375,7 @@ async function cargarEmpleados(){
       const o=document.createElement('option');
       o.value=e.id; o.textContent=`${e.apellido}, ${e.nombre}`; novSel.appendChild(o);
     });
-  }catch(e){ /* silencioso */ }
+  }catch(e){ mostrarError('empError','No se pudo cargar la nómina: '+e.message); }
 }
 
 function numeroNov(id){ return Number($(id).value || 0); }
@@ -1626,7 +1669,7 @@ async function mostrarEstadoNormativo(){
     const fondo=e.apto_produccion?'#d1fae5':'#fef3c7';
     const texto=e.apto_produccion?'Convenio verificado para uso real':'Convenio en revisión: usar sólo para pruebas';
     $('estadoNormativo').innerHTML=`<div style="background:${fondo};color:${color};border-radius:8px;padding:10px 14px"><b>${texto}</b> · ${e.resumen.aprobadas}/${e.resumen.total_reglas} reglas aprobadas · ${e.resumen.pendientes} pendientes</div>`;
-  }catch(e){ $('estadoNormativo').innerHTML=''; }
+  }catch(e){ $('estadoNormativo').innerHTML=`<div class="error" style="display:block">No se pudo consultar el estado del convenio: ${esc(e.message)}</div>`; }
 }
 
 function fechaHora(valor){
@@ -1643,20 +1686,19 @@ let versionAbierta = null;
 
 async function cargarCarpetas(){
   ocultar('carpetasError');
-  const periodo=$('periodo').value;
-  if(!periodo) return;
+  const periodo=$('periodoHistorial').value;
   try{
-    const lista=await api('/carpetas-mensuales?periodo='+encodeURIComponent(periodo));
+    const ruta='/carpetas-mensuales'+(periodo?'?periodo='+encodeURIComponent(periodo):'');
+    const lista=await api(ruta);
     carpetasCache={};
-    // La versión más alta del período es la vigente; el resto son históricas y
-    // se conservan tal cual fueron calculadas.
-    const ultima=lista.reduce((max,c)=>Math.max(max,Number(c.version)||0),0);
+    const ultimaPorPeriodo={};
+    lista.forEach(c=>ultimaPorPeriodo[c.periodo]=Math.max(ultimaPorPeriodo[c.periodo]||0,Number(c.version)||0));
     const tb=$('tablaCarpetas').querySelector('tbody'); tb.innerHTML='';
     lista.forEach(c=>{
       carpetasCache[c.id]=c;
       const tr=document.createElement('tr');
       const huella=(c.hash_sha256||'').slice(0,12);
-      const vigente=Number(c.version)===ultima;
+      const vigente=Number(c.version)===ultimaPorPeriodo[c.periodo];
       tr.innerHTML=`<td data-label="Mes">${esc(c.periodo)}</td>`
         +`<td data-label="Versión">v${c.version}${vigente?' <span class="etiqueta">más reciente</span>':''}</td>`
         +`<td data-label="Estado"><span class="etiqueta">${esc(c.estado)}</span></td>`
@@ -1667,6 +1709,7 @@ async function cargarCarpetas(){
       tb.appendChild(tr);
     });
     $('tablaCarpetas').style.display=lista.length?'table':'none';
+    $('sinCarpetas').textContent=periodo?'No hay carpetas generadas para ese mes.':'Todavía no hay liquidaciones guardadas.';
     $('sinCarpetas').style.display=lista.length?'none':'block';
     if(versionAbierta && !carpetasCache[versionAbierta]) cerrarPanelVersion();
   }catch(e){ mostrarError('carpetasError',e.message); }
@@ -1748,72 +1791,36 @@ async function controlarArcaVersion(){
 
 async function descargarArcaVersion(){
   if(!versionAbierta) return;
+  ocultar('arcaDescargaError');
   const fecha=$('fechaArcaPago').value;
-  if(!fecha){ alert('Indicá la fecha real de pago.'); return; }
+  if(!fecha){ mostrarError('arcaDescargaError','Indicá la fecha real de pago antes de descargar.'); return; }
   const rubrica=$('fechaArcaRubrica').value;
   try{
     let ruta='/exportaciones/carpetas/'+versionAbierta+'/arca.txt?fecha_pago='+encodeURIComponent(fecha);
     if(rubrica) ruta+='&fecha_rubrica='+encodeURIComponent(rubrica);
-    const r=await fetch(ruta,{headers:{Authorization:'Bearer '+token()}});
+    const r=await fetchAutenticado(ruta);
     if(!r.ok){
-      const d=await r.json().catch(()=>({detail:'No se pudo generar el TXT'}));
-      const detalle=d.detail&&d.detail.faltantes
-        ? d.detail.faltantes.map(x=>'• '+x.campo+(x.concepto?' ('+x.concepto+')':'')).join('\n')
-        : (typeof d.detail==='string'?d.detail:JSON.stringify(d.detail));
-      throw new Error(detalle);
+      throw new Error(await mensajeErrorDescarga(r,'No se pudo generar el TXT ARCA'));
     }
-    const blob=await r.blob(), url=URL.createObjectURL(blob), a=document.createElement('a');
-    a.href=url; a.download=(r.headers.get('content-disposition')||'').match(/filename="([^"]+)"/)?.[1]||'ARCA-LSD.txt';
-    a.click(); setTimeout(()=>URL.revokeObjectURL(url),1000);
-  }catch(e){ alert('TXT ARCA bloqueado:\n'+e.message); }
-}
-
-async function descargarArcaVersion(){
-  if(!versionAbierta) return;
-  const pago=prompt('Fecha efectiva de pago para ARCA (AAAA-MM-DD):',localStorage.getItem('sc_arca_fecha_pago')||'');
-  if(!pago) return;
-  const rubrica=prompt('Fecha de rúbrica (AAAA-MM-DD, dejá vacío si no corresponde):',localStorage.getItem('sc_arca_fecha_rubrica')||'');
-  localStorage.setItem('sc_arca_fecha_pago',pago);
-  if(rubrica) localStorage.setItem('sc_arca_fecha_rubrica',rubrica);
-  try{
-    const qs=new URLSearchParams({fecha_pago:pago,numero_liquidacion:'1'});
-    if(rubrica) qs.set('fecha_rubrica',rubrica);
-    const r=await fetch('/exportaciones/carpetas/'+versionAbierta+'/arca.txt?'+qs,{
-      headers:{Authorization:'Bearer '+token()}
-    });
-    if(!r.ok){
-      const d=await r.json().catch(()=>({detail:'No se pudo generar el TXT ARCA'}));
-      const detalle=typeof d.detail==='string'?d.detail:(d.detail?.mensaje||JSON.stringify(d.detail));
-      throw new Error(detalle);
-    }
-    const blob=await r.blob(),url=URL.createObjectURL(blob),a=document.createElement('a');
-    a.href=url;a.download=(r.headers.get('content-disposition')||'').match(/filename="([^"]+)"/)?.[1]||'ARCA-LSD.txt';
-    a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
-  }catch(e){alert(e.message);}
+    descargarBlob(r,await r.blob(),'ARCA-LSD.txt');
+  }catch(e){ mostrarError('arcaDescargaError','TXT ARCA bloqueado:\n'+e.message); }
 }
 
 async function descargarMapaArcaVersion(){
   if(!versionAbierta) return;
   try{
-    const r=await fetch('/exportaciones/carpetas/'+versionAbierta+'/arca-conceptos.csv',{
-      headers:{Authorization:'Bearer '+token()}
-    });
-    if(!r.ok){const d=await r.json().catch(()=>({detail:'No se pudo generar el mapa'}));throw new Error(typeof d.detail==='string'?d.detail:JSON.stringify(d.detail));}
-    const blob=await r.blob(),url=URL.createObjectURL(blob),a=document.createElement('a');
-    a.href=url;a.download='mapa-conceptos-ARCA.csv';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+    const r=await fetchAutenticado('/exportaciones/carpetas/'+versionAbierta+'/arca-conceptos.csv');
+    if(!r.ok) throw new Error(await mensajeErrorDescarga(r,'No se pudo generar el mapa'));
+    descargarBlob(r,await r.blob(),'mapa-conceptos-ARCA.csv');
   }catch(e){alert(e.message);}
 }
 
 async function descargarSoecraVersion(){
   if(!versionAbierta) return;
   try{
-    const r=await fetch('/exportaciones/carpetas/'+versionAbierta+'/soecra.csv',{
-      headers:{Authorization:'Bearer '+token()}
-    });
-    if(!r.ok){ const d=await r.json().catch(()=>({detail:'No se pudo generar la planilla'})); throw new Error(typeof d.detail==='string'?d.detail:JSON.stringify(d.detail)); }
-    const blob=await r.blob(), url=URL.createObjectURL(blob), a=document.createElement('a');
-    a.href=url; a.download=(r.headers.get('content-disposition')||'').match(/filename="([^"]+)"/)?.[1]||'control-soecra.csv';
-    a.click(); setTimeout(()=>URL.revokeObjectURL(url),1000);
+    const r=await fetchAutenticado('/exportaciones/carpetas/'+versionAbierta+'/soecra.csv');
+    if(!r.ok) throw new Error(await mensajeErrorDescarga(r,'No se pudo generar la planilla'));
+    descargarBlob(r,await r.blob(),'control-soecra.csv');
   }catch(e){ alert(e.message); }
 }
 
@@ -2327,13 +2334,9 @@ let archivoExcelCargado = null;
 
 async function descargarPlantillaExcel(){
   try{
-    const h = {}; if(token()) h['Authorization'] = 'Bearer ' + token();
-    const r = await fetch('/empleados/plantilla', {headers: h});
+    const r = await fetchAutenticado('/empleados/plantilla');
     if(!r.ok) throw new Error('No se pudo descargar la plantilla');
-    const blob = await r.blob();
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a'); a.href = url; a.download = 'plantilla_empleados.xlsx';
-    document.body.appendChild(a); a.click(); a.remove();
+    descargarBlob(r,await r.blob(),'plantilla_empleados.xlsx');
   }catch(e){ alert(e.message); }
 }
 
@@ -2347,8 +2350,7 @@ async function subirExcelPreview(input){
   formData.append('archivo', file);
   
   try{
-    const h = {}; if(token()) h['Authorization'] = 'Bearer ' + token();
-    const r = await fetch('/empleados/preview-import', {method: 'POST', headers: h, body: formData});
+    const r = await fetchAutenticado('/empleados/preview-import', {method: 'POST', body: formData});
     const res = await r.json().catch(()=>({detail: 'Error procesando Excel'}));
     if(!r.ok) throw new Error(res.detail || 'Error en vista previa');
     
@@ -2397,8 +2399,7 @@ async function confirmarImportacionExcel(){
   formData.append('archivo', archivoExcelCargado);
   
   try{
-    const h = {}; if(token()) h['Authorization'] = 'Bearer ' + token();
-    const r = await fetch('/empleados/import', {method: 'POST', headers: h, body: formData});
+    const r = await fetchAutenticado('/empleados/import', {method: 'POST', body: formData});
     const res = await r.json().catch(()=>({detail: 'Error en importación'}));
     if(!r.ok) throw new Error(res.detail || 'Error al importar');
     
