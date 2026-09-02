@@ -41,6 +41,16 @@ VIGENCIA = date(2026, 8, 1)
 PERIODO = Periodo.desde_texto("2026-08")
 
 
+def test_la_carpeta_mensual_guarda_el_cuil_del_modelo_sin_tratarlo_como_objeto():
+    """Regresión: SQLAlchemy entrega el CUIL como texto, no como Cuil de dominio."""
+    fuente = (
+        BACKEND / "src" / "application" / "use_cases" / "liquidar_periodo.py"
+    ).read_text(encoding="utf-8")
+
+    assert '"cuil": emp.cuil,' in fuente
+    assert '"cuil": emp.cuil.valor' not in fuente
+
+
 def _cct(numero: str, *, presentismo: bool) -> CctConfig:
     return CctConfig(
         cct_numero=numero,
