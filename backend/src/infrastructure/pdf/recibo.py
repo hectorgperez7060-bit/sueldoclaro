@@ -208,8 +208,11 @@ def _section(c: Canvas, y: float, title: str) -> float:
 
 def _unit(value: Any) -> str:
     text = str(value or "")
-    if re.fullmatch(r"1/12(?:\.0+)?", text.strip()):
-        return "8,33%"
+    divisor = re.fullmatch(r"1/(\d+(?:\.\d+)?)", text.strip())
+    if divisor and Decimal(divisor.group(1)) != 0:
+        porcentaje = Decimal("100") / Decimal(divisor.group(1))
+        visible = format(porcentaje.quantize(Decimal("0.01")), "f").rstrip("0").rstrip(".")
+        return visible.replace(".", ",") + "%"
     if "%" in text:
         try:
             raw_number, suffix = text.split("%", 1)
