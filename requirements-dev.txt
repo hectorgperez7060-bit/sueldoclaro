@@ -1,0 +1,8 @@
+-r requirements.txt
+
+# Herramientas necesarias para ejecutar la batería de pruebas completa.
+pytest>=9.0
+pytest-asyncio>=1.0
+httpx>=0.28
+PyYAML>=6.0
+pypdf>=6.0

@@ -15,7 +15,7 @@ def test_ui_usa_crud_de_novedades():
     assert "'/novedades/'+editandoNovedadId" in HTML
     assert "api('/novedades/'+id,'DELETE')" in HTML
     assert 'id="novTipoPremio"' in HTML
-    assert "Pendiente de definir (no calcular)" in HTML
+    assert '<option value="pendiente">Todavía no definido (no calcular)</option>' in HTML
 
 
 def test_ui_liquida_sin_duplicar_novedades_en_el_body():
@@ -73,7 +73,7 @@ def test_recibo_compacta_impresion_para_una_hoja_a4():
 def test_recibo_se_descarga_desde_backend_sin_repaginar_en_safari():
     assert "async function descargarReciboPdf" in HTML
     assert "fetch('/recibos/pdf'" in HTML
-    assert "Descargar recibo PDF — una hoja A4" in HTML
+    assert "Descargar PDF" in HTML
 
 
 def test_ui_adapta_tablas_y_acciones_a_celular():

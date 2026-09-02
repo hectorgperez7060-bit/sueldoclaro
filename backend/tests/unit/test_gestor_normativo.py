@@ -33,7 +33,9 @@ def test_ui_muestra_gestor_y_separacion_conceptual():
 def test_tablero_distingue_escalas_fatfa_publicadas_de_verificadas():
     codigo = (RAIZ / "src" / "api" / "routes" / "convenios.py").read_text()
     assert '"escalas_publicadas": esc_publicadas' in codigo
-    assert 'cct.numero == "659/13"' in codigo
+    assert "escalas_provisorias_publicadas" in codigo
+    assert "Política GENERAL" in codigo
+    assert 'cct.numero == "659/13"' not in codigo
     assert "confirmación expresa" in codigo
 
 

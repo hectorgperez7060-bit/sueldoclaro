@@ -59,7 +59,11 @@ def test_recibo_real_farmacia_aplica_escalon_20_por_ciento_a_ocho_anios():
 
     antiguedad = next(c for c in resultado.conceptos if c.codigo == "ANTIGUEDAD")
     assert antiguedad.importe.monto == D("365746.15")
-    assert antiguedad.cantidad == D("8")
+    # En una escala por tramos, los ocho años seleccionan un único escalón del
+    # 20 %. La cantidad debe ser 1 para que el recibo no sugiera 8 x 20 %.
+    assert antiguedad.cantidad == D("1")
+    assert antiguedad.unidad == "escala 20.00%"
+    assert antiguedad.descripcion == "Antigüedad (8 años)"
 
 
 def test_escalones_farmacia_respetan_todos_los_umbrales_del_articulo_13():
