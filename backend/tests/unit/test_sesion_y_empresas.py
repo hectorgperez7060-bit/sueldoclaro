@@ -74,15 +74,46 @@ def test_se_puede_borrar_una_empresa_con_confirmacion():
     assert "REVOKE ALL ON FUNCTION public.borrar_empresa(uuid) FROM PUBLIC" in sql
     assert "GRANT EXECUTE ON FUNCTION public.borrar_empresa(uuid) TO sueldoclaro" in sql
 
-    bloque = sql[sql.index("FOREACH tabla IN ARRAY"):sql.index("END LOOP")]
-    orden = re.findall(r"'([a-z_]+)'", bloque)
-    for hija, madre in (("liquidacion_detalle", "liquidacion"),
-                        ("obligacion_pago_mensual", "carpeta_mensual"),
-                        ("empleado_establecimiento_historial", "empleado")):
-        assert orden.index(hija) < orden.index(madre), f"{hija} debe borrarse antes que {madre}"
-    assert orden[-1] == "usuario_tenant"
     # La empresa se borra al final, cuando ya no queda nada que la referencie.
-    assert sql.index("DELETE FROM public.tenant") > sql.index("END LOOP")
+    ultima = _leer("migrations/064_borrar_empresa_orden_correcto.sql")
+    assert ultima.index("DELETE FROM public.tenant") > ultima.index("END LOOP")
+
+
+def _orden_de_borrado() -> list[str]:
+    """El orden que usa la última versión de la función borrar_empresa."""
+    sql = _leer("migrations/064_borrar_empresa_orden_correcto.sql")
+    bloque = sql[sql.index("FOREACH tabla IN ARRAY"):sql.index("END LOOP")]
+    return re.findall(r"'([a-z_]+)'", bloque) + ["tenant"]
+
+
+def test_el_orden_de_borrado_respeta_las_claves_foraneas_declaradas():
+    """Este test existe porque el orden lo escribí a mano y me equivoqué.
+
+    carpeta_mensual apunta a liquidacion, y la primera versión borraba la
+    liquidación antes que la carpeta: la base rechazaba el borrado con una
+    violación de clave foránea y el usuario veía "referencia datos que no
+    existen". En vez de volver a revisar la lista a ojo, se compara contra las
+    claves foráneas que declaran los modelos.
+    """
+    from infrastructure.database import models  # noqa: F401  registra las tablas
+    from infrastructure.database.base import Base
+
+    orden = _orden_de_borrado()
+    posicion = {tabla: indice for indice, tabla in enumerate(orden)}
+
+    comprobadas = 0
+    for tabla in Base.metadata.tables.values():
+        if tabla.name not in posicion:
+            continue
+        for clave in tabla.foreign_keys:
+            referida = clave.column.table.name
+            if referida == tabla.name or referida not in posicion:
+                continue
+            comprobadas += 1
+            assert posicion[tabla.name] < posicion[referida], (
+                f"{tabla.name} apunta a {referida}: hay que borrarla antes"
+            )
+    assert comprobadas >= 6, "no se leyeron las claves foráneas de los modelos"
 
 
 def test_el_borrado_puede_verificar_las_claves_foraneas_de_la_empresa():
