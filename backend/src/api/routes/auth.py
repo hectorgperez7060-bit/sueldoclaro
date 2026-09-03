@@ -9,11 +9,12 @@ from sqlalchemy import text
 
 from api.dependencies.auth import Principal, get_principal
 from application.dto.schemas import (
-    EmpresaIn, EmpresaOut, Login, PerfilLaboralEmpresa, RefreshRequest,
-    RegistroEstudio, SeleccionarEmpresa, TokenResponse,
+    EmpresaIn, EmpresaOut, Login, ModoCuenta, PerfilCuenta, PerfilLaboralEmpresa,
+    RefreshRequest, RegistroEstudio, SeleccionarEmpresa, TokenResponse,
 )
 from application.use_cases.registrar_estudio import RegistrarEstudio
 from domain.entities.perfil_empresa import resolver_regimen_contribucion
+from infrastructure.database import models as m
 from infrastructure.database.repositories import TenantRepo, UsuarioRepo
 from infrastructure.database.session import plain_session, tenant_session
 from infrastructure.security.passwords import verify_password
@@ -34,7 +35,9 @@ async def _emitir_par(usuario_id: str, tenant_id: str | None, rol: str | None) -
 @router.post("/register", response_model=TokenResponse, status_code=201)
 async def register(body: RegistroEstudio):
     try:
-        reg = await RegistrarEstudio().ejecutar(body.razon_social, body.cuit, body.email, body.password)
+        reg = await RegistrarEstudio().ejecutar(
+            body.razon_social, body.cuit, body.email, body.password, body.modo_cuenta,
+        )
     except ValueError as e:
         raise HTTPException(status.HTTP_409_CONFLICT, str(e))
     return await _emitir_par(reg.usuario_id, reg.tenant_id, reg.rol)
@@ -75,6 +78,43 @@ async def refresh(body: RefreshRequest):
     if not await refresh_store.consumir(jti, sub):
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Refresh revocado o desconocido")
     return await _emitir_par(sub, payload.get("tid"), payload.get("rol"))
+
+
+@router.get("/perfil", response_model=PerfilCuenta)
+async def perfil_cuenta(principal: Principal = Depends(get_principal)):
+    """Cómo se usa la cuenta: estudio contable con clientes, o una sola empresa."""
+    usuario_id = uuid.UUID(principal.usuario_id)
+    async with plain_session() as s:
+        usuario = await s.get(m.Usuario, usuario_id)
+        if usuario is None:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "Usuario no encontrado")
+        empresas = await TenantRepo(s).listar_del_usuario(usuario_id)
+        return PerfilCuenta(
+            email=usuario.email,
+            modo_cuenta=usuario.modo_cuenta or "ESTUDIO",
+            empresas=len(empresas),
+        )
+
+
+@router.put("/perfil/modo", response_model=PerfilCuenta)
+async def cambiar_modo_cuenta(
+    body: ModoCuenta, principal: Principal = Depends(get_principal),
+):
+    """Pasar de empresa a estudio contable, o al revés.
+
+    No toca ningún dato: solo cambia qué muestra la aplicación. Una empresa que
+    empieza a llevar otras sociedades pasa a estudio sin recargar nada.
+    """
+    usuario_id = uuid.UUID(principal.usuario_id)
+    async with plain_session() as s:
+        usuario = await s.get(m.Usuario, usuario_id)
+        if usuario is None:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "Usuario no encontrado")
+        usuario.modo_cuenta = body.modo_cuenta
+        empresas = await TenantRepo(s).listar_del_usuario(usuario_id)
+        return PerfilCuenta(
+            email=usuario.email, modo_cuenta=usuario.modo_cuenta, empresas=len(empresas),
+        )
 
 
 @router.get("/empresas", response_model=list[EmpresaOut])

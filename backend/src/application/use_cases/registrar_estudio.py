@@ -14,17 +14,19 @@ class EstudioRegistrado:
     usuario_id: str
     tenant_id: str
     rol: str = "admin"
+    modo_cuenta: str = "ESTUDIO"
 
 
 class RegistrarEstudio:
-    async def ejecutar(self, razon_social: str, cuit: str, email: str, password: str) -> EstudioRegistrado:
+    async def ejecutar(self, razon_social: str, cuit: str, email: str, password: str,
+                       modo_cuenta: str = "ESTUDIO") -> EstudioRegistrado:
         async with plain_session() as s:
             usuarios = UsuarioRepo(s)
             if await usuarios.por_email(email):
                 raise ValueError("El email ya está registrado")
-            usuario = await usuarios.crear(email, hash_password(password))
+            usuario = await usuarios.crear(email, hash_password(password), modo_cuenta)
             tenant_id = uuid.uuid4()
             tenants = TenantRepo(s)
             await tenants.crear(tenant_id, razon_social, cuit)
             await tenants.agregar_miembro(tenant_id, usuario.id, "admin")
-            return EstudioRegistrado(str(usuario.id), str(tenant_id), "admin")
+            return EstudioRegistrado(str(usuario.id), str(tenant_id), "admin", modo_cuenta)

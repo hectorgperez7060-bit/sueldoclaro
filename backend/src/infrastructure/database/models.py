@@ -195,6 +195,9 @@ class Usuario(Base):
     email: Mapped[str] = mapped_column(String(254), unique=True, index=True)
     password_hash: Mapped[str] = mapped_column(Text)
     estado: Mapped[str] = mapped_column(String(20), default="activo")
+    # ESTUDIO = lleva varias empresas clientes; EMPRESA = se liquida a si misma
+    # y no necesita la capa de clientes.
+    modo_cuenta: Mapped[str] = mapped_column(String(20), default="ESTUDIO")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc)
 
 

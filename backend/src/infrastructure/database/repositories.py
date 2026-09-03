@@ -50,8 +50,10 @@ class UsuarioRepo:
         r = await self.s.execute(select(m.Usuario).where(m.Usuario.email == email.lower()))
         return r.scalar_one_or_none()
 
-    async def crear(self, email: str, password_hash: str) -> m.Usuario:
-        u = m.Usuario(email=email.lower(), password_hash=password_hash)
+    async def crear(self, email: str, password_hash: str,
+                    modo_cuenta: str = "ESTUDIO") -> m.Usuario:
+        u = m.Usuario(email=email.lower(), password_hash=password_hash,
+                      modo_cuenta=modo_cuenta)
         self.s.add(u)
         await self.s.flush()
         return u

@@ -209,7 +209,13 @@ tr:last-child td{border-bottom:0}tbody tr:hover{background:#f8fcfb}
         <button onclick="ingresar()" style="width:100%">Ingresar</button>
       </div>
       <div id="formCrear" style="display:none">
-        <label>Nombre del estudio o empresa</label><input id="rzRazon" placeholder="Estudio Contable Pérez">
+        <label>¿Quién va a usar la cuenta?</label>
+        <div id="rzModo" class="tabs" style="margin-bottom:12px">
+          <button type="button" id="rzModoEmpresa" onclick="elegirModoCuenta('EMPRESA')">Soy una empresa</button>
+          <button type="button" id="rzModoEstudio" class="inactivo" onclick="elegirModoCuenta('ESTUDIO')">Soy un estudio contable</button>
+        </div>
+        <p id="rzModoAyuda" style="font-size:.82rem;color:#6b7280;margin:-6px 0 12px">Cargás tus datos una sola vez. Si tenés varios locales, los agregás como establecimientos y elegís por empleado dónde trabaja y dónde cobra.</p>
+        <label id="rzRazonEtiqueta">Razón social de tu empresa</label><input id="rzRazon" placeholder="Mi Empresa S.R.L.">
         <label>CUIT (11 dígitos)</label><input id="rzCuit" placeholder="30123456789" maxlength="13">
         <label>Email</label><input id="rzEmail" type="email" placeholder="tu@email.com">
         <label>Contraseña (mínimo 8)</label><input id="rzPass" type="password">
@@ -233,11 +239,11 @@ tr:last-child td{border-bottom:0}tbody tr:hover{background:#f8fcfb}
         <div class="selector-empresa">
           <label for="empresaActiva">Empresa activa</label>
           <select id="empresaActiva" onchange="cambiarEmpresa(this.value)"></select>
-          <button class="chico secundario" style="width:100%;margin-top:8px" onclick="mostrarNuevaEmpresa()">+ Nueva empresa</button>
+          <button id="btnNuevaEmpresaLateral" class="chico secundario" style="width:100%;margin-top:8px" onclick="mostrarNuevaEmpresa()">+ Nueva empresa</button>
         </div>
         <nav class="navegacion">
           <button class="activo" onclick="irA('seccionInicio',this)"><span class="icono">🏠</span>Inicio</button>
-          <button onclick="irA('seccionEmpresas',this)"><span class="icono">🏢</span>Empresas</button>
+          <button onclick="irA('seccionEmpresas',this)"><span class="icono">🏢</span><span id="navEmpresas">Empresas</span></button>
           <button onclick="irA('seccionConvenios',this);cargarGestorNormativo()"><span class="icono">📚</span>Convenios y escalas</button>
           <button onclick="irA('seccionEstablecimientos',this)"><span class="icono">📍</span>Establecimientos</button>
           <button onclick="irA('seccionEmpleados',this)"><span class="icono">👥</span>Empleados</button>
@@ -258,7 +264,7 @@ tr:last-child td{border-bottom:0}tbody tr:hover{background:#f8fcfb}
         <div id="nuevaEmpresa" class="tarjeta" style="display:none">
           <div class="cabecera-seccion"><h2>Nueva empresa o cliente</h2><button class="chico secundario" onclick="mostrarNuevaEmpresa(false)">Cerrar</button></div>
           <p style="font-size:.88rem;color:#6b7280">Se creará un espacio independiente. Sus empleados y liquidaciones nunca se mezclarán con otra empresa.</p>
-          <div class="fila"><div><label>Cliente o grupo (opcional)</label><input id="nuevaEmpresaGrupo" placeholder="Ej.: Familia Pérez"></div><div><label>Razón social</label><input id="nuevaEmpresaRazon" placeholder="Empresa cliente S.A."></div><div><label>CUIT</label><input id="nuevaEmpresaCuit" inputmode="numeric" maxlength="13" placeholder="30123456789"></div></div>
+          <div class="fila"><div id="campoNuevaEmpresaGrupo"><label>Cliente o grupo (opcional)</label><input id="nuevaEmpresaGrupo" placeholder="Ej.: Familia Pérez"></div><div><label>Razón social</label><input id="nuevaEmpresaRazon" placeholder="Empresa cliente S.A."></div><div><label>CUIT</label><input id="nuevaEmpresaCuit" inputmode="numeric" maxlength="13" placeholder="30123456789"></div></div>
           <button onclick="crearEmpresa()">Crear y comenzar a trabajar</button><div id="empresaError" class="error"></div>
         </div>
     <div class="tarjeta seccion-app" id="seccionInicio">
@@ -317,8 +323,9 @@ tr:last-child td{border-bottom:0}tbody tr:hover{background:#f8fcfb}
       <div id="listaGestorNormativo" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;margin-top:14px"></div>
     </div>
     <div class="tarjeta seccion-app" id="seccionEmpresas">
-      <div class="cabecera-seccion"><div><h2>Empresas y clientes</h2><p style="font-size:.85rem;color:#6b7280;margin:4px 0 0">Cada sociedad (CUIT) es un espacio independiente. Elegí la activa o creá una nueva.</p></div><button class="chico secundario" onclick="mostrarNuevaEmpresa()">+ Nueva empresa</button></div>
-      <table id="tablaEmpresas" class="tabla-movil" style="display:none;margin-top:12px"><thead><tr><th>Cliente / grupo</th><th>Razón social</th><th>Rol</th><th>Estado</th><th></th></tr></thead><tbody></tbody></table>
+      <div class="cabecera-seccion"><div><h2 id="tituloSeccionEmpresas">Empresas y clientes</h2><p id="bajadaSeccionEmpresas" style="font-size:.85rem;color:#6b7280;margin:4px 0 0">Cada sociedad (CUIT) es un espacio independiente. Elegí la activa o creá una nueva.</p></div><button id="btnNuevaEmpresaSeccion" class="chico secundario" onclick="mostrarNuevaEmpresa()">+ Nueva empresa</button></div>
+      <p id="cambiarModoCuenta" style="font-size:.82rem;color:#6b7280;margin:10px 0 0"></p>
+      <table id="tablaEmpresas" class="tabla-movil" style="display:none;margin-top:12px"><thead><tr><th class="col-grupo-cliente">Cliente / grupo</th><th>Razón social</th><th>Rol</th><th>Estado</th><th></th></tr></thead><tbody></tbody></table>
       <p id="sinEmpresas" style="margin-top:10px;color:#6b7280;font-size:.9rem">Cargando empresas…</p>
       <div id="perfilLaboralEmpresa" style="border-top:1px solid var(--borde);margin-top:18px;padding-top:16px">
         <h3>Configuración de la empresa para liquidar</h3>
@@ -782,6 +789,74 @@ function mostrarTab(t){
   ocultar('authError');
 }
 function mostrarError(id,msg){ const e=$(id); e.textContent=msg; e.style.display='block'; }
+
+// --- Estudio contable o empresa --------------------------------------------
+// Un estudio lleva varias empresas clientes y necesita esa capa. Una empresa
+// se liquida a si misma: verla de mas solo le complica la carga, asi que la
+// aplicacion la esconde entera.
+let modoCuenta='ESTUDIO';
+let modoElegidoAlCrear='EMPRESA';
+
+const AYUDA_MODO={
+  EMPRESA:'Cargás tus datos una sola vez. Si tenés varios locales, los agregás como establecimientos y elegís por empleado dónde trabaja y dónde cobra.',
+  ESTUDIO:'Cargás una empresa por cada cliente, cada una con su CUIT, y vas cambiando de una a otra. Los datos de cada cliente nunca se mezclan.'
+};
+
+function elegirModoCuenta(modo){
+  modoElegidoAlCrear=modo;
+  $('rzModoEmpresa').className = modo==='EMPRESA'?'':'inactivo';
+  $('rzModoEstudio').className = modo==='ESTUDIO'?'':'inactivo';
+  $('rzModoAyuda').textContent = AYUDA_MODO[modo];
+  $('rzRazonEtiqueta').textContent = modo==='EMPRESA'
+    ? 'Razón social de tu empresa' : 'Nombre del estudio contable';
+  $('rzRazon').placeholder = modo==='EMPRESA'
+    ? 'Mi Empresa S.R.L.' : 'Estudio Contable Pérez';
+}
+
+function aplicarModoCuenta(modo, empresas){
+  modoCuenta = modo==='EMPRESA' ? 'EMPRESA' : 'ESTUDIO';
+  const esEmpresa = modoCuenta==='EMPRESA';
+  const mostrar=(id,visible,display)=>{ const el=$(id); if(el) el.style.display = visible?(display||'block'):'none'; };
+
+  // Una sola empresa y modo empresa: el selector no elige nada.
+  const selector=document.querySelector('.selector-empresa');
+  if(selector) selector.style.display = (esEmpresa && (empresas||1)<=1) ? 'none' : '';
+  mostrar('btnNuevaEmpresaLateral', !esEmpresa);
+  mostrar('btnNuevaEmpresaSeccion', !esEmpresa, 'inline-block');
+  mostrar('campoNuevaEmpresaGrupo', !esEmpresa);
+  document.querySelectorAll('.col-grupo-cliente').forEach(el=>{ el.style.display = esEmpresa?'none':''; });
+
+  if($('navEmpresas')) $('navEmpresas').textContent = esEmpresa?'Mi empresa':'Empresas';
+  if($('tituloSeccionEmpresas')) $('tituloSeccionEmpresas').textContent = esEmpresa?'Mi empresa':'Empresas y clientes';
+  if($('bajadaSeccionEmpresas')) $('bajadaSeccionEmpresas').textContent = esEmpresa
+    ? 'Los datos del empleador. Los distintos locales se cargan en Establecimientos.'
+    : 'Cada sociedad (CUIT) es un espacio independiente. Elegí la activa o creá una nueva.';
+
+  const pasoUno=document.querySelector('.pasos .paso');
+  if(pasoUno) pasoUno.innerHTML = esEmpresa ? '<b>1</b>Tu empresa' : '<b>1</b>Cliente / grupo';
+
+  const cambiar=$('cambiarModoCuenta');
+  if(cambiar){
+    cambiar.innerHTML = esEmpresa
+      ? '¿Empezaste a llevar los sueldos de otras sociedades? <a href="#" onclick="cambiarModoCuenta(&quot;ESTUDIO&quot;);return false">Pasar a estudio contable</a>.'
+      : '¿Llevás una sola empresa? <a href="#" onclick="cambiarModoCuenta(&quot;EMPRESA&quot;);return false">Simplificar a modo empresa</a>.';
+  }
+}
+
+async function cargarPerfilCuenta(){
+  try{
+    const p=await api('/auth/perfil');
+    aplicarModoCuenta(p.modo_cuenta, p.empresas);
+  }catch(e){ /* si falla queda el modo estudio, que es como venía funcionando */ }
+}
+
+async function cambiarModoCuenta(modo){
+  try{
+    const p=await api('/auth/perfil/modo','PUT',{modo_cuenta:modo});
+    aplicarModoCuenta(p.modo_cuenta, p.empresas);
+    await cargarEmpresasSeccion();
+  }catch(e){ alert('No se pudo cambiar: '+e.message); }
+}
 function ocultar(id){ $(id).style.display='none'; }
 
 let renovacionEnCurso=null;
@@ -875,7 +950,8 @@ async function crearCuenta(){
   try{
     const d = await api('/auth/register','POST',{
       razon_social:$('rzRazon').value.trim(), cuit:$('rzCuit').value.replace(/\D/g,''),
-      email:$('rzEmail').value.trim(), password:$('rzPass').value });
+      email:$('rzEmail').value.trim(), password:$('rzPass').value,
+      modo_cuenta:modoElegidoAlCrear });
     guardarSesion(d);
   }catch(e){ mostrarError('authError', e.message); }
 }
@@ -1134,7 +1210,10 @@ async function entrar(){
   aplicarHash();
   abrirMenuInicialEnTelefono();
   try{ await recargarEmpresaActiva(); }
-  catch(e){ salir(); mostrarError('authError',e.message); return; }
+  catch(e){ salir(e.message); return; }
+  await cargarPerfilCuenta();
+  const recuperados=restaurarBorrador();
+  if(recuperados) avisarBorradorRecuperado(recuperados);
 }
 function toggleAlta(){ const a=$('alta'); a.style.display = a.style.display==='none'?'block':'none'; }
 function toggleEstablecimiento(){ const a=$('formEstablecimiento'); a.style.display=a.style.display==='none'?'block':'none'; }
@@ -1237,10 +1316,15 @@ async function cargarEmpresasSeccion(){
       const borrar=puedeBorrar?`<button class="chico secundario" onclick="borrarEmpresa('${e.id}','${(e.razon_social||'').replace(/'/g,"&#39;")}')" title="Borrar esta empresa">🗑️ Borrar</button>`:'';
       const accion=`<div class="acciones-tabla">${usar}${borrar}</div>`;
       const tr=document.createElement('tr');
-      tr.innerHTML=`<td data-label="Cliente / grupo">${esc(e.grupo_cliente||'—')}</td><td data-label="Razón social">${esc(e.razon_social||'')}</td><td data-label="Rol">${esc(rol)}</td><td data-label="Estado">${estado}</td><td class="acciones-celda">${accion}</td>`;
+      tr.innerHTML=`<td class="col-grupo-cliente" data-label="Cliente / grupo">${esc(e.grupo_cliente||'—')}</td><td data-label="Razón social">${esc(e.razon_social||'')}</td><td data-label="Rol">${esc(rol)}</td><td data-label="Estado">${estado}</td><td class="acciones-celda">${accion}</td>`;
       tb.appendChild(tr);
     });
     $('tablaEmpresas').style.display=empresas.length?'table':'none';
+    // Las celdas se crean de nuevo en cada carga: hay que volver a esconder
+    // la columna de cliente si la cuenta es de una sola empresa.
+    document.querySelectorAll('.col-grupo-cliente').forEach(el=>{
+      el.style.display = modoCuenta==='EMPRESA'?'none':'';
+    });
     $('sinEmpresas').style.display=empresas.length?'none':'block';
     if(!empresas.length) $('sinEmpresas').textContent='Todavía no tenés empresas cargadas.';
     const actual=empresas.find(e=>e.activa||e.id===activa);

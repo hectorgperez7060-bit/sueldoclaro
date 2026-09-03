@@ -84,3 +84,46 @@ def test_al_cortarse_la_sesion_no_se_borra_lo_que_la_persona_escribio():
     # Nunca pisa un dato ya cargado: solo completa campos vacios.
     assert "if(el.value==='' && valor!==''&&valor!=null)" in ui
     assert "lo que estabas cargando quedó guardado" in ui
+
+
+def test_la_cuenta_distingue_estudio_contable_de_empresa():
+    """Un estudio lleva clientes; una empresa se liquida a sí misma.
+
+    Mostrarle a una empresa la capa de "clientes" solo le complica la carga:
+    tiene que inventar un grupo, elegir empresa activa y crear "clientes" que
+    en realidad son ella misma.
+    """
+    schemas = _leer("src/application/dto/schemas.py")
+    assert 'MODOS_CUENTA = ("ESTUDIO", "EMPRESA")' in schemas
+    assert "class PerfilCuenta" in schemas
+
+    modelos = _leer("src/infrastructure/database/models.py")
+    assert "modo_cuenta" in modelos
+
+    auth = _leer("src/api/routes/auth.py")
+    assert '@router.get("/perfil", response_model=PerfilCuenta)' in auth
+    # Se puede cambiar de modo sin recargar nada: solo cambia qué se muestra.
+    assert '@router.put("/perfil/modo", response_model=PerfilCuenta)' in auth
+
+    sql = _leer("migrations/061_modo_cuenta_estudio_o_empresa.sql")
+    # Las cuentas que ya existen no cambian de comportamiento.
+    assert "DEFAULT 'ESTUDIO'" in sql
+    assert "CHECK (modo_cuenta IN ('ESTUDIO', 'EMPRESA'))" in sql
+
+    ui = _leer("src/ui_page.py")
+    assert "function elegirModoCuenta(" in ui and "function aplicarModoCuenta(" in ui
+    assert "modo_cuenta:modoElegidoAlCrear" in ui
+    # En modo empresa se esconde la capa de clientes entera.
+    for oculto in ("btnNuevaEmpresaLateral", "btnNuevaEmpresaSeccion",
+                   "campoNuevaEmpresaGrupo", "col-grupo-cliente"):
+        assert oculto in ui
+
+
+def test_al_entrar_se_recupera_el_borrador_y_se_aplica_el_modo():
+    """Guardar el borrador no sirve de nada si nadie lo vuelve a leer."""
+    ui = _leer("src/ui_page.py")
+    entrar = ui[ui.index("async function entrar(){"):]
+    entrar = entrar[:entrar.index("\nfunction toggleAlta")]
+    assert "restaurarBorrador()" in entrar
+    assert "avisarBorradorRecuperado(" in entrar
+    assert "cargarPerfilCuenta()" in entrar

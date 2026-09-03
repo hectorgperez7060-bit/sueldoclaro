@@ -5,15 +5,46 @@ from datetime import date
 from decimal import Decimal
 from typing import List, Literal, Optional
 
-from pydantic import BaseModel, EmailStr, Field, model_validator
+from pydantic import BaseModel, EmailStr, Field, field_validator, model_validator
 
 
 # --- Auth ---
+MODOS_CUENTA = ("ESTUDIO", "EMPRESA")
+
+
 class RegistroEstudio(BaseModel):
     razon_social: str
     cuit: str = Field(min_length=11, max_length=13)
     email: EmailStr
     password: str = Field(min_length=8)
+    # ESTUDIO lleva empresas clientes; EMPRESA es una sola, con menos datos.
+    modo_cuenta: str = "ESTUDIO"
+
+    @field_validator("modo_cuenta")
+    @classmethod
+    def _modo_valido(cls, valor: str) -> str:
+        valor = (valor or "ESTUDIO").upper()
+        if valor not in MODOS_CUENTA:
+            raise ValueError("Elegí si la cuenta es de un estudio contable o de una empresa")
+        return valor
+
+
+class ModoCuenta(BaseModel):
+    modo_cuenta: str
+
+    @field_validator("modo_cuenta")
+    @classmethod
+    def _modo_valido(cls, valor: str) -> str:
+        valor = (valor or "").upper()
+        if valor not in MODOS_CUENTA:
+            raise ValueError("Elegí si la cuenta es de un estudio contable o de una empresa")
+        return valor
+
+
+class PerfilCuenta(BaseModel):
+    email: str
+    modo_cuenta: str
+    empresas: int = 0
 
 
 class Login(BaseModel):
