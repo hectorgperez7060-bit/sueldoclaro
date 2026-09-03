@@ -342,7 +342,10 @@ def test_el_grafico_de_porciones_esta_presente_y_suma_cien():
     # Las porciones del gráfico llevan un decimal; deben cubrir el 100 % del
     # subtotal conocido, sin la ART pendiente.
     assert porcentajes, "el recibo no muestra porcentajes de composición"
-    assert sum(p for p in porcentajes if p <= 100) == 100.0
+    # La suma se compara con tolerancia: los porcentajes se leen del PDF como
+    # float y 66,8 + 21,6 + 6,0 + 2,2 + 3,4 da 100,00000000000001 en binario.
+    # La suma exacta de las décimas ya la controla el test de _porcentajes_visibles.
+    assert abs(sum(p for p in porcentajes if p <= 100) - 100.0) < 0.05
 
 
 def test_el_redondeo_visible_del_grafico_suma_exactamente_cien():
