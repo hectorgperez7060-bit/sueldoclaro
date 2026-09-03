@@ -199,8 +199,10 @@ def test_los_datos_largos_no_quedan_truncados():
 def test_sin_firma_el_pdf_queda_listo_para_firma_sin_exigir_contador():
     _, _, texto = _texto(_datos())
     assert "EMITIDO POR EL EMPLEADOR — PENDIENTE DE FIRMA Y CONSTANCIA DE ENTREGA" in texto
-    assert "REVISIÓN PROFESIONAL OPCIONAL" in texto
-    assert "APROBACIÓN POR CONTADOR" not in texto
+    # El recibo no habla de contadores: un empleador puede emitirlo por su
+    # cuenta y el cartel solo gastaba un renglón de una hoja que va justa.
+    assert "CONTADOR" not in texto.upper()
+    assert "REVISIÓN PROFESIONAL" not in texto
     assert "Firma del empleador" in texto
     assert "Firma o aceptación del trabajador" in texto
     assert "Fecha de recepción" in texto
@@ -363,7 +365,11 @@ def test_el_grafico_de_porciones_esta_presente_y_suma_cien():
     # Las porciones del gráfico llevan un decimal; deben cubrir el 100 % del
     # subtotal conocido, sin la ART pendiente.
     assert porcentajes, "el recibo no muestra porcentajes de composición"
-    assert sum(p for p in porcentajes if p <= 100) == 100.0
+    # Se comparan con tolerancia: los porcentajes se leen del PDF como float y
+    # sumarlos arrastra el error binario (100.00000000000001), que no dice
+    # nada sobre el recibo. El redondeo exacto se prueba aparte, en Decimal,
+    # en test_el_redondeo_visible_del_grafico_suma_exactamente_cien.
+    assert sum(p for p in porcentajes if p <= 100) == pytest.approx(100.0, abs=1e-6)
 
 
 def test_el_redondeo_visible_del_grafico_suma_exactamente_cien():
@@ -377,3 +383,72 @@ def test_el_redondeo_visible_del_grafico_suma_exactamente_cien():
 def test_la_art_pendiente_no_entra_como_porcion_del_grafico():
     _, _, texto = _texto(_datos())
     assert "pendiente, no incluida en las porciones" in texto
+
+
+# --------------------------------------------------------------------------- #
+# 11. Nada se monta encima de nada: el cuerpo se apila por bordes reales.
+# --------------------------------------------------------------------------- #
+def test_las_franjas_y_las_filas_se_apoyan_en_el_borde_real_y_no_se_pisan():
+    """El renglón que quedaba tapado por la franja de agrupación.
+
+    Antes cada bloque se ubicaba con un desplazamiento fijo respecto de un
+    punto medio. Como el alto de fila es variable, la franja de agrupación se
+    dibujaba hasta 5 puntos por encima de donde terminaba la última fila del
+    bloque anterior y le cortaba las letras. Ahora cada bloque recibe el borde
+    inferior de lo anterior y devuelve el suyo, así que apilarlos no puede
+    generar superposición.
+    """
+    from reportlab.lib.pagesizes import A4
+    from reportlab.pdfgen.canvas import Canvas
+
+    from infrastructure.pdf.recibo import _concept_band, _row, _table_header
+
+    lienzo = Canvas(io.BytesIO(), pagesize=A4)
+    fila = {"descripcion": "Concepto", "base_calculo": Decimal("1000000"),
+            "unidad": "10%", "cantidad": Decimal("1"), "importe": Decimal("1000")}
+
+    for alto in (5.2, 7.5, 12.0):
+        borde = 700.0
+        borde = _table_header(lienzo, borde)
+        assert borde == 700.0 - 15
+        despues_de_franja = _concept_band(lienzo, borde, "REMUNERATIVOS")
+        assert despues_de_franja == borde - 13, "la franja debe consumir su propio alto"
+        borde = despues_de_franja
+        for _ in range(3):
+            siguiente = _row(lienzo, borde, fila, 6.0, alto)
+            assert siguiente == borde - alto, "la fila debe terminar donde dice"
+            borde = siguiente
+        # La franja del grupo siguiente arranca justo donde terminó la última
+        # fila: ni encima ni con un hueco.
+        assert _concept_band(lienzo, borde, "DESCUENTOS") == borde - 13
+
+
+def test_los_carteles_se_centran_y_se_achican_en_vez_de_salirse_de_la_hoja():
+    from reportlab.pdfbase.pdfmetrics import stringWidth
+
+    from infrastructure.pdf.recibo import _numero_derecha, _texto_centrado
+
+    from pathlib import Path
+    raiz = Path(__file__).resolve().parents[2]
+    fuente = (raiz / "src/infrastructure/pdf/recibo.py").read_text(encoding="utf-8")
+    # Ningún cartel de ancho completo puede seguir dibujándose con right=True
+    # sobre la x del centro de la hoja: terminaba en el centro y crecía hacia
+    # la izquierda hasta salirse del papel.
+    assert "_text(c, 297" not in fuente
+    assert callable(_texto_centrado) and callable(_numero_derecha)
+    # El propio helper garantiza que el texto entre en el ancho dado.
+    largo = "EMITIDO POR EL EMPLEADOR — PENDIENTE DE FIRMA Y CONSTANCIA DE ENTREGA"
+    assert stringWidth(largo, "Helvetica-Bold", 4.6) < 539
+
+
+def test_un_recibo_cargado_entra_en_una_sola_hoja():
+    conceptos = list(CONCEPTOS_BASE)
+    for indice in range(8):
+        conceptos.append(_concepto(
+            f"EXTRA_{indice}", f"Adicional convencional de prueba {indice}",
+            "deduccion" if indice % 2 else "no_remunerativo", "12345.67", "1.50%",
+        ))
+    pdf, reader, texto = _texto(_datos(conceptos=conceptos))
+    assert len(reader.pages) == 1
+    for indice in range(8):
+        assert f"Adicional convencional de prueba {indice}" in texto

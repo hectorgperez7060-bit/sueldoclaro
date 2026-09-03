@@ -130,7 +130,7 @@ def test_ningun_convenio_salta_la_habilitacion_ni_exige_contador_para_liquidar()
     assert "pendiente_aprobacion_contador" not in caso
     assert '"APROBACION_PROFESIONAL_PENDIENTE"' not in caso
     assert '"AUTOGESTION_EMPLEADOR"' in caso
-    assert "REVISIÓN PROFESIONAL OPCIONAL" in pdf
+    assert "REVISIÓN PROFESIONAL OPCIONAL" not in pdf
     assert "PENDIENTE DE REVISIÓN Y APROBACIÓN POR CONTADOR PÚBLICO" not in pdf
     assert 'cct.numero in {"260/75", "40/89"}' in convenios
 

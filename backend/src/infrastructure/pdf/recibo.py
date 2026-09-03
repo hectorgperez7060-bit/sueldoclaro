@@ -40,7 +40,16 @@ AMBER_BG, AMBER_LINE, AMBER_INK = Color(1, .96, .80), Color(.85, .55, 0), Color(
 NO_INFORMADO = "No informado"
 DEPOSITO_PENDIENTE = "Datos del último depósito pendientes de completar"
 PARA_FIRMA = "EMITIDO POR EL EMPLEADOR — PENDIENTE DE FIRMA Y CONSTANCIA DE ENTREGA"
-REVISION_OPCIONAL = "REVISIÓN PROFESIONAL OPCIONAL"
+
+# Encuadre vertical del cuerpo. Todo lo que se dibuja de la seccion 2 en
+# adelante se apoya en un "borde": la coordenada del borde inferior de lo
+# ultimo dibujado. Antes cada bloque se ubicaba con un desplazamiento fijo
+# respecto de un punto medio, y como el alto de fila es variable, las franjas
+# de agrupacion terminaban montadas sobre la ultima fila del bloque anterior y
+# le cortaban las letras.
+PISO_DEL_CUERPO = 112.0
+ALTO_FILA_MINIMO = 5.2
+ALTO_FILA_MAXIMO = 12.0
 GRUPO_ART = "ART"
 ART_PENDIENTE = "ART pendiente de contrato/cálculo"
 SUBTOTAL_SIN_ART = "Subtotal conocido del costo laboral — ART pendiente"
@@ -206,10 +215,45 @@ def _text(c: Canvas, x: float, y: float, value: Any, size: float = 7, bold: bool
     (c.drawRightString if right else c.drawString)(x, y, str(value))
 
 
-def _section(c: Canvas, y: float, title: str) -> float:
-    c.setFillColor(GREEN); c.setStrokeColor(GREEN); c.rect(24, y - 14, 547, 17, fill=1, stroke=1)
-    _text(c, 30, y - 9, title, 8, True, white)
-    return y - 20
+def _texto_centrado(c: Canvas, centro: float, y: float, texto: str, ancho: float,
+                    size: float, bold: bool = True, color: Color = DARK,
+                    min_size: float = 4.6) -> None:
+    """Centra un texto de verdad y lo achica hasta que entre en ``ancho``.
+
+    Antes estos carteles se dibujaban con ``right=True`` sobre la x del centro
+    de la hoja: terminaban en el centro y crecian hacia la izquierda, asi que
+    un texto largo se salia del papel por el margen izquierdo.
+    """
+    fuente = "Helvetica-Bold" if bold else "Helvetica"
+    actual = size
+    while stringWidth(texto, fuente, actual) > ancho and actual > min_size:
+        actual -= .1
+    c.setFillColor(color); c.setFont(fuente, actual)
+    c.drawCentredString(centro, y, texto)
+
+
+def _numero_derecha(c: Canvas, borde: float, y: float, texto: str, ancho: float,
+                    size: float, bold: bool = False, color: Color = DARK,
+                    min_size: float = 4.0) -> None:
+    """Importe pegado a la derecha, achicado si no entra en su columna.
+
+    Un importe de siete cifras en negrita se salia de la columna y se pisaba
+    con la linea divisoria de la celda anterior.
+    """
+    fuente = "Helvetica-Bold" if bold else "Helvetica"
+    actual = size
+    while stringWidth(texto, fuente, actual) > ancho and actual > min_size:
+        actual -= .1
+    c.setFillColor(color); c.setFont(fuente, actual)
+    c.drawRightString(borde, y, texto)
+
+
+def _section(c: Canvas, borde: float, title: str) -> float:
+    """Barra de seccion apoyada en ``borde``; devuelve el nuevo borde."""
+    c.setFillColor(GREEN); c.setStrokeColor(GREEN)
+    c.rect(24, borde - 17, 547, 17, fill=1, stroke=1)
+    _text(c, 30, borde - 12, title, 8, True, white)
+    return borde - 20
 
 
 def _unit(value: Any) -> str:
@@ -232,35 +276,45 @@ def _unit(value: Any) -> str:
     return text
 
 
-def _row(c: Canvas, y: float, row: dict[str, Any], size: float, height: float, shaded: bool = False) -> float:
-    bottom = y - height / 2
+def _row(c: Canvas, borde: float, row: dict[str, Any], size: float, height: float,
+         shaded: bool = False) -> float:
+    """Un renglon de concepto apoyado en ``borde``; devuelve el borde de abajo.
+
+    La celda ocupa exactamente ``height`` desde ``borde`` hacia abajo, asi que
+    lo que se dibuje despues sabe donde termina de verdad este renglon.
+    """
+    bottom = borde - height
+    linea_base = bottom + height * .32   # texto centrado en la celda
     if shaded:
         c.setFillColor(HexColor("#F3F4F6")); c.rect(28, bottom, 540, height, fill=1, stroke=0)
-    _draw_fit(c, 32, y, row["descripcion"], 256, size, max_lines=1, min_size=4.2)
+    _draw_fit(c, 32, linea_base, row["descripcion"], 256, size, max_lines=1, min_size=4.2)
     base = row.get("base_calculo")
-    _text(c, 370, y, _money(base) if base is not None else "Informada", size, right=True)
-    _draw_fit(c, 380, y, _unit(row["unidad"]), 84, size, max_lines=1, min_size=4.2)
-    _text(c, 508, y, row["cantidad"], size, right=True)
-    _text(c, 562, y, _money(row["importe"]), size, True, right=True)
+    _numero_derecha(c, 370, linea_base,
+                    _money(base) if base is not None else "Informada", 72, size)
+    _draw_fit(c, 380, linea_base, _unit(row["unidad"]), 84, size, max_lines=1, min_size=4.2)
+    _numero_derecha(c, 508, linea_base, str(row["cantidad"]), 38, size)
+    _numero_derecha(c, 562, linea_base, _money(row["importe"]), 42, size, bold=True)
     c.setStrokeColor(LINE); c.setLineWidth(.35)
     c.line(28, bottom, 568, bottom)
-    for x in (28, 292, 374, 466, 516, 568): c.line(x, bottom, x, bottom + height)
-    return y - height
+    for x in (28, 292, 374, 466, 516, 568): c.line(x, bottom, x, borde)
+    return bottom
 
 
-def _concept_band(c: Canvas, y: float, title: str) -> float:
+def _concept_band(c: Canvas, borde: float, title: str) -> float:
+    """Franja de agrupacion apoyada en el borde real de la fila anterior."""
     c.setFillColor(HexColor("#CDEBE5")); c.setStrokeColor(GREEN)
-    c.rect(28, y - 5, 540, 13, fill=1, stroke=1)
-    _text(c, 32, y - 1, title, 6.5, True, DARK)
-    return y - 13
+    c.rect(28, borde - 13, 540, 13, fill=1, stroke=1)
+    _text(c, 32, borde - 9, title, 6.5, True, DARK)
+    return borde - 13
 
 
-def _table_header(c: Canvas, y: float) -> float:
-    c.setFillColor(PALE); c.setStrokeColor(LINE); c.rect(28, y - 5, 540, 15, fill=1, stroke=1)
-    for x in (292, 374, 466, 516): c.line(x, y - 5, x, y + 10)
+def _table_header(c: Canvas, borde: float) -> float:
+    c.setFillColor(PALE); c.setStrokeColor(LINE)
+    c.rect(28, borde - 15, 540, 15, fill=1, stroke=1)
+    for x in (292, 374, 466, 516): c.line(x, borde - 15, x, borde)
     for x, label in zip((32, 300, 380, 476, 522), ("Concepto", "Base", "Unidad", "Cant.", "Monto")):
-        _text(c, x, y, label, 6.5, True, DARK)
-    return y - 15
+        _text(c, x, borde - 10, label, 6.5, True, DARK)
+    return borde - 15
 
 
 # --------------------------------------------------------------------------- #
@@ -555,9 +609,9 @@ def _bloque_firmas(c: Canvas, data: dict[str, Any], firma: dict[str, Any] | None
                   max_lines=1, min_size=5)
 
     c.setFillColor(PALE); c.rect(20, 12, 555, 16, fill=1, stroke=0)
-    _text(c, 297, 18,
-          "Recibo confeccionado conforme a los artículos 139 y 140 de la LCT y al "
-          "artículo 12 de la Ley 17.250", 6, color=GRAY, right=True)
+    _texto_centrado(c, 297.5, 18,
+                    "Recibo confeccionado conforme a los artículos 139 y 140 de la LCT "
+                    "y al artículo 12 de la Ley 17.250", 547, 6, False, GRAY)
 
 
 def generar_recibo_pdf(data: dict[str, Any]) -> bytes:
@@ -582,15 +636,10 @@ def generar_recibo_pdf(data: dict[str, Any]) -> bytes:
     if not firma:
         c.setFillColor(AMBER_BG); c.setStrokeColor(AMBER_LINE)
         c.rect(24, y - 11, 547, 15, fill=1, stroke=1)
-        _text(c, 297, y - 6, PARA_FIRMA, 6.8, True, AMBER_INK, right=True)
-        y -= 17
-    if not firma:
-        c.setFillColor(PALE); c.setStrokeColor(GREEN)
-        c.rect(24, y - 11, 547, 15, fill=1, stroke=1)
-        _text(c, 297, y - 6, REVISION_OPCIONAL, 6.8, True, GREEN, right=True)
+        _texto_centrado(c, 297.5, y - 6, PARA_FIRMA, 539, 6.8, True, AMBER_INK)
         y -= 17
 
-    y = _section(c, y, "1. DATOS DEL EMPLEADOR, TRABAJADOR Y PAGO")
+    y = _section(c, y + 3, "1. DATOS DEL EMPLEADOR, TRABAJADOR Y PAGO")
     e, w = data["empresa"], data["empleado"]
     left = (("Empleador", e["razon_social"]), ("CUIT", e["cuit"]),
             ("Domicilio legal", e["domicilio"]))
@@ -621,31 +670,35 @@ def generar_recibo_pdf(data: dict[str, Any]) -> bytes:
     # Alto de fila calculado con el espacio realmente disponible: se descuenta
     # todo lo que ocupa un alto fijo y el resto se reparte entre las líneas.
     bandas = sum(
-        1 for _, tipo in (("", "remunerativo"), ("", "no_remunerativo"), ("", "deduccion"))
+        1 for tipo in ("remunerativo", "no_remunerativo", "deduccion")
         if any(r["tipo"] == tipo for r in worker)
     )
-    alto_composicion = 64 + (len(RUBROS_MINIMOS) + 1) * 10.4
+    alto_composicion = 66 + (len(RUBROS_MINIMOS) + 1) * 10.4
     alto_fijo = (
-        20 + 15 + 20        # sección 2: título, encabezado de tabla y total
-        + 20 + 15 + 22      # sección 3: título, encabezado y caja bruto/descuentos
+        20 + 15 + 23        # sección 2: título, encabezado de tabla y total
+        + 20 + 15 + 25      # sección 3: título, encabezado y caja bruto/descuentos
         + bandas * 13       # bandas de agrupación de conceptos
         + 20 + 40           # sección 4 (neto)
         + 20 + alto_composicion
     )
-    # Los dos totales dejan media fila de aire cada uno: entran en la ecuación.
-    disponible = y - 112 - alto_fijo - 6
-    total_filas = len(contributions) + len(worker) + 1
-    row_h = min(12.0, max(5.2, disponible / max(total_filas, 1)))
+    total_filas = len(contributions) + len(worker)
+    disponible = y - PISO_DEL_CUERPO - alto_fijo
+    row_h = min(ALTO_FILA_MAXIMO,
+                max(ALTO_FILA_MINIMO, disponible / max(total_filas, 1)))
     font = min(7.0, max(4.2, row_h * .62))
 
+    # De acá en adelante ``y`` es un borde: la coordenada donde termina lo
+    # último dibujado. Cada bloque se apoya ahí, así que nada se monta encima.
     y = _section(c, y, "2. CONTRIBUCIONES Y CONCEPTOS A CARGO DEL EMPLEADOR")
     y = _table_header(c, y)
     for index, row in enumerate(contributions):
         y = _row(c, y, row, font, row_h, index % 2 == 1)
     total = sum((_decimal(r["importe"]) for r in contributions), Decimal("0"))
-    y -= row_h / 2 + 3
-    c.setFillColor(PALE); c.setStrokeColor(LINE); c.rect(365, y - 5, 203, 15, fill=1, stroke=1)
-    _text(c, 375, y, "TOTAL EMPLEADOR", 6.7, True); _text(c, 558, y, _money(total), 7, True, DARK, True)
+    y -= 3
+    c.setFillColor(PALE); c.setStrokeColor(LINE)
+    c.rect(365, y - 15, 203, 15, fill=1, stroke=1)
+    _text(c, 375, y - 10, "TOTAL EMPLEADOR", 6.7, True)
+    _numero_derecha(c, 558, y - 10, _money(total), 176, 7, bold=True)
     y -= 20
 
     y = _section(c, y, "3. REMUNERACIÓN BRUTA, HABERES Y DEDUCCIONES")
@@ -660,22 +713,25 @@ def generar_recibo_pdf(data: dict[str, Any]) -> bytes:
         y = _concept_band(c, y, titulo)
         for row in rows:
             y = _row(c, y, row, font, row_h, shade % 2 == 1); shade += 1
-    y -= row_h / 2 + 3
-    c.setFillColor(PALE); c.setStrokeColor(LINE); c.rect(28, y - 5, 540, 17, fill=1, stroke=1)
-    _text(c, 38, y, f"SUELDO BRUTO: {_money(data['bruto'])}", 7, True)
-    _text(c, 330, y, f"DESCUENTOS: {_money(data['total_deducciones'])}", 7, True)
+    y -= 3
+    c.setFillColor(PALE); c.setStrokeColor(LINE)
+    c.rect(28, y - 17, 540, 17, fill=1, stroke=1)
+    _text(c, 38, y - 12, f"SUELDO BRUTO: {_money(data['bruto'])}", 7, True)
+    _text(c, 330, y - 12, f"DESCUENTOS: {_money(data['total_deducciones'])}", 7, True)
     y -= 22
 
     y = _section(c, y, "4. SUELDO NETO")
-    c.setFillColor(white); c.setStrokeColor(DARK); c.setLineWidth(1); c.rect(28, y - 28, 540, 35, fill=1, stroke=1)
-    _text(c, 38, y - 7, "NETO A COBRAR", 8.5, True, DARK)
-    _text(c, 558, y - 7, _money(data["neto"]), 11, True, GREEN, True)
-    _draw_fit(c, 38, y - 21, _money_words(data["neto"]), 500, 6.5, bold=True, max_lines=1, min_size=5)
+    c.setFillColor(white); c.setStrokeColor(DARK); c.setLineWidth(1)
+    c.rect(28, y - 35, 540, 35, fill=1, stroke=1)
+    _text(c, 38, y - 14, "NETO A COBRAR", 8.5, True, DARK)
+    _numero_derecha(c, 558, y - 15, _money(data["neto"]), 200, 11, bold=True, color=GREEN)
+    _draw_fit(c, 38, y - 28, _money_words(data["neto"]), 500, 6.5, bold=True,
+              max_lines=1, min_size=5)
     y -= 40
 
     y = _section(c, y, "5. COMPOSICIÓN DEL COSTO LABORAL")
-    y = _composition_block(c, y, _decimal(data["neto"]), worker, contributions)
-    if y < 112:
+    y = _composition_block(c, y - 2, _decimal(data["neto"]), worker, contributions)
+    if y < PISO_DEL_CUERPO:
         raise ValueError("El recibo excede una hoja A4; deben agruparse líneas equivalentes")
     _bloque_firmas(c, data, firma, y)
     c.showPage(); c.save(); return output.getvalue()
