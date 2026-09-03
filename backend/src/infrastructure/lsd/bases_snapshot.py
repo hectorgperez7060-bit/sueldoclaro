@@ -52,6 +52,8 @@ def codigo_empleador(codigo: str) -> str:
         "HORAS_EXTRA_100": "HEX100", "SAC": "SAC",
         "VACACIONES": "VACACIONES", "APORTE_JUBILACION": "JUBILAC",
         "APORTE_LEY19032": "INSSJP", "APORTE_OBRA_SOCIAL": "OBRA_SOC",
+        # Misma bolsa: son dos renglones del mismo aporte (LCT art. 92 ter).
+        "APORTE_OBRA_SOCIAL_ART92TER": "OBRA_SOC",
         "CUOTA_SINDICAL": "CUOTA_SIND",
     }
     if codigo in conocidos:

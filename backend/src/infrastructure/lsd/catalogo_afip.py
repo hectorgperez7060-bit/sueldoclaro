@@ -107,6 +107,11 @@ CATALOGO: Dict[str, ConceptoARCA] = {
     "APORTE_JUBILACION": ConceptoARCA("810000", _D, "Aporte Sistema Previsional (SIPA)", verificado=True, fuente=_FUENTE_G4B, clase_tope=ClaseTopeARCA.SIN_TOPE),
     "APORTE_LEY19032":   ConceptoARCA("810001", _D, "Aporte INSSJyP (Ley 19.032)", verificado=True, fuente=_FUENTE_G4B, clase_tope=ClaseTopeARCA.SIN_TOPE),
     "APORTE_OBRA_SOCIAL": ConceptoARCA("810002", _D, "Aporte Obra Social", verificado=True, fuente=_FUENTE_G4B, clase_tope=ClaseTopeARCA.SIN_TOPE),
+    # El recibo abre la obra social en dos renglones cuando hay jornada parcial
+    # (LCT art. 92 ter), pero para ARCA es el mismo concepto: va al mismo codigo
+    # y suma a la misma base. Sin esta linea la exportacion se bloqueaba por
+    # concepto sin codigo ARCA, y el resumen de cargas sociales mostraba de menos.
+    "APORTE_OBRA_SOCIAL_ART92TER": ConceptoARCA("810002", _D, "Aporte Obra Social (dif. art. 92 ter)", verificado=True, fuente=_FUENTE_G4B, clase_tope=ClaseTopeARCA.SIN_TOPE),
     # Cuota sindical y aportes solidarios: NO integran el F.931 -> «otros descuentos».
     "CUOTA_SINDICAL":        ConceptoARCA("820000", _D, "Cuota sindical (otros descuentos)", verificado=True, fuente=_FUENTE_G4B, clase_tope=ClaseTopeARCA.SIN_TOPE),
     "APORTE_SOLIDARIO_UOCRA": ConceptoARCA("820000", _D, "Aporte solidario UOCRA (otros descuentos)", verificado=True, fuente=_FUENTE_G4B, clase_tope=ClaseTopeARCA.SIN_TOPE),

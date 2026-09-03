@@ -2770,7 +2770,15 @@ async function crearEmpleado(){
   }catch(e){ mostrarError('empError', e.message); }
 }
 
-const CS_APORTES = {APORTE_JUBILACION:'Aporte jubilatorio (SIPA 11%)', APORTE_LEY19032:'Aporte INSSJP/PAMI (Ley 19.032, 3%)', APORTE_OBRA_SOCIAL:'Aporte obra social (3%)'};
+const CS_APORTES = {APORTE_JUBILACION:'Aporte jubilatorio (SIPA 11%)', APORTE_LEY19032:'Aporte INSSJP/PAMI (Ley 19.032, 3%)', APORTE_OBRA_SOCIAL:'Aporte obra social'};
+// El recibo abre la obra social en dos renglones cuando hay jornada parcial
+// (LCT art. 92 ter). Al F.931 va un solo importe: el total a depositar. Sin
+// esto, el resumen contaba solo el primer renglon y quedaba corto.
+const CS_MISMO_CONCEPTO = {
+  APORTE_OBRA_SOCIAL_ART92TER:'APORTE_OBRA_SOCIAL',
+  CONTRIB_OBRA_SOCIAL_ART92TER:'CONTRIB_OBRA_SOCIAL',
+};
+const csCodigo = codigo => CS_MISMO_CONCEPTO[codigo] || codigo;
 const CS_CONTRIB = {CONTRIB_JUBILACION:'Contribución jubilatoria', CONTRIB_OBRA_SOCIAL:'Contribución obra social', CONTRIB_INSSJP:'Contribución INSSJP/PAMI', CONTRIB_ASIG_FAM:'Contribución asignaciones familiares'};
 
 function resumenF931(d){
@@ -2778,8 +2786,9 @@ function resumenF931(d){
   d.detalles.forEach(det=>{
     remun += Number(det.bruto);
     det.conceptos.forEach(c=>{
-      if(CS_APORTES[c.codigo]) ap[c.codigo]=(ap[c.codigo]||0)+Number(c.importe);
-      if(CS_CONTRIB[c.codigo]) co[c.codigo]=(co[c.codigo]||0)+Number(c.importe);
+      const cod=csCodigo(c.codigo);
+      if(CS_APORTES[cod]) ap[cod]=(ap[cod]||0)+Number(c.importe);
+      if(CS_CONTRIB[cod]) co[cod]=(co[cod]||0)+Number(c.importe);
     });
   });
   const totAp = Object.values(ap).reduce((a,b)=>a+b,0);
