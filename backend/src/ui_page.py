@@ -2029,43 +2029,124 @@ function verConceptosVersion(empleadoId){
   w.document.close();
 }
 
+// ----- Un formulario en vez de una fila de ventanitas -------------------
+// Descargar un recibo del historial abria hasta diecisiete prompt() seguidos,
+// y cualquiera que se cancelara o que no pasara una validacion cortaba todo
+// sin decir nada: el recibo simplemente no bajaba. Ahora es un solo
+// formulario, con los datos ya cargados de la vez anterior, que valida a la
+// vista y explica que falta.
+function pedirEnFormulario(titulo, bajada, campos){
+  return new Promise(resolve=>{
+    const fondo=document.createElement('div');
+    fondo.style.cssText='position:fixed;inset:0;background:rgba(17,24,39,.55);z-index:80;display:flex;align-items:center;justify-content:center;padding:16px;overflow:auto';
+    const caja=document.createElement('div');
+    caja.style.cssText='background:#fff;border-radius:12px;max-width:560px;width:100%;padding:20px;max-height:90vh;overflow:auto;box-shadow:0 18px 50px rgba(0,0,0,.3)';
+    const campoHtml=c=>`
+      <div style="margin-bottom:12px">
+        <label style="display:block;font-size:.85rem;margin-bottom:4px">${c.etiqueta}${c.requerido===false?' <span style="color:#6b7280">(opcional)</span>':''}</label>
+        <input id="fm-${c.id}" type="${c.tipo||'text'}" value="${String(c.valor==null?'':c.valor).replace(/"/g,'&quot;')}"
+               placeholder="${c.ayuda||''}" style="width:100%">
+        <small id="fm-error-${c.id}" style="color:#b91c1c;display:none"></small>
+      </div>`;
+    caja.innerHTML=`<h3 style="margin:0 0 4px">${titulo}</h3>
+      <p style="font-size:.85rem;color:#6b7280;margin:0 0 16px">${bajada}</p>
+      ${campos.map(campoHtml).join('')}
+      <div id="fm-general" class="error" style="display:none"></div>
+      <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:16px">
+        <button type="button" class="secundario" id="fm-cancelar">Cancelar</button>
+        <button type="button" id="fm-aceptar">Continuar</button>
+      </div>`;
+    fondo.appendChild(caja); document.body.appendChild(fondo);
+    const primero=caja.querySelector('input'); if(primero) primero.focus();
+
+    const cerrar=valor=>{ fondo.remove(); resolve(valor); };
+
+    caja.querySelector('#fm-cancelar').onclick=()=>cerrar(null);
+    caja.querySelector('#fm-aceptar').onclick=()=>{
+      const valores={}; let falla=null;
+      campos.forEach(c=>{
+        const entrada=caja.querySelector('#fm-'+c.id);
+        const error=caja.querySelector('#fm-error-'+c.id);
+        const valor=(entrada.value||'').trim();
+        error.style.display='none'; entrada.style.borderColor='';
+        valores[c.id]=valor;
+        if(c.requerido!==false && !valor){
+          error.textContent='Falta completar este dato.'; error.style.display='block';
+          entrada.style.borderColor='#b91c1c'; falla=falla||entrada; return;
+        }
+        if(valor && c.patron && !c.patron.test(valor)){
+          error.textContent=c.mensaje||'El formato no es el esperado.';
+          error.style.display='block'; entrada.style.borderColor='#b91c1c';
+          falla=falla||entrada;
+        }
+      });
+      if(falla){
+        const general=caja.querySelector('#fm-general');
+        general.textContent='Revisá los datos marcados en rojo.';
+        general.style.display='block';
+        falla.focus(); return;
+      }
+      cerrar(valores);
+    };
+    fondo.addEventListener('keydown', e=>{ if(e.key==='Escape') cerrar(null); });
+  });
+}
+
+const FECHA_ISO=/^\d{4}-(0[1-9]|1[0-2])-([0-2]\d|3[01])$/;
+const PERIODO_ISO=/^\d{4}-(0[1-9]|1[0-2])$/;
+
 // ----- Recibo histórico: se arma sólo con el snapshot de la carpeta -----
 let metadatosRecibo = null;
 const metadatosEmpleadoHistorico = {};
 
-function pedirMetadatosRecibo(carpeta){
+async function pedirMetadatosRecibo(carpeta){
   if(metadatosRecibo && metadatosRecibo.carpeta===carpeta.id) return metadatosRecibo;
   const snap=(carpeta.contenido&&carpeta.contenido.snapshot_parametros)||{};
   const empresa=snap.empresa||{};
-  const razon=empresa.razon_social||prompt('Razón social del empleador (no figura en esta carpeta):',empresaCache.razon_social||'');
-  if(!razon) return null;
-  const cuit=empresa.cuit||prompt('CUIT del empleador (no figura en esta carpeta):',empresaCache.cuit||'');
-  if(!cuit) return null;
-  const domicilio=prompt('Domicilio legal del empleador:',localStorage.getItem('sc_empresa_domicilio')||'');
-  if(!domicilio) return null;
-  const fechaPago=prompt('Fecha real de pago de este período (AAAA-MM-DD):',localStorage.getItem('sc_fecha_pago_hist')||'');
-  if(!fechaPago) return null;
-  const lugarPago=prompt('Lugar de pago:',localStorage.getItem('sc_lugar_pago')||'');
-  if(!lugarPago) return null;
-  const formaPago=prompt('Forma de pago:',localStorage.getItem('sc_forma_pago')||'');
-  if(!formaPago) return null;
-  const cargasFecha=prompt('Fecha del último depósito de aportes (AAAA-MM-DD):',localStorage.getItem('sc_fecha_cargas')||'');
-  if(!/^\d{4}-(0[1-9]|1[0-2])-([0-2]\d|3[01])$/.test(cargasFecha||'')) return null;
-  const cargasPeriodo=prompt('Período al que corresponde el último depósito (AAAA-MM):',localStorage.getItem('sc_periodo_cargas')||'');
-  if(!/^\d{4}-(0[1-9]|1[0-2])$/.test(cargasPeriodo||'')) return null;
-  const cargasBanco=prompt('Banco o entidad donde se hizo el último depósito:',localStorage.getItem('sc_banco_cargas')||'');
-  if(!cargasBanco) return null;
-  localStorage.setItem('sc_empresa_domicilio',domicilio);
-  localStorage.setItem('sc_fecha_pago_hist',fechaPago);
-  localStorage.setItem('sc_fecha_cargas',cargasFecha);
-  localStorage.setItem('sc_periodo_cargas',cargasPeriodo);
-  localStorage.setItem('sc_banco_cargas',cargasBanco);
-  metadatosRecibo={carpeta:carpeta.id,razon,cuit,domicilio,fechaPago,lugarPago,formaPago,
-                   cargasFecha,cargasPeriodo,cargasBanco};
+  const guardado=k=>localStorage.getItem(k)||'';
+  const campos=[];
+  if(!empresa.razon_social) campos.push({id:'razon',etiqueta:'Razón social del empleador',
+    valor:empresaCache.razon_social||'', ayuda:'No figura en esta carpeta'});
+  if(!empresa.cuit) campos.push({id:'cuit',etiqueta:'CUIT del empleador',
+    valor:empresaCache.cuit||'', ayuda:'11 dígitos'});
+  campos.push(
+    {id:'domicilio',etiqueta:'Domicilio legal del empleador',valor:guardado('sc_empresa_domicilio')},
+    {id:'fechaPago',etiqueta:'Fecha real de pago de este período',tipo:'date',
+     valor:guardado('sc_fecha_pago_hist'),patron:FECHA_ISO,mensaje:'Escribí la fecha completa: año, mes y día.'},
+    {id:'lugarPago',etiqueta:'Lugar de pago',valor:guardado('sc_lugar_pago')},
+    {id:'formaPago',etiqueta:'Forma de pago',valor:guardado('sc_forma_pago'),
+     ayuda:'Efectivo, acreditación en cuenta…'},
+    {id:'cargasFecha',etiqueta:'Fecha del último depósito de aportes',tipo:'date',
+     valor:guardado('sc_fecha_cargas'),patron:FECHA_ISO,mensaje:'Escribí la fecha completa: año, mes y día.'},
+    {id:'cargasPeriodo',etiqueta:'Período al que corresponde ese depósito',tipo:'month',
+     valor:guardado('sc_periodo_cargas'),patron:PERIODO_ISO,mensaje:'Tiene que ser un mes, con año y mes.'},
+    {id:'cargasBanco',etiqueta:'Banco o entidad donde se depositó',valor:guardado('sc_banco_cargas')},
+  );
+  const v=await pedirEnFormulario(
+    'Datos del recibo',
+    'La ley pide estos datos en el recibo (LCT arts. 139 y 140 y Ley 17.250). '
+    +'Quedan guardados en este dispositivo: la próxima vez ya vienen completos.',
+    campos);
+  if(!v) return null;
+  localStorage.setItem('sc_empresa_domicilio',v.domicilio);
+  localStorage.setItem('sc_fecha_pago_hist',v.fechaPago);
+  localStorage.setItem('sc_lugar_pago',v.lugarPago);
+  localStorage.setItem('sc_forma_pago',v.formaPago);
+  localStorage.setItem('sc_fecha_cargas',v.cargasFecha);
+  localStorage.setItem('sc_periodo_cargas',v.cargasPeriodo);
+  localStorage.setItem('sc_banco_cargas',v.cargasBanco);
+  metadatosRecibo={
+    carpeta:carpeta.id,
+    razon: empresa.razon_social||v.razon,
+    cuit: empresa.cuit||v.cuit,
+    domicilio:v.domicilio, fechaPago:v.fechaPago, lugarPago:v.lugarPago,
+    formaPago:v.formaPago, cargasFecha:v.cargasFecha,
+    cargasPeriodo:v.cargasPeriodo, cargasBanco:v.cargasBanco,
+  };
   return metadatosRecibo;
 }
 
-function pedirDatosEmpleadoHistorico(carpeta, detalle){
+async function pedirDatosEmpleadoHistorico(carpeta, detalle){
   const doc=datosDocumentales(carpeta, detalle.empleado_id);
   const completos=['nombre','apellido','cuil','fecha_ingreso','categoria'].every(k=>String(doc[k]||'').trim());
   if(completos) return doc;
@@ -2074,20 +2155,30 @@ function pedirDatosEmpleadoHistorico(carpeta, detalle){
   const snap=(carpeta.contenido&&carpeta.contenido.snapshot_parametros)||{};
   const empSnap=(snap.empleados&&snap.empleados[detalle.empleado_id])||{};
   const actual=empleadosCache[detalle.empleado_id]||{};
-  const pedir=(rotulo,valor)=>prompt(rotulo+' (confirmá el dato histórico):',valor||'');
-  const confirmado={
-    nombre:pedir('Nombre',actual.nombre), apellido:pedir('Apellido',actual.apellido),
-    cuil:pedir('CUIL',actual.cuil), legajo:pedir('Legajo',actual.legajo),
-    fecha_ingreso:pedir('Fecha de ingreso (AAAA-MM-DD)',actual.fecha_ingreso),
-    categoria:pedir('Categoría',empSnap.categoria||detalle.categoria||actual.categoria),
-    cct_numero:pedir('Convenio',empSnap.cct||detalle.cct_numero||actual.cct_numero),
-    modalidad_contrato:pedir('Modalidad de contrato',actual.modalidad_contrato),
-    lugar_trabajo:pedir('Lugar de trabajo',actual.lugar_trabajo),
-  };
-  if(!confirmado.nombre || !confirmado.apellido || !confirmado.cuil
-      || !confirmado.fecha_ingreso || !confirmado.categoria) return null;
-  metadatosEmpleadoHistorico[clave]=confirmado;
-  return confirmado;
+  const v=await pedirEnFormulario(
+    'Confirmá los datos del empleado',
+    'Esta carpeta no guardó todos los datos de la persona. Vienen del legajo '
+    +'actual: confirmá que eran así en '+esc(carpeta.periodo)+'.',
+    [
+      {id:'nombre',etiqueta:'Nombre',valor:doc.nombre||actual.nombre||''},
+      {id:'apellido',etiqueta:'Apellido',valor:doc.apellido||actual.apellido||''},
+      {id:'cuil',etiqueta:'CUIL',valor:doc.cuil||actual.cuil||''},
+      {id:'legajo',etiqueta:'Legajo',requerido:false,valor:doc.legajo||actual.legajo||''},
+      {id:'fecha_ingreso',etiqueta:'Fecha de ingreso',tipo:'date',
+       valor:doc.fecha_ingreso||actual.fecha_ingreso||'',patron:FECHA_ISO,
+       mensaje:'Escribí la fecha completa: año, mes y día.'},
+      {id:'categoria',etiqueta:'Categoría',
+       valor:doc.categoria||empSnap.categoria||detalle.categoria||actual.categoria||''},
+      {id:'cct_numero',etiqueta:'Convenio',requerido:false,
+       valor:doc.cct_numero||empSnap.cct||detalle.cct_numero||actual.cct_numero||''},
+      {id:'modalidad_contrato',etiqueta:'Modalidad de contrato',requerido:false,
+       valor:doc.modalidad_contrato||actual.modalidad_contrato||''},
+      {id:'lugar_trabajo',etiqueta:'Lugar de trabajo',requerido:false,
+       valor:doc.lugar_trabajo||actual.lugar_trabajo||''},
+    ]);
+  if(!v) return null;
+  metadatosEmpleadoHistorico[clave]=v;
+  return v;
 }
 
 function cuerpoReciboHistorico(carpeta, detalle, meta, doc){
@@ -2125,7 +2216,10 @@ async function pedirPdf(body, nombreArchivo, reintento=true){
   if(r.status===401 && reintento && await renovarSesion()) return pedirPdf(body,nombreArchivo,false);
   if(!r.ok){
     const e=await r.json().catch(()=>({detail:'No se pudo generar el PDF'}));
-    throw new Error(e.detail||'No se pudo generar el PDF');
+    let msg=e.detail;
+    if(Array.isArray(msg)) msg=msg.map(x=>x.msg||JSON.stringify(x)).join('. ');
+    else if(msg && typeof msg==='object') msg=msg.mensaje||JSON.stringify(msg);
+    throw new Error(msg||'No se pudo generar el PDF');
   }
   const blob=await r.blob(); const url=URL.createObjectURL(blob);
   const a=document.createElement('a'); a.href=url; a.download=nombreArchivo;
@@ -2137,8 +2231,8 @@ async function descargarReciboHistorico(empleadoId){
   const carpeta=carpetasCache[versionAbierta]; if(!carpeta) return;
   const detalle=((carpeta.contenido||{}).detalles||[]).find(d=>d.empleado_id===empleadoId);
   if(!detalle){ alert('Esta carpeta no conserva el detalle de ese empleado.'); return; }
-  const meta=pedirMetadatosRecibo(carpeta); if(!meta) return;
-  const doc=pedirDatosEmpleadoHistorico(carpeta,detalle); if(!doc) return;
+  const meta=await pedirMetadatosRecibo(carpeta); if(!meta) return;
+  const doc=await pedirDatosEmpleadoHistorico(carpeta,detalle); if(!doc) return;
   try{
     const body=cuerpoReciboHistorico(carpeta,detalle,meta,doc);
     const apellido=(body.empleado.apellido||'empleado').replace(/\s+/g,'-');
@@ -2150,18 +2244,20 @@ async function descargarRecibosDeVersion(){
   const carpeta=carpetasCache[versionAbierta]; if(!carpeta) return;
   const detalles=((carpeta.contenido||{}).detalles||[]);
   if(!detalles.length){ alert('Esta carpeta no conserva detalles.'); return; }
-  const meta=pedirMetadatosRecibo(carpeta); if(!meta) return;
-  let errores=0;
+  const meta=await pedirMetadatosRecibo(carpeta); if(!meta) return;
+  const fallados=[];
   for(const detalle of detalles){
+    const quien=nombreDesdeCarpeta(carpeta,detalle.empleado_id)||'un empleado';
     try{
-      const doc=pedirDatosEmpleadoHistorico(carpeta,detalle);
-      if(!doc){ errores++; continue; }
+      const doc=await pedirDatosEmpleadoHistorico(carpeta,detalle);
+      if(!doc){ fallados.push(`${quien}: faltan datos y se canceló la carga`); continue; }
       const body=cuerpoReciboHistorico(carpeta,detalle,meta,doc);
       const apellido=(body.empleado.apellido||'empleado').replace(/\s+/g,'-');
       await pedirPdf(body,`recibo-${carpeta.periodo}-v${carpeta.version}-${apellido}.pdf`);
-    }catch(e){ errores++; }
+    }catch(e){ fallados.push(`${quien}: ${e.message}`); }
   }
-  if(errores) alert(`No se pudieron generar ${errores} recibo(s). Revisá los datos documentales faltantes.`);
+  // Decir cual fallo y por que. Antes solo se contaban y no se sabia nada.
+  if(fallados.length) alert('No se pudieron generar estos recibos:\n\n'+fallados.join('\n'));
 }
 
 let cierreActualId=null;

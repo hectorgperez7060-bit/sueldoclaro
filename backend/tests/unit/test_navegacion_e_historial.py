@@ -183,7 +183,11 @@ def test_una_carpeta_vieja_exige_confirmar_la_identidad_y_no_la_copia_silenciosa
     inicio = UI.index("function pedirDatosEmpleadoHistorico(")
     fin = UI.index("function cuerpoReciboHistorico(")
     pedir = UI[inicio:fin]
-    assert "confirmá el dato histórico" in pedir
+    # Se sigue pidiendo confirmación, pero en un formulario y no en una fila
+    # de ventanitas que se cortaba sin decir nada.
+    assert "Confirmá los datos del empleado" in pedir
+    assert "confirmá que eran así en " in pedir
+    assert "prompt(" not in pedir
     cuerpo = _cuerpo_historico()
     assert "empleadosCache" not in cuerpo
     assert "ficha." not in cuerpo
@@ -244,3 +248,30 @@ def test_el_recibo_actual_se_prepara_en_un_formulario_sin_ventanas_prompt():
     assert "prompt(" not in descarga
     assert "los tres datos del último depósito" in descarga
     assert "Completá aseguradora, importe individual y referencia de ART" in descarga
+
+
+def test_bajar_un_recibo_no_abre_una_fila_de_ventanitas_que_falla_sin_avisar():
+    """Descargar un recibo del historial era una cadena de prompt().
+
+    Eran hasta diecisiete seguidos, y cualquiera que se cancelara o que no
+    pasara una validación hacía `return null` sin decir nada: el recibo
+    simplemente no bajaba y no había forma de saber por qué.
+    """
+    # Ya no queda ningún prompt en el camino del recibo histórico.
+    camino = UI[UI.index("function pedirEnFormulario("):UI.index("let cierreActualId")]
+    assert "prompt(" not in camino
+
+    # Un solo formulario, que valida a la vista y explica qué falta.
+    assert "function pedirEnFormulario(" in UI
+    assert "Falta completar este dato." in UI
+    assert "Revisá los datos marcados en rojo." in UI
+
+    # Los datos quedan guardados: la próxima vez el formulario viene completo.
+    assert "la próxima vez ya vienen completos" in UI
+    for clave in ("sc_empresa_domicilio", "sc_lugar_pago", "sc_forma_pago",
+                  "sc_fecha_cargas", "sc_periodo_cargas", "sc_banco_cargas"):
+        assert f"localStorage.setItem('{clave}'" in UI
+
+    # Y cuando algo falla, se dice cuál y por qué, no un contador mudo.
+    assert "No se pudieron generar estos recibos:" in UI
+    assert "fallados.push(" in UI
