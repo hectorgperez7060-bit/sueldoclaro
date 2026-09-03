@@ -58,16 +58,31 @@ def test_se_puede_borrar_una_empresa_con_confirmacion():
     assert "confirmacion_cuit" in auth
     assert "Solo un administrador de la empresa puede borrarla" in auth
     assert "Es la única empresa de tu cuenta" in auth
-    # Se borra el contenido antes que la empresa, y dentro de la sesion con
-    # el tenant seteado, porque esas tablas tienen RLS.
-    assert "tenant_session(str(tenant_id))" in auth
-    bloque = auth[auth.index("_TABLAS_DEL_TENANT"):auth.index("@router.delete")]
-    orden = re.findall(r'"([a-z_]+)"', bloque)
+    # El borrado entero lo hace una funcion de la base: el rol de la
+    # aplicacion no tiene DELETE sobre la constancia de un cierre ni sobre una
+    # obligacion pagada, y no se lo damos suelto solo para esto.
+    assert "SELECT public.borrar_empresa(:tid)" in auth
+    assert 'accion="borrar", entidad="tenant"' in auth
+
+    sql = _leer("migrations/062_funcion_borrar_empresa.sql")
+    assert "SECURITY DEFINER" in sql
+    assert "SET search_path = public, pg_temp" in sql
+    # Esas tablas tienen FORCE ROW LEVEL SECURITY: ni el dueño se saltea la
+    # politica, asi que la funcion tiene que setear el tenant.
+    assert "set_config('app.current_tenant'" in sql
+    # La aplicacion puede ejecutarla, nadie mas.
+    assert "REVOKE ALL ON FUNCTION public.borrar_empresa(uuid) FROM PUBLIC" in sql
+    assert "GRANT EXECUTE ON FUNCTION public.borrar_empresa(uuid) TO sueldoclaro" in sql
+
+    bloque = sql[sql.index("FOREACH tabla IN ARRAY"):sql.index("END LOOP")]
+    orden = re.findall(r"'([a-z_]+)'", bloque)
     for hija, madre in (("liquidacion_detalle", "liquidacion"),
                         ("obligacion_pago_mensual", "carpeta_mensual"),
                         ("empleado_establecimiento_historial", "empleado")):
         assert orden.index(hija) < orden.index(madre), f"{hija} debe borrarse antes que {madre}"
-    assert orden[-1] == "establecimiento"
+    assert orden[-1] == "usuario_tenant"
+    # La empresa se borra al final, cuando ya no queda nada que la referencie.
+    assert sql.index("DELETE FROM public.tenant") > sql.index("END LOOP")
 
     ui = _leer("src/ui_page.py")
     assert "async function borrarEmpresa(" in ui

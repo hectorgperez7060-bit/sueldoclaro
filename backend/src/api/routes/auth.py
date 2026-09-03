@@ -15,8 +15,8 @@ from application.dto.schemas import (
 from application.use_cases.registrar_estudio import RegistrarEstudio
 from domain.entities.perfil_empresa import resolver_regimen_contribucion
 from infrastructure.database import models as m
-from infrastructure.database.repositories import TenantRepo, UsuarioRepo
-from infrastructure.database.session import plain_session, tenant_session
+from infrastructure.database.repositories import AuditRepo, TenantRepo, UsuarioRepo
+from infrastructure.database.session import plain_session
 from infrastructure.security.passwords import verify_password
 from infrastructure.security import refresh_store
 from infrastructure.security.tokens import decode, emitir_access, emitir_refresh
@@ -162,23 +162,6 @@ async def crear_empresa(body: EmpresaIn, principal: Principal = Depends(get_prin
     return await _emitir_par(principal.usuario_id, str(tenant_id), "admin")
 
 
-# Orden de borrado: primero lo que referencia a otras filas. Las diez primeras
-# tienen RLS por tenant, asi que se borran dentro de una sesion con el tenant
-# seteado; usuario_tenant y tenant se scopean en la aplicacion.
-_TABLAS_DEL_TENANT = (
-    "revision_profesional",
-    "obligacion_pago_mensual",
-    "recibo",
-    "liquidacion_detalle",
-    "liquidacion",
-    "carpeta_mensual",
-    "novedad_mensual",
-    "empleado_establecimiento_historial",
-    "empleado",
-    "establecimiento",
-)
-
-
 @router.delete("/empresas/{empresa_id}", status_code=200)
 async def borrar_empresa(
     empresa_id: str,
@@ -226,24 +209,25 @@ async def borrar_empresa(
             "Para borrar la empresa hay que escribir su CUIT tal cual está cargado",
         )
 
-    borradas: dict[str, int] = {}
-    async with tenant_session(str(tenant_id)) as s:
-        for tabla in _TABLAS_DEL_TENANT:
-            res = await s.execute(
-                text(f"DELETE FROM {tabla} WHERE tenant_id = :tid"), {"tid": str(tenant_id)}
-            )
-            borradas[tabla] = res.rowcount or 0
-
+    # El borrado entero vive en una funcion de la base (migracion 062). La
+    # constancia de un cierre y la de una obligacion pagada no se pueden
+    # borrar de a una: el rol de la aplicacion no tiene DELETE sobre esas
+    # tablas, y esta funcion es la unica manera de sacarlas, completa y en
+    # orden, cuando se borra la empresa entera.
     async with plain_session() as s:
-        await s.execute(
-            text("DELETE FROM usuario_tenant WHERE tenant_id = :tid"), {"tid": str(tenant_id)}
+        borradas = (await s.execute(
+            text("SELECT public.borrar_empresa(:tid)"), {"tid": str(tenant_id)}
+        )).scalar_one()
+        await AuditRepo(s).registrar(
+            accion="borrar", entidad="tenant", entidad_id=str(tenant_id),
+            tenant_id=None, usuario_id=usuario_id,
+            payload_diff={"razon_social": razon_social, "registros": borradas},
         )
-        await s.execute(text("DELETE FROM tenant WHERE id = :tid"), {"tid": str(tenant_id)})
 
     return {
         "borrada": True,
         "empresa": razon_social,
-        "registros_borrados": {k: v for k, v in borradas.items() if v},
+        "registros_borrados": borradas or {},
     }
 
 

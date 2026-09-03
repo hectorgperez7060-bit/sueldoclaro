@@ -445,8 +445,16 @@ class MotorLiquidacion:
         base_obra_social = (base + _nr("aporte_obra_social")).redondear()
         # LCT art. 92 ter: en jornada parcial, aportes y contribuciones de obra
         # social se determinan sobre la remuneración de jornada completa.
+        #
+        # Eso NO se resuelve calculando un 3% sobre una base que no aparece en
+        # el recibo: el trabajador vería un "3%" que no da con el bruto que
+        # tiene arriba. Se expone en dos líneas: el 3% sobre lo que realmente
+        # cobra, y aparte la diferencia hasta el 3% de la jornada completa.
+        # Sumadas retienen exactamente lo que exige la ley, y cada una cierra
+        # contra la base que muestra.
+        base_obra_social_completa = base_obra_social
         if empleado.proporcion_jornada < Decimal("1"):
-            base_obra_social = base_obra_social.dividir(
+            base_obra_social_completa = base_obra_social.dividir(
                 empleado.proporcion_jornada
             ).redondear()
         base_sindical = (base + _nr("aporte_sindicato")).redondear()
@@ -455,11 +463,22 @@ class MotorLiquidacion:
         tope = self._p.valor_ars("TOPE_SIPA") if self._p.existe("TOPE_SIPA") else None
         base_jub_t = Dinero.minimo(base_jubilacion, tope) if tope else base_jubilacion
         base_os_t = Dinero.minimo(base_obra_social, tope) if tope else base_obra_social
+        base_os_completa_t = (
+            Dinero.minimo(base_obra_social_completa, tope) if tope
+            else base_obra_social_completa
+        )
+        base_os_diferencia = (base_os_completa_t - base_os_t).redondear()
 
         # ----- Deducciones del trabajador (cada una sobre SU base) -----
         conceptos.append(self._deduccion("APORTE_JUBILACION", "Jubilación (11%)", base_jub_t))
         conceptos.append(self._deduccion("APORTE_LEY19032", "Ley 19.032 - INSSJP (3%)", base_jub_t))
         conceptos.append(self._deduccion("APORTE_OBRA_SOCIAL", "Obra social (3%)", base_os_t))
+        if base_os_diferencia > Dinero.cero():
+            conceptos.append(self._deduccion(
+                "APORTE_OBRA_SOCIAL_ART92TER",
+                "Dif. obra social Art. 92 ter (3%)",
+                base_os_diferencia, codigo_tasa="APORTE_OBRA_SOCIAL",
+            ))
 
         if cct.aplica_cuota_sindical and empleado.afiliado_sindicato:
             # Cuota propia del convenio si está definida; si no, parámetro global.
@@ -532,6 +551,13 @@ class MotorLiquidacion:
         conceptos.append(self._contribucion(
             "CONTRIB_OBRA_SOCIAL", "Contribución patronal obra social", base_obra_social
         ))
+        diferencia_contrib = (base_obra_social_completa - base_obra_social).redondear()
+        if diferencia_contrib > Dinero.cero():
+            conceptos.append(self._contribucion(
+                "CONTRIB_OBRA_SOCIAL_ART92TER",
+                "Dif. contribución obra social Art. 92 ter",
+                diferencia_contrib, codigo_tasa="CONTRIB_OBRA_SOCIAL",
+            ))
 
         # Obligaciones patronales propias del convenio. No afectan el neto y
         # conservan sus datos de boleta para la carpeta mensual.
@@ -584,16 +610,20 @@ class MotorLiquidacion:
 
         return ResultadoLiquidacion(empleado.cuil.valor, periodo, "mensual", conceptos)
 
-    def _deduccion(self, codigo: str, descripcion: str, base: Dinero) -> Concepto:
-        pct = self._p.fraccion(codigo)
+    def _deduccion(self, codigo: str, descripcion: str, base: Dinero,
+                   codigo_tasa: Optional[str] = None) -> Concepto:
+        # ``codigo_tasa`` deja emitir un concepto propio con la tasa de otro
+        # (la diferencia del art. 92 ter usa la misma alícuota de obra social).
+        pct = self._p.fraccion(codigo_tasa or codigo)
         imp = base.porcentaje(pct).redondear()
         return Concepto(
             codigo, descripcion, TipoConcepto.DEDUCCION, imp,
             base_calculo=base, unidad=f"{pct * 100}%",
         )
 
-    def _contribucion(self, codigo: str, descripcion: str, base: Dinero) -> Concepto:
-        pct = self._p.fraccion(codigo)
+    def _contribucion(self, codigo: str, descripcion: str, base: Dinero,
+                      codigo_tasa: Optional[str] = None) -> Concepto:
+        pct = self._p.fraccion(codigo_tasa or codigo)
         imp = base.porcentaje(pct).redondear()
         porcentaje = pct * Decimal("100")
         porcentaje_texto = format(porcentaje.normalize(), "f")
