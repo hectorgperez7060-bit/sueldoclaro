@@ -404,7 +404,11 @@ async def listar(
     return salida
 
 
-@router.get("/{numero}/estado-normativo")
+# El numero de convenio lleva una barra ("749/18"), asi que el navegador lo
+# manda como 749%2F18 y llega decodificado: la ruta terminaba viendo un
+# segmento de mas y no enganchaba con ningun convenio. Con ":path" el
+# parametro admite la barra y el semaforo vuelve a funcionar.
+@router.get("/{numero:path}/estado-normativo")
 async def estado_normativo(
     numero: str,
     periodo: str = Query(..., description="Período AAAA-MM"),
