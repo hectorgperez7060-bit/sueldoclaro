@@ -275,3 +275,18 @@ def test_bajar_un_recibo_no_abre_una_fila_de_ventanitas_que_falla_sin_avisar():
     # Y cuando algo falla, se dice cuál y por qué, no un contador mudo.
     assert "No se pudieron generar estos recibos:" in UI
     assert "fallados.push(" in UI
+
+
+def test_la_jornada_llega_del_calculo_al_recibo():
+    """El recibo salía con la cabecera "Modalidad / Jornada" a medias.
+
+    La jornada estaba en la foto documental de la liquidación, pero no viajaba
+    hasta la pantalla, así que al armar el PDF no había de dónde sacarla y el
+    campo quedaba sólo con la modalidad. Es el dato que le explica al
+    trabajador por qué su básico está prorrateado.
+    """
+    caso = (SRC / "application/use_cases/liquidar_periodo.py").read_text(encoding="utf-8")
+    detalle = caso[caso.index('"escala_desactualizada": escala_desactualizada,'):]
+    detalle = detalle[:detalle.index('"bases_lsd"')]
+    assert '"jornada": describir_jornada(' in detalle
+    assert "jornada:det.jornada||''" in UI

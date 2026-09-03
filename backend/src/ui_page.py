@@ -3172,7 +3172,8 @@ async function descargarReciboPdf(empId, reintento=true){
   const body={
     periodo:ultimaLiq.periodo,
     empresa:{...empresaCache,domicilio:domicilioEmpresa},
-    empleado:{...emp,antiguedad:antigTexto(emp.fecha_ingreso,ultimaLiq.periodo)},
+    empleado:{...emp,antiguedad:antigTexto(emp.fecha_ingreso,ultimaLiq.periodo),
+              jornada:det.jornada||''},
     pago:{fecha:fechaPago,lugar:lugarPago,forma:formaPago},
     cargas_sociales:{fecha:fechaCargas,periodo:periodoCargas,banco:bancoCargas},
     conceptos,

@@ -1026,6 +1026,13 @@ class LiquidarPeriodo:
                     "aviso_art101": aviso_cuota_afiliado,
                     "escala_provisoria": escala_provisoria,
                     "escala_desactualizada": escala_desactualizada,
+                    # La jornada va escrita en el recibo: es el dato que
+                    # explica por que el basico esta prorrateado. Estaba en la
+                    # foto documental pero no llegaba a la pantalla, asi que la
+                    # cabecera del PDF salia sin ella.
+                    "jornada": describir_jornada(
+                        emp.proporcion_jornada, horas_jornada.get(emp.cct_numero)
+                    ),
                     "vista_previa": False,
                     "modo_servicio": (
                         "AUTOGESTION_EMPLEADOR_ESCALA_PROVISORIA_CONFIRMADA"
