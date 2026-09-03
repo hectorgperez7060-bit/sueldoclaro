@@ -84,6 +84,25 @@ def test_se_puede_borrar_una_empresa_con_confirmacion():
     # La empresa se borra al final, cuando ya no queda nada que la referencie.
     assert sql.index("DELETE FROM public.tenant") > sql.index("END LOOP")
 
+
+def test_el_borrado_puede_verificar_las_claves_foraneas_de_la_empresa():
+    """Lo que hacía fallar el borrado incluso con la tabla ya vacía.
+
+    Al borrar la empresa, Postgres verifica las dos claves foráneas que
+    apuntan a ``tenant`` con un ``SELECT ... FOR KEY SHARE``, y esa cláusula
+    de bloqueo exige UPDATE además de SELECT. A esas dos tablas se les había
+    revocado todo lo que no fuera INSERT y SELECT, así que ni el dueño podía
+    hacer la verificación.
+    """
+    sql = _leer("migrations/063_borrar_empresa_permisos_de_integridad.sql")
+    assert "GRANT UPDATE, DELETE ON public.revision_profesional TO postgres" in sql
+    assert "GRANT UPDATE, DELETE ON public.obligacion_pago_mensual TO postgres" in sql
+    # El permiso es para el dueño, no para la aplicación: sueldoclaro no
+    # aparece en ningún GRANT de estas migraciones sobre revision_profesional.
+    assert "revision_profesional TO sueldoclaro" not in sql
+    assert "revision_profesional TO sueldoclaro" not in _leer(
+        "migrations/062_funcion_borrar_empresa.sql")
+
     ui = _leer("src/ui_page.py")
     assert "async function borrarEmpresa(" in ui
     assert "🗑️ Borrar" in ui
