@@ -74,14 +74,39 @@ def test_migracion_tiene_rls_y_no_permite_borrado():
     assert "importe IS NULL" in sql
 
 
-def test_api_exige_contador_verificado_y_hash_inmutable():
+def test_el_empleador_puede_cerrar_el_mes_y_el_hash_sigue_siendo_inmutable():
+    """Cerrar el mes no exige contador.
+
+    Un empleador puede hacer recibos, pagar ARCA y pagar las boletas
+    sindicales: ninguna norma se lo prohibe. Lo que si se conserva es la
+    trazabilidad: el contenido no puede haber cambiado despues de calcularse,
+    y si quien cierra es contador matriculado, el cierre queda firmado con su
+    matricula (tipo_cierre CONTADOR) en vez de quedar a nombre del empleador.
+    """
     ruta = (ROOT / "src/api/routes/carpetas.py").read_text(encoding="utf-8")
-    assert 'require_rol("admin", "contador_revisor")' in ruta
+    # El rol de la empresa alcanza; no hay puerta cerrada por matricula.
+    assert 'require_rol("admin", "liquidador", "contador_revisor")' in ruta
+    assert "El usuario debe tener perfil de contador" not in ruta
+    # La firma profesional sigue existiendo, pero es opcional.
+    assert "firma_profesional" in ruta
+    assert 'tipo_cierre="CONTADOR"' in ruta and 'tipo_cierre="EMPLEADOR"' in ruta
     assert "matricula_vigente" in ruta and "constancia_url" in ruta
+    # Trazabilidad intacta.
     assert "hash_actual != carpeta.hash_sha256" in ruta
     assert "RevisionProfesional" in ruta
     assert "validar_transicion_obligacion" in ruta
     assert 'carpeta.estado != "calculada"' in ruta
+
+
+def test_la_revision_admite_cierre_sin_matricula():
+    modelos = (ROOT / "src/infrastructure/database/models.py").read_text(encoding="utf-8")
+    assert "tipo_cierre" in modelos
+    # contador_id y matricula pasan a ser opcionales: cierra el empleador.
+    assert "contador_id: Mapped[Optional[uuid.UUID]]" in modelos
+    assert "matricula: Mapped[Optional[str]]" in modelos
+    sql = (ROOT / "migrations/060_cierre_por_el_empleador.sql").read_text(encoding="utf-8")
+    assert "ALTER COLUMN contador_id DROP NOT NULL" in sql
+    assert "tipo_cierre" in sql
 
 
 def test_interfaz_expone_control_practico_y_revision_opcional_sin_autocertificacion():

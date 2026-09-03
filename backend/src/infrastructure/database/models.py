@@ -198,6 +198,24 @@ class Usuario(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc)
 
 
+class RefreshToken(Base):
+    """Refresh tokens vivos, para poder rotarlos y revocarlos.
+
+    Antes vivian en la memoria del proceso. En serverless cada instancia tiene
+    su propia memoria, asi que el refresh caia en una instancia que no conocia
+    el jti y la sesion se cortaba sola a los 15 minutos. La base es la unica
+    memoria compartida entre instancias.
+    """
+
+    __tablename__ = "refresh_token"
+    jti: Mapped[str] = mapped_column(String(64), primary_key=True)
+    usuario_id: Mapped[uuid.UUID] = mapped_column(
+        PGUUID(as_uuid=True), ForeignKey("usuario.id", ondelete="CASCADE"), index=True
+    )
+    expira_en: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc)
+
+
 class Tenant(Base):
     __tablename__ = "tenant"
     id: Mapped[uuid.UUID] = UUIDPK()
@@ -487,14 +505,18 @@ class RevisionProfesional(TenantMixin, Base):
     carpeta_id: Mapped[uuid.UUID] = mapped_column(
         PGUUID(as_uuid=True), ForeignKey("carpeta_mensual.id"), index=True
     )
-    contador_id: Mapped[uuid.UUID] = mapped_column(
-        PGUUID(as_uuid=True), ForeignKey("contador_profesional.id"), index=True
+    # Sin contador cuando cierra el propio empleador (tipo_cierre EMPLEADOR).
+    contador_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        PGUUID(as_uuid=True), ForeignKey("contador_profesional.id"),
+        nullable=True, index=True,
     )
     usuario_id: Mapped[uuid.UUID] = mapped_column(PGUUID(as_uuid=True), ForeignKey("usuario.id"))
     nombre_apellido: Mapped[str] = mapped_column(String(200))
-    matricula: Mapped[str] = mapped_column(String(60))
-    jurisdiccion: Mapped[str] = mapped_column(String(120))
-    consejo_profesional: Mapped[str] = mapped_column(String(200))
+    matricula: Mapped[Optional[str]] = mapped_column(String(60), nullable=True)
+    jurisdiccion: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
+    consejo_profesional: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
+    # EMPLEADOR = lo cerro el propio empleador; CONTADOR = firma matriculada.
+    tipo_cierre: Mapped[str] = mapped_column(String(20), default="CONTADOR")
     hash_revisado: Mapped[str] = mapped_column(String(64))
     alcance: Mapped[str] = mapped_column(Text, default="Revisión mensual de liquidación laboral")
     observaciones: Mapped[str] = mapped_column(Text, default="")

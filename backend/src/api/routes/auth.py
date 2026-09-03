@@ -5,6 +5,7 @@ import uuid
 
 import jwt
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy import text
 
 from api.dependencies.auth import Principal, get_principal
 from application.dto.schemas import (
@@ -14,22 +15,18 @@ from application.dto.schemas import (
 from application.use_cases.registrar_estudio import RegistrarEstudio
 from domain.entities.perfil_empresa import resolver_regimen_contribucion
 from infrastructure.database.repositories import TenantRepo, UsuarioRepo
-from infrastructure.database.session import plain_session
+from infrastructure.database.session import plain_session, tenant_session
 from infrastructure.security.passwords import verify_password
-from infrastructure.security.tokens import (
-    decode,
-    emitir_access,
-    emitir_refresh,
-    get_refresh_store,
-)
+from infrastructure.security import refresh_store
+from infrastructure.security.tokens import decode, emitir_access, emitir_refresh
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
-def _emitir_par(usuario_id: str, tenant_id: str | None, rol: str | None) -> TokenResponse:
+async def _emitir_par(usuario_id: str, tenant_id: str | None, rol: str | None) -> TokenResponse:
     access = emitir_access(usuario_id, tenant_id, rol)
     refresh, jti = emitir_refresh(usuario_id, tenant_id, rol)
-    get_refresh_store().guardar(jti, usuario_id)
+    await refresh_store.guardar(jti, usuario_id)
     return TokenResponse(access_token=access, refresh_token=refresh,
                          tenant_id=tenant_id, rol=rol)
 
@@ -40,7 +37,7 @@ async def register(body: RegistroEstudio):
         reg = await RegistrarEstudio().ejecutar(body.razon_social, body.cuit, body.email, body.password)
     except ValueError as e:
         raise HTTPException(status.HTTP_409_CONFLICT, str(e))
-    return _emitir_par(reg.usuario_id, reg.tenant_id, reg.rol)
+    return await _emitir_par(reg.usuario_id, reg.tenant_id, reg.rol)
 
 
 @router.post("/login", response_model=TokenResponse)
@@ -60,7 +57,9 @@ async def login(body: Login):
                 raise HTTPException(status.HTTP_403_FORBIDDEN, "No pertenece a esa empresa")
         else:
             elegida = membresias[0]
-        return _emitir_par(str(usuario.id), str(elegida.tenant_id), elegida.rol)
+        datos = str(usuario.id), str(elegida.tenant_id), elegida.rol
+    # Fuera del bloque: emitir el par abre su propia sesion para guardar el jti.
+    return await _emitir_par(*datos)
 
 
 @router.post("/refresh", response_model=TokenResponse)
@@ -71,13 +70,11 @@ async def refresh(body: RefreshRequest):
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Refresh inválido")
     if payload.get("typ") != "refresh":
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Se requiere un refresh token")
-    store = get_refresh_store()
     jti, sub = payload.get("jti"), payload.get("sub")
-    if not store.es_valido(jti, sub):
+    # Valida y quema el refresh viejo en un solo paso, y emite uno nuevo.
+    if not await refresh_store.consumir(jti, sub):
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Refresh revocado o desconocido")
-    # rotación: revoca el viejo, emite uno nuevo
-    store.revocar(jti)
-    return _emitir_par(sub, payload.get("tid"), payload.get("rol"))
+    return await _emitir_par(sub, payload.get("tid"), payload.get("rol"))
 
 
 @router.get("/empresas", response_model=list[EmpresaOut])
@@ -122,7 +119,92 @@ async def crear_empresa(body: EmpresaIn, principal: Principal = Depends(get_prin
             grupo_cliente=body.grupo_cliente.strip(),
         )
         await repo.agregar_miembro(tenant_id, uuid.UUID(principal.usuario_id), "admin")
-    return _emitir_par(principal.usuario_id, str(tenant_id), "admin")
+    return await _emitir_par(principal.usuario_id, str(tenant_id), "admin")
+
+
+# Orden de borrado: primero lo que referencia a otras filas. Las diez primeras
+# tienen RLS por tenant, asi que se borran dentro de una sesion con el tenant
+# seteado; usuario_tenant y tenant se scopean en la aplicacion.
+_TABLAS_DEL_TENANT = (
+    "revision_profesional",
+    "obligacion_pago_mensual",
+    "recibo",
+    "liquidacion_detalle",
+    "liquidacion",
+    "carpeta_mensual",
+    "novedad_mensual",
+    "empleado_establecimiento_historial",
+    "empleado",
+    "establecimiento",
+)
+
+
+@router.delete("/empresas/{empresa_id}", status_code=200)
+async def borrar_empresa(
+    empresa_id: str,
+    confirmacion_cuit: str = "",
+    principal: Principal = Depends(get_principal),
+):
+    """Borra una empresa y todo lo que se cargo dentro de ella.
+
+    Es irreversible, asi que pide el CUIT escrito a mano como confirmacion y
+    exige ser administrador de esa empresa. No se puede borrar la ultima que
+    queda: el usuario se quedaria sin ningun lugar donde trabajar.
+    """
+    try:
+        tenant_id = uuid.UUID(empresa_id)
+    except ValueError as exc:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "Empresa inválida") from exc
+
+    usuario_id = uuid.UUID(principal.usuario_id)
+    async with plain_session() as s:
+        repo = UsuarioRepo(s)
+        membresia = await repo.membresia(usuario_id, tenant_id)
+        if membresia is None:
+            raise HTTPException(status.HTTP_403_FORBIDDEN, "No pertenecés a esa empresa")
+        if membresia.rol != "admin":
+            raise HTTPException(
+                status.HTTP_403_FORBIDDEN,
+                "Solo un administrador de la empresa puede borrarla",
+            )
+        empresa = await TenantRepo(s).obtener(tenant_id)
+        if empresa is None:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "Empresa no encontrada")
+        razon_social = empresa.razon_social
+        cuit_real = "".join(ch for ch in empresa.cuit if ch.isdigit())
+        propias = await TenantRepo(s).listar_del_usuario(usuario_id)
+
+    if len(propias) <= 1:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            "Es la única empresa de tu cuenta. Creá otra antes de borrar esta.",
+        )
+
+    if "".join(ch for ch in confirmacion_cuit if ch.isdigit()) != cuit_real:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            "Para borrar la empresa hay que escribir su CUIT tal cual está cargado",
+        )
+
+    borradas: dict[str, int] = {}
+    async with tenant_session(str(tenant_id)) as s:
+        for tabla in _TABLAS_DEL_TENANT:
+            res = await s.execute(
+                text(f"DELETE FROM {tabla} WHERE tenant_id = :tid"), {"tid": str(tenant_id)}
+            )
+            borradas[tabla] = res.rowcount or 0
+
+    async with plain_session() as s:
+        await s.execute(
+            text("DELETE FROM usuario_tenant WHERE tenant_id = :tid"), {"tid": str(tenant_id)}
+        )
+        await s.execute(text("DELETE FROM tenant WHERE id = :tid"), {"tid": str(tenant_id)})
+
+    return {
+        "borrada": True,
+        "empresa": razon_social,
+        "registros_borrados": {k: v for k, v in borradas.items() if v},
+    }
 
 
 @router.put("/empresas/activa/perfil-laboral", response_model=EmpresaOut)
@@ -196,4 +278,4 @@ async def seleccionar_empresa(
         membresia = await UsuarioRepo(s).membresia(uuid.UUID(principal.usuario_id), tenant_id)
         if membresia is None:
             raise HTTPException(status.HTTP_403_FORBIDDEN, "No pertenecés a esa empresa")
-    return _emitir_par(principal.usuario_id, str(tenant_id), membresia.rol)
+    return await _emitir_par(principal.usuario_id, str(tenant_id), membresia.rol)

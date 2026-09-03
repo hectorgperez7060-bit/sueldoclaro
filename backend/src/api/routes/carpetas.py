@@ -182,7 +182,7 @@ async def actualizar_obligacion(
 @router.post("/{carpeta_id}/aprobar")
 async def aprobar_carpeta(
     carpeta_id: str, body: AprobarCarpetaIn,
-    principal: Principal = Depends(require_rol("admin", "contador_revisor")),
+    principal: Principal = Depends(require_rol("admin", "liquidador", "contador_revisor")),
 ):
     try:
         cid, tid, uid = (
@@ -199,14 +199,18 @@ async def aprobar_carpeta(
                 status.HTTP_409_CONFLICT,
                 f"La carpeta está en estado {carpeta.estado} y no puede volver a aprobarse",
             )
+        # El cierre lo puede hacer el propio empleador: ninguna norma le exige
+        # un contador para armar recibos, pagar ARCA o pagar boletas
+        # sindicales. Si ademas es contador matriculado, el cierre queda
+        # firmado con su matricula.
         perfil = (await s.execute(select(m.ContadorProfesional).where(
             m.ContadorProfesional.usuario_id == uid
         ))).scalar_one_or_none()
-        if perfil is None or not perfil.matricula_vigente or not perfil.constancia_url.strip():
-            raise HTTPException(
-                status.HTTP_409_CONFLICT,
-                "El usuario debe tener perfil de contador, matrícula vigente y constancia",
-            )
+        firma_profesional = bool(
+            perfil is not None
+            and perfil.matricula_vigente
+            and perfil.constancia_url.strip()
+        )
         obligaciones = await CarpetaMensualRepo(s).listar_obligaciones(tid, cid)
         faltantes = faltantes_para_revision(
             carpeta.contenido, [_obligacion_out(o) for o in obligaciones]
@@ -216,20 +220,41 @@ async def aprobar_carpeta(
         hash_actual = huella_carpeta(carpeta.contenido)
         if hash_actual != carpeta.hash_sha256:
             raise HTTPException(status.HTTP_409_CONFLICT, "La carpeta cambió después de calcularse")
-        revision = m.RevisionProfesional(
-            tenant_id=tid, carpeta_id=cid, contador_id=perfil.id, usuario_id=uid,
-            nombre_apellido=perfil.nombre_apellido, matricula=perfil.matricula,
-            jurisdiccion=perfil.jurisdiccion, consejo_profesional=perfil.consejo_profesional,
-            hash_revisado=hash_actual, alcance=body.alcance,
-            observaciones=body.observaciones,
-        )
+        if firma_profesional:
+            revision = m.RevisionProfesional(
+                tenant_id=tid, carpeta_id=cid, contador_id=perfil.id, usuario_id=uid,
+                nombre_apellido=perfil.nombre_apellido, matricula=perfil.matricula,
+                jurisdiccion=perfil.jurisdiccion,
+                consejo_profesional=perfil.consejo_profesional,
+                hash_revisado=hash_actual, alcance=body.alcance,
+                observaciones=body.observaciones, tipo_cierre="CONTADOR",
+            )
+        else:
+            empresa = await s.get(m.Tenant, tid)
+            revision = m.RevisionProfesional(
+                tenant_id=tid, carpeta_id=cid, contador_id=None, usuario_id=uid,
+                nombre_apellido=(empresa.razon_social if empresa else "Empleador"),
+                matricula=None, jurisdiccion=None, consejo_profesional=None,
+                hash_revisado=hash_actual, alcance=body.alcance,
+                observaciones=body.observaciones, tipo_cierre="EMPLEADOR",
+            )
         s.add(revision)
         carpeta.estado = "revisada"
         await AuditRepo(s).registrar(
             accion="aprobar", entidad="carpeta_mensual", entidad_id=str(cid),
             tenant_id=tid, usuario_id=uid,
-            payload_diff={"hash_revisado": hash_actual, "matricula": perfil.matricula},
+            payload_diff={
+                "hash_revisado": hash_actual,
+                "tipo_cierre": revision.tipo_cierre,
+                "matricula": revision.matricula or "",
+            },
         )
         await s.flush()
-        return {"estado": carpeta.estado, "hash_revisado": hash_actual,
-                "contador": perfil.nombre_apellido, "matricula": perfil.matricula}
+        return {
+            "estado": carpeta.estado,
+            "hash_revisado": hash_actual,
+            "tipo_cierre": revision.tipo_cierre,
+            "cerrado_por": revision.nombre_apellido,
+            "contador": revision.nombre_apellido if firma_profesional else "",
+            "matricula": revision.matricula or "",
+        }

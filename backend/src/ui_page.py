@@ -814,7 +814,7 @@ async function api(ruta, metodo='GET', body=null, reintento=true){
   const r = await fetch(ruta,{method:metodo,headers:h,body:body?JSON.stringify(body):null,cache:metodo==='GET'?'no-store':'default'});
   if(r.status===401 && token() && reintento){
     if(await renovarSesion()) return api(ruta,metodo,body,false);
-    salir();
+    salir('Tu sesión venció. Ingresá de nuevo: lo que estabas cargando quedó guardado en este dispositivo.');
     throw new Error('Tu sesión venció. Ingresá de nuevo.');
   }
   const data = await r.json().catch(()=>({detail:'Error inesperado'}));
@@ -886,10 +886,83 @@ async function ingresar(){
     guardarSesion(d);
   }catch(e){ mostrarError('authError', e.message); }
 }
-function salir(){
-  localStorage.clear(); document.body.classList.remove('sesion-activa');
+function salir(aviso){
+  // Se van las credenciales, NO lo que la persona estaba escribiendo.
+  ['sc_access','sc_refresh','sc_tenant'].forEach(k=>localStorage.removeItem(k));
+  document.body.classList.remove('sesion-activa');
   $('app').style.display='none'; $('auth').style.display='block'; $('quien').textContent='';
+  if(aviso) mostrarError('authError', aviso);
 }
+
+// --- Borrador: lo que se escribe queda guardado en este dispositivo ---------
+// Si la sesion se corta, se cierra la pestana o se va el internet, al volver
+// los campos vacios se recuperan solos. Nunca pisa un dato ya cargado.
+const BORRADOR_CLAVE='sc_borrador';
+const BORRADOR_VIDA_MS=24*60*60*1000;
+const BORRADOR_EXCLUIDOS=/^(li|rz)/;
+
+function borradorLeer(){
+  try{
+    const crudo=localStorage.getItem(BORRADOR_CLAVE);
+    if(!crudo) return {campos:{},ts:0};
+    const d=JSON.parse(crudo);
+    if(!d||typeof d!=='object'||!d.campos) return {campos:{},ts:0};
+    if(Date.now()-(d.ts||0)>BORRADOR_VIDA_MS){ localStorage.removeItem(BORRADOR_CLAVE); return {campos:{},ts:0}; }
+    return d;
+  }catch(e){ return {campos:{},ts:0}; }
+}
+
+function borradorGuardable(el){
+  if(!el||!el.id) return false;
+  if(BORRADOR_EXCLUIDOS.test(el.id)) return false;
+  if(el.type==='password'||el.type==='hidden'||el.type==='file') return false;
+  return el.closest('.seccion-app')!==null;
+}
+
+let borradorPendiente=null;
+function borradorAnotar(el){
+  if(!borradorGuardable(el)) return;
+  const d=borradorLeer();
+  d.campos[el.id]=el.type==='checkbox'?!!el.checked:el.value;
+  d.ts=Date.now();
+  clearTimeout(borradorPendiente);
+  borradorPendiente=setTimeout(()=>{
+    try{ localStorage.setItem(BORRADOR_CLAVE, JSON.stringify(d)); }catch(e){}
+  },300);
+}
+
+function restaurarBorrador(){
+  const d=borradorLeer();
+  let recuperados=0;
+  Object.keys(d.campos).forEach(id=>{
+    const el=document.getElementById(id);
+    if(!el||!borradorGuardable(el)) return;
+    const valor=d.campos[id];
+    if(el.type==='checkbox'){
+      if(!el.checked && valor===true){ el.checked=true; recuperados++; }
+      return;
+    }
+    // Solo completa lo que esta vacio: jamas pisa algo ya cargado.
+    if(el.value==='' && valor!==''&&valor!=null){ el.value=valor; recuperados++; }
+  });
+  return recuperados;
+}
+
+function avisarBorradorRecuperado(cantidad){
+  let caja=$('avisoBorrador');
+  if(!caja){
+    caja=document.createElement('div');
+    caja.id='avisoBorrador';
+    caja.style.cssText='position:fixed;left:50%;transform:translateX(-50%);bottom:18px;z-index:60;background:#065f46;color:#fff;padding:10px 16px;border-radius:999px;font-size:.85rem;box-shadow:0 6px 20px rgba(0,0,0,.25)';
+    document.body.appendChild(caja);
+  }
+  caja.textContent='Recuperamos '+cantidad+(cantidad===1?' dato':' datos')+' que habías cargado antes.';
+  caja.style.display='block';
+  setTimeout(()=>{ caja.style.display='none'; }, 6000);
+}
+
+document.addEventListener('input', e=>borradorAnotar(e.target), true);
+document.addEventListener('change', e=>borradorAnotar(e.target), true);
 
 // Navegación real: una sección visible por vez, con hash propio. No se
 // desmonta nada, así que los formularios y los datos ya cargados sobreviven
@@ -1124,6 +1197,31 @@ async function cambiarActivoEstablecimiento(id){
     await cargarEstablecimientos(); await cargarInicio();
   }catch(err){mostrarError('estError',err.message);}
 }
+async function borrarEmpresa(id, razonSocial){
+  const cuit=prompt(
+    'Vas a borrar "'+razonSocial+'" con TODO lo que tenga adentro: empleados, '+
+    'novedades, liquidaciones, recibos y establecimientos.\n\n'+
+    'Esto no se puede deshacer. Escribí el CUIT de la empresa (solo números) para confirmar:',
+    ''
+  );
+  if(cuit===null) return;
+  const soloNumeros=(cuit||'').replace(/\D/g,'');
+  if(!soloNumeros){ alert('No se borró nada: hace falta escribir el CUIT.'); return; }
+  try{
+    const r=await api('/auth/empresas/'+id+'?confirmacion_cuit='+encodeURIComponent(soloNumeros),'DELETE');
+    const activa=localStorage.getItem('sc_tenant');
+    alert('Se borró "'+(r.empresa||razonSocial)+'".');
+    if(id===activa){
+      const quedan=await api('/auth/empresas');
+      if(quedan.length) await cambiarEmpresa(quedan[0].id);
+      else salir('Borraste la última empresa. Ingresá de nuevo.');
+      return;
+    }
+    await cargarEmpresasSeccion();
+    await cargarEmpresas();
+  }catch(e){ alert('No se pudo borrar: '+e.message); }
+}
+
 async function cargarEmpresasSeccion(){
   ocultar('perfilLaboralError');
   try{
@@ -1134,7 +1232,10 @@ async function cargarEmpresasSeccion(){
       const esActiva=(e.activa||e.id===activa);
       const rol=e.rol==='admin'?'Administrador':(e.rol||'');
       const estado=esActiva?'<span class="etiqueta">Activa</span>':'';
-      const accion=esActiva?'<span style="color:#6b7280;font-size:.8rem">En uso</span>':`<button class="chico secundario" onclick="cambiarEmpresa('${e.id}')">Usar esta</button>`;
+      const usar=esActiva?'<span style="color:#6b7280;font-size:.8rem">En uso</span>':`<button class="chico secundario" onclick="cambiarEmpresa('${e.id}')">Usar esta</button>`;
+      const puedeBorrar=(e.rol==='admin' && empresas.length>1);
+      const borrar=puedeBorrar?`<button class="chico secundario" onclick="borrarEmpresa('${e.id}','${(e.razon_social||'').replace(/'/g,"&#39;")}')" title="Borrar esta empresa">🗑️ Borrar</button>`:'';
+      const accion=`<div class="acciones-tabla">${usar}${borrar}</div>`;
       const tr=document.createElement('tr');
       tr.innerHTML=`<td data-label="Cliente / grupo">${esc(e.grupo_cliente||'—')}</td><td data-label="Razón social">${esc(e.razon_social||'')}</td><td data-label="Rol">${esc(rol)}</td><td data-label="Estado">${estado}</td><td class="acciones-celda">${accion}</td>`;
       tb.appendChild(tr);
@@ -2041,7 +2142,9 @@ async function aprobarCierre(){
       observaciones:$('cierreObservaciones').value.trim()
     });
     await abrirCierre(cierreActualId); await cargarCarpetas();
-    $('cierreOk').textContent=`Revisión firmada por ${d.contador} · matrícula ${d.matricula}.`;
+    $('cierreOk').textContent=d.tipo_cierre==='CONTADOR'
+      ? `Cierre firmado por ${d.contador} · matrícula ${d.matricula}.`
+      : `Mes cerrado por ${d.cerrado_por||'el empleador'}. Queda registrado con fecha y huella del contenido.`;
     $('cierreOk').style.display='block';
   }catch(e){ mostrarError('cierreError',e.message); }
 }
