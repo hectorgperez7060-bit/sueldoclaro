@@ -19,6 +19,7 @@ from typing import List, Optional
 
 from ..entities.concepto import Concepto, Regimen, TipoConcepto
 from ..entities.empleado import Empleado
+from ..entities.jornada import describir_jornada
 from ..entities.liquidacion import ResultadoLiquidacion
 from ..entities.parametros import AmparoSet, EscalaSalarial, ParametroSet
 from ..value_objects.dinero import Dinero
@@ -163,7 +164,13 @@ class MotorLiquidacion:
         desc_basico = "Sueldo básico"
         if empleado.proporcion_jornada != Decimal("1"):
             basico = basico.porcentaje(empleado.proporcion_jornada).redondear()
-            desc_basico = f"Sueldo básico (jornada {empleado.proporcion_jornada})"
+            # El recibo lo firma el trabajador: "jornada 0.5000" no le dice
+            # nada. Se escribe como en la cabecera: "parcial 24 de 48 h".
+            desc_basico = "Sueldo básico (jornada {})".format(
+                describir_jornada(
+                    empleado.proporcion_jornada, cct.horas_jornada_completa
+                )
+            )
         conceptos.append(Concepto(
             "BASICO", desc_basico, TipoConcepto.REMUNERATIVO, basico,
             base_calculo=basico, unidad="mes",

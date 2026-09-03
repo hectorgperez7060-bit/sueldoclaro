@@ -6,6 +6,7 @@ Persiste la liquidación con un snapshot inmutable de los parámetros usados
 from __future__ import annotations
 
 import uuid
+from dataclasses import replace
 from datetime import date
 from decimal import Decimal
 from typing import Dict
@@ -248,6 +249,12 @@ class LiquidarPeriodo:
                     })
                     continue  # no se liquida a este empleado (sin cero ni estimación)
                 escala = evaluacion.escala
+                # Las horas del convenio ya estan a mano: se las pasamos al
+                # motor para que escriba la jornada en el recibo con palabras.
+                cct_cfg = replace(
+                    cct_cfg,
+                    horas_jornada_completa=horas_jornada.get(emp.cct_numero),
+                )
                 if evaluacion.provisorio:
                     escala_provisoria = {
                         "nota": evaluacion.nota,

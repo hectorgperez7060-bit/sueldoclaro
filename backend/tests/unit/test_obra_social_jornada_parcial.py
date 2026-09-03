@@ -104,3 +104,51 @@ def test_en_jornada_completa_no_aparece_ninguna_linea_de_diferencia():
     assert _concepto(resultado, "APORTE_OBRA_SOCIAL_ART92TER") is None
     assert _concepto(resultado, "CONTRIB_OBRA_SOCIAL_ART92TER") is None
     assert _concepto(resultado, "APORTE_OBRA_SOCIAL").importe.monto == D("30000.00")
+
+
+# --------------------------------------------------------------------------- #
+# La jornada, escrita como para que la lea quien firma el recibo.
+# --------------------------------------------------------------------------- #
+def _descripcion_del_basico(proporcion: D, horas: D | None):
+    from domain.payroll_engine.config import CctConfig
+
+    params = [
+        ParametroLegal("APORTE_JUBILACION", D("0"), "%", "empleado", DESDE),
+        ParametroLegal("APORTE_LEY19032", D("0"), "%", "empleado", DESDE),
+        ParametroLegal("APORTE_OBRA_SOCIAL", D("0"), "%", "empleado", DESDE),
+        ParametroLegal("APORTE_MODERNIZACION", D("0"), "%", "empleado", DESDE),
+        ParametroLegal("CONTRIB_JUBILACION", D("0"), "%", "empleador", DESDE),
+        ParametroLegal("CONTRIB_OBRA_SOCIAL", D("0"), "%", "empleador", DESDE),
+    ]
+    emp = Empleado(
+        "Claudia", "Gastronómica", Cuil("27307324666"), date(2025, 1, 1),
+        "389/04", "Administrativo", "1", afiliado_sindicato=False,
+        proporcion_jornada=proporcion,
+    )
+    escala = EscalaSalarial(
+        "389/04", emp.categoria, Dinero(BASICO_COMPLETO), DESDE, is_verified=True,
+    )
+    config = CctConfig(
+        "389/04", D("0"), D("12"), D("200"),
+        aplica_presentismo=False, aplica_cuota_sindical=False,
+        horas_jornada_completa=horas,
+    )
+    resultado = MotorLiquidacion(ParametroSet(params), AmparoSet()).liquidar_mensual(
+        emp, Periodo(2026, 8), escala, config, a_fecha=date(2026, 8, 28),
+    )
+    return _concepto(resultado, "BASICO").descripcion
+
+
+def test_la_jornada_parcial_se_escribe_en_horas_y_no_en_una_fraccion():
+    """El recibo lo firma el trabajador: "jornada 0.5000" no le dice nada."""
+    assert _descripcion_del_basico(D("0.5"), D("48")) == "Sueldo básico (jornada parcial 24 de 48 h)"
+    # Cada convenio tiene su jornada completa: 22 de 44 también es media.
+    assert _descripcion_del_basico(D("0.5"), D("44")) == "Sueldo básico (jornada parcial 22 de 44 h)"
+
+
+def test_sin_las_horas_del_convenio_al_menos_dice_el_porcentaje():
+    assert _descripcion_del_basico(D("0.5"), None) == "Sueldo básico (jornada parcial (50%))"
+
+
+def test_en_jornada_completa_el_basico_no_lleva_aclaracion():
+    assert _descripcion_del_basico(D("1"), D("48")) == "Sueldo básico"

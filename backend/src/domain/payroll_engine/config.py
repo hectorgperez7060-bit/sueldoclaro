@@ -58,6 +58,10 @@ class CctConfig:
     # Básicos de categorías usadas como referencia por otros adicionales.
     # Se informan por período junto con la escala, nunca quedan en el motor.
     bases_referencia: Tuple[Tuple[str, Decimal], ...] = ()
+    # Horas semanales de jornada completa que declara el convenio. Solo se usa
+    # para escribir la jornada en el recibo con palabras ("parcial 24 de 48 h")
+    # en vez de una fraccion que nadie lee ("jornada 0.5000").
+    horas_jornada_completa: Optional[Decimal] = None
 
     def antiguedad_fraccion(self, anios: int) -> Decimal:
         """Porcentaje de antigüedad vigente para la cantidad de años.
