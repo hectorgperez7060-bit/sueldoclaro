@@ -117,6 +117,10 @@ def faltantes_para_revision(contenido: dict, obligaciones: list[dict]) -> list[s
     codigos_revision_opcional = {
         "APROBACION_CONTADOR_UOM",
         "APROBACION_PROFESIONAL_PENDIENTE",
+        # Una escala sin fecha de cierre es una advertencia para mirar antes de
+        # pagar, no una regla incumplida: quien decide si esa escala sigue
+        # siendo la buena es el empleador, no el sistema.
+        "ESCALA_SIN_CIERRE_DE_VIGENCIA",
     }
     pendientes_reales = [
         p for p in control.get("pendientes", [])

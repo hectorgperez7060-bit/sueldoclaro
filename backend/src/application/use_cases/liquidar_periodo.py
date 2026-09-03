@@ -54,6 +54,11 @@ from infrastructure.database.session import tenant_session
 from infrastructure.lsd.bases_snapshot import calcular_bases_snapshot
 
 
+# Una escala sin fecha de cierre se sigue aplicando sola. A partir de este
+# atraso el motor lo dice en el recibo en vez de callarselo.
+_MESES_PARA_SOSPECHAR_ESCALA_VIEJA = 1
+_CODIGO_ESCALA_SIN_CIERRE = "ESCALA_SIN_CIERRE_DE_VIGENCIA"
+
 def resolver_horas_extra(
     empleados: list,
     novedades_guardadas: list,
@@ -248,6 +253,31 @@ class LiquidarPeriodo:
                         "nota": evaluacion.nota,
                         "escala_desde": escala.valid_from.isoformat(),
                     }
+
+                # Una escala sin fecha de fin se arrastra sola: el motor la da
+                # por vigente para siempre. Si el convenio acordo aumentos
+                # despues, se liquida de menos y nadie se entera, porque no hay
+                # nada que bloquear. Es el unico agujero de la regla general de
+                # "antes frenar que estimar": no se puede frenar, pero si se
+                # puede avisar.
+                escala_desactualizada = None
+                if escala.valid_to is None:
+                    meses = ((periodo.anio - escala.valid_from.year) * 12
+                             + periodo.mes - escala.valid_from.month)
+                    if meses >= _MESES_PARA_SOSPECHAR_ESCALA_VIEJA:
+                        escala_desactualizada = {
+                            "escala_desde": escala.valid_from.isoformat(),
+                            "meses_de_atraso": meses,
+                            "nota": (
+                                f"La escala en uso rige desde "
+                                f"{escala.valid_from.isoformat()} y no tiene fecha "
+                                f"de cierre, asi que se sigue aplicando "
+                                f"{meses} mes(es) despues. Si el convenio acordo "
+                                f"aumentos en el medio, este recibo esta pagando "
+                                f"de menos. Verificalo contra la escala oficial "
+                                f"antes de pagar."
+                            ),
+                        }
 
                 # LCT art. 92 ter: por encima de los 2/3 de la jornada habitual el
                 # contrato deja de ser a tiempo parcial y corresponde la
@@ -988,6 +1018,7 @@ class LiquidarPeriodo:
                     "aviso_cuota_afiliado": aviso_cuota_afiliado,
                     "aviso_art101": aviso_cuota_afiliado,
                     "escala_provisoria": escala_provisoria,
+                    "escala_desactualizada": escala_desactualizada,
                     "vista_previa": False,
                     "modo_servicio": (
                         "AUTOGESTION_EMPLEADOR_ESCALA_PROVISORIA_CONFIRMADA"
@@ -1026,6 +1057,15 @@ class LiquidarPeriodo:
                     "verificado": p.is_verified,
                     "fuente": p.fuente,
                 })
+            for detalle in detalles_out:
+                aviso = detalle.get("escala_desactualizada")
+                if aviso:
+                    reglas_pendientes.append({
+                        "codigo": _CODIGO_ESCALA_SIN_CIERRE,
+                        "cct_numero": detalle.get("cct_numero"),
+                        "verificado": False,
+                        "fuente": aviso["nota"],
+                    })
             contenido_carpeta = construir_contenido_carpeta(
                 periodo=periodo_str, tipo=tipo, liquidacion_id=str(liq.id),
                 detalles=detalles_out, snapshot=dict(snapshot),

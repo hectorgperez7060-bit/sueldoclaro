@@ -2886,7 +2886,8 @@ function renderLiquidacion(){
         filas += `<tr><td>${c.descripcion} ${amparo}</td><td>${tipo}</td><td class="num">$ ${fmt(c.importe)}</td></tr>`;
       });
       html += `<div class="detalle">
-        <b>${emp.apellido}, ${emp.nombre}</b> <span class="etiqueta">CCT ${emp.cct_numero}</span> <span class="etiqueta">${d.periodo}</span> <span class="etiqueta" style="background:#d1fae5;color:#065f46">AUTOGESTIÓN DEL EMPLEADOR</span> ${det.escala_provisoria?'<span class="etiqueta" style="background:#fffbeb;color:#92400e">ESCALA PROVISORIA CONFIRMADA</span>':''} ${det.vista_previa?'<span class="etiqueta" style="background:#fff3cd;color:#7c5700">MOTOR EN VALIDACIÓN · NO EMITIR</span>':''}
+        <b>${emp.apellido}, ${emp.nombre}</b> <span class="etiqueta">CCT ${emp.cct_numero}</span> <span class="etiqueta">${d.periodo}</span> <span class="etiqueta" style="background:#d1fae5;color:#065f46">AUTOGESTIÓN DEL EMPLEADOR</span> ${det.escala_provisoria?'<span class="etiqueta" style="background:#fffbeb;color:#92400e">ESCALA PROVISORIA CONFIRMADA</span>':''} ${det.escala_desactualizada?'<span class="etiqueta" style="background:#fee2e2;color:#991b1b">⚠ ESCALA SIN CIERRE DE VIGENCIA</span>':''} ${det.vista_previa?'<span class="etiqueta" style="background:#fff3cd;color:#7c5700">MOTOR EN VALIDACIÓN · NO EMITIR</span>':''}
+        ${det.escala_desactualizada?`<div style="background:#fee2e2;color:#991b1b;border-radius:8px;padding:10px 12px;margin-top:8px;font-size:.85rem">${esc(det.escala_desactualizada.nota)}</div>`:''}
         <table><thead><tr><th>Concepto</th><th>Tipo</th><th class="num">Importe</th></tr></thead><tbody>${filas}</tbody></table>
         <div style="display:flex;justify-content:space-between;margin-top:10px;flex-wrap:wrap;gap:8px">
           <span>Bruto: <b>$ ${fmt(det.bruto)}</b> &nbsp;·&nbsp; Descuentos: <b>$ ${fmt(det.total_deducciones)}</b></span>
