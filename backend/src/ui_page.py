@@ -1637,7 +1637,12 @@ async function cargarEmpleados(){
     novSel.innerHTML = '<option value="">Elegí un empleado…</option>';
     lista.forEach(e=>{
       const o=document.createElement('option');
-      o.value=e.id; o.textContent=`${e.apellido}, ${e.nombre}`; novSel.appendChild(o);
+      // Dos personas del mismo nombre en convenios distintos son dos legajos
+      // distintos y se liquidan distinto. Sin el convenio a la vista, en la
+      // lista se ven iguales y se le carga el mes al que no era.
+      o.value=e.id;
+      o.textContent=`${e.apellido}, ${e.nombre} — ${e.cct_numero} · ${e.categoria}`;
+      novSel.appendChild(o);
     });
   }catch(e){ mostrarError('empError','No se pudo cargar la nómina: '+e.message); }
 }
@@ -2502,9 +2507,33 @@ async function copiarMesAnterior(){
   }
 }
 
+// UOCRA cobra por hora y el premio del art. 52 depende de la asistencia de cada
+// quincena. Sin esos cuatro datos el motor no puede calcular, pero la novedad se
+// guardaba igual con los campos vacíos y el problema recién aparecía al
+// liquidar, en otra pantalla. Se avisa acá, antes de guardar.
+function faltantesQuincenalesUocra(){
+  const emp=empleadosCache[$('novEmpleado').value];
+  if(!emp || emp.cct_numero!=='76/75') return [];
+  const faltan=[];
+  if($('novHorasQ1').value==='') faltan.push('Horas normales · 1.ª quincena');
+  if($('novAsistenciaQ1').value==='') faltan.push('Asistencia perfecta · 1.ª quincena');
+  if($('novHorasQ2').value==='') faltan.push('Horas normales · 2.ª quincena');
+  if($('novAsistenciaQ2').value==='') faltan.push('Asistencia perfecta · 2.ª quincena');
+  return faltan;
+}
+
 async function guardarNovedad(){
   ocultar('novFormError'); ocultar('novOk');
   if(!$('novEmpleado').value){ mostrarError('novFormError','Elegí un empleado.'); return; }
+  const faltan=faltantesQuincenalesUocra();
+  if(faltan.length){
+    mostrarError('novFormError',
+      'Para liquidar por el convenio 76/75 (UOCRA) faltan estos datos, que están en '
+      + '«Control quincenal»: ' + faltan.join('; ') + '. '
+      + 'En asistencia perfecta hay que elegir Sí o No: dejarlo en «Sin informar» no sirve, '
+      + 'porque de ese dato depende el premio del art. 52 y la app no lo presume.');
+    return;
+  }
   try{
     const eraEdicion=Boolean(editandoNovedadId);
     const ruta=editandoNovedadId?'/novedades/'+editandoNovedadId:'/novedades';
