@@ -304,8 +304,11 @@ class LiquidarPeriodo:
                             f"Jornada {detalle}: supera las dos terceras partes de la "
                             "jornada del convenio. El art. 92 ter de la LCT obliga a "
                             "abonar la remuneración de jornada completa, así que no "
-                            "corresponde prorratear el básico. Corregí las horas "
-                            "semanales en el legajo o cargalo como jornada completa."
+                            "corresponde prorratear el básico. Abrí el legajo y elegí "
+                            "«Jornada completa» para que cobre el básico entero, o "
+                            "bajá las horas si de verdad trabaja menos. Si lo que "
+                            "faltó fueron días de este mes, no se toca la jornada: "
+                            "se cargan en Novedades y se descuentan solos."
                         ),
                     })
                     continue

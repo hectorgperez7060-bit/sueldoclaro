@@ -419,9 +419,22 @@ tr:last-child td{border-bottom:0}tbody tr:hover{background:#f8fcfb}
             <select id="eCategoria"></select></div>
           <div><label>Modalidad de contrato</label>
             <select id="eModalidad"><option>Tiempo indeterminado</option><option>Plazo fijo</option><option>Eventual</option><option>Temporada</option><option>Período de prueba</option></select></div>
-          <div><label>Horas semanales pactadas</label>
-            <input id="eHorasSemanales" type="number" min="1" step="0.5"><small id="eHorasAyuda" style="display:block;color:#6b7280"></small>
-            <small style="color:#6b7280">En Comercio la jornada completa es 48. Para este empleado escribí 30.</small></div>
+          <div><label>Jornada</label>
+            <select id="eTipoJornada" onchange="ajustarCampoHoras()">
+              <option value="completa">Jornada completa — trabaja la semana entera</option>
+              <option value="reducida">Jornada reducida — trabaja menos horas</option>
+            </select>
+            <div id="eJornadaReducida" style="display:none;margin-top:8px">
+              <div style="display:flex;gap:10px">
+                <div style="flex:1"><label style="font-size:.82rem">Horas por día</label>
+                  <input id="eHorasDia" type="number" min="0.5" max="12" step="0.5" value="4" oninput="ajustarCampoHoras()"></div>
+                <div style="flex:1"><label style="font-size:.82rem">Días por semana</label>
+                  <input id="eDiasSemana" type="number" min="1" max="6" step="1" value="5" oninput="ajustarCampoHoras()"></div>
+              </div>
+            </div>
+            <input id="eHorasSemanales" type="hidden">
+            <small id="eHorasAyuda" style="display:block;color:#6b7280;margin-top:8px"></small>
+            <small style="display:block;color:#6b7280;margin-top:4px">Las faltas, licencias y vacaciones no se cargan acá: van en Novedades del mes y se descuentan solas.</small></div>
           <div><label>Obra social (independiente del sindicato)</label><input id="eObraSocial" list="obrasSociales" placeholder="Elegí o escribí la obra social"><datalist id="obrasSociales"><option value="OSADEF - Obra Social de las Asociaciones de Empleados de Farmacia"><option value="OSPSA - Obra Social del Personal de la Sanidad Argentina"><option value="OSECAC - Obra Social de Empleados de Comercio"><option value="OSPF - Obra Social del Personal de Farmacia"></datalist></div>
           <div><label>Establecimiento / lugar de trabajo</label><select id="eEstablecimiento" onchange="datosEstablecimientoParaEncuadramiento()"><option value="">Sin establecimiento asignado</option></select></div>
           <div><label>Trabaja allí desde</label><input id="eLugarDesde" type="text" inputmode="numeric" placeholder="DD/MM/AAAA" maxlength="10" oninput="formatearFecha(this)"><small style="color:#6b7280">Solo completalo al asignar o cambiar el lugar.</small></div>
@@ -760,18 +773,84 @@ function convenioDeclaraJornada(numero){
   const c = convenios.find(x => x.numero === (numero || ($('eConvenio') && $('eConvenio').value)));
   return !!(c && c.horas_semanales_jornada_completa);
 }
+// LCT art. 92 ter: por debajo de 2/3 de la jornada del convenio el contrato es
+// a tiempo parcial y el básico se prorratea. Por encima de 2/3 ya no lo es, y
+// corresponde el sueldo de jornada completa.
+const LIMITE_JORNADA_PARCIAL = 2/3;
+
+function nHoras(n){
+  const v = Math.round(Number(n)*100)/100;
+  return String(v).replace('.', ',');
+}
+
+// La app no le pregunta a nadie cuántas horas tiene la jornada de su convenio:
+// eso lo sabe la norma, no el empleador. Se pregunta lo que la persona sí sabe
+// —si trabaja la semana entera o menos, y en ese caso cuántas horas por día y
+// cuántos días— y la app traduce eso a la proporción que usa el motor.
 function ajustarCampoHoras(){
-  const campo = $('eHorasSemanales');
-  if(!campo) return;
+  const selector = $('eTipoJornada');
+  if(!selector) return;
+  const reducida = selector.value === 'reducida';
+  const bloque = $('eJornadaReducida');
+  if(bloque) bloque.style.display = reducida ? 'block' : 'none';
+
   const completa = horasJornadaConvenio();
-  campo.max = completa;
+  const declara = convenioDeclaraJornada();
   const ayuda = $('eHorasAyuda');
-  if(ayuda){
-    ayuda.textContent = convenioDeclaraJornada()
-      ? 'Jornada completa del convenio: ' + completa + ' h semanales.'
-      : 'El convenio no declara su jornada: se toma el tope legal de 48 h.';
+  const oculto = $('eHorasSemanales');
+
+  if(!reducida){
+    if(oculto) oculto.value = String(completa);
+    if(ayuda){
+      ayuda.style.color = '#6b7280';
+      ayuda.textContent = declara
+        ? 'Se liquida la jornada completa del convenio (' + nHoras(completa) + ' h semanales). El básico va entero.'
+        : 'Se liquida jornada completa: el básico va entero. Para esto no hace falta saber las horas del convenio.';
+    }
+    return;
   }
-  if(Number(campo.value) > completa) campo.value = completa;
+
+  const horasDia = Number(($('eHorasDia')||{}).value || 0);
+  const dias = Number(($('eDiasSemana')||{}).value || 0);
+  const semanales = horasDia * dias;
+  if(oculto) oculto.value = String(semanales);
+  if(!ayuda) return;
+
+  if(!(semanales > 0)){
+    ayuda.style.color = '#6b7280';
+    ayuda.textContent = 'Completá las horas por día y los días por semana.';
+    return;
+  }
+  if(semanales > completa){
+    ayuda.style.color = '#b45309';
+    ayuda.textContent = nHoras(semanales) + ' h por semana superan la jornada completa del convenio ('
+      + nHoras(completa) + ' h). Las horas de más son horas extra: se cargan en Novedades del mes, no acá.';
+    return;
+  }
+
+  const proporcion = semanales / completa;
+  const pct = nHoras(proporcion*100) + '%';
+  const sobre = nHoras(semanales) + ' de las ' + nHoras(completa) + ' h del convenio';
+
+  if(proporcion > LIMITE_JORNADA_PARCIAL && proporcion < 1){
+    ayuda.style.color = '#b45309';
+    ayuda.innerHTML = 'Trabaja ' + sobre + ' (' + pct + '), y eso <b>supera las dos terceras partes</b>. '
+      + 'Por el art. 92 ter de la LCT ya no es jornada parcial: le corresponde el sueldo de jornada completa igual. '
+      + '<a href="#" onclick="pasarAJornadaCompleta();return false">Cargarlo como jornada completa</a>.'
+      + (declara ? '' : ' Ojo: este convenio todavía no tiene cargada su jornada, así que el porcentaje se calcula contra el tope legal de 48 h y puede no ser el real.');
+    return;
+  }
+
+  ayuda.style.color = '#6b7280';
+  ayuda.textContent = 'Trabaja ' + sobre + ' (' + pct + '): jornada parcial válida, el básico se prorratea a esa proporción.'
+    + (declara ? '' : ' Este convenio todavía no tiene cargada su jornada: se usa el tope legal de 48 h.');
+}
+
+function pasarAJornadaCompleta(){
+  const selector = $('eTipoJornada');
+  if(!selector) return;
+  selector.value = 'completa';
+  ajustarCampoHoras();
 }
 let obraSocialSugeridaAnterior = '';
 let empresaCache = {razon_social:'', cuit:''};
@@ -2551,7 +2630,18 @@ function editarEmpleado(id){
   $('eObraSocial').value = e.obra_social || '';
   obraSocialSugeridaAnterior = '';
   $('eModalidad').value = e.modalidad_contrato || 'Tiempo indeterminado';
-  $('eHorasSemanales').value = Number(e.proporcion_jornada || 1) * horasJornadaConvenio(e.cct_numero);
+  const proporcionGuardada = Number(e.proporcion_jornada || 1);
+  if(proporcionGuardada >= 1){
+    $('eTipoJornada').value = 'completa';
+  }else{
+    $('eTipoJornada').value = 'reducida';
+    // Se guarda una proporción, no un horario. Para volver a mostrarla se
+    // reparte en la semana de 5 días, que es lo habitual; si la persona
+    // trabaja otro esquema, lo corrige en pantalla.
+    const semanales = proporcionGuardada * horasJornadaConvenio(e.cct_numero);
+    $('eDiasSemana').value = 5;
+    $('eHorasDia').value = Math.round((semanales/5)*100)/100;
+  }
   ajustarCampoHoras();
   $('eFormaPago').value = e.forma_pago || '';
   $('eCbu').value = e.cbu || '';
@@ -2591,7 +2681,10 @@ function cancelarEdicion(){
   $('resultadoEncuadramiento').style.display='none';
   $('eEstablecimiento').value='';
   $('eHijos').value='0';
-  $('eHorasSemanales').value=String(horasJornadaConvenio());
+  // Un empleado nuevo arranca a jornada completa, que es el caso habitual.
+  $('eTipoJornada').value='completa';
+  $('eHorasDia').value='4';
+  $('eDiasSemana').value='5';
   ajustarCampoHoras();
   $('eConyuge').value='false';
   $('btnGuardarEmp').textContent = 'Guardar empleado';
@@ -2750,10 +2843,20 @@ async function crearEmpleado(){
   if(!fp){ mostrarError('empError','Elegí la forma de pago: la exige ARCA para el recibo y el F.931.'); return; }
   if(fp==='3' && $('eCbu').value.replace(/\D/g,'').length!==22){
     mostrarError('empError','Acreditación en cuenta: el CBU es obligatorio y debe tener 22 dígitos.'); return; }
-  const horasSemanales=Number($('eHorasSemanales').value);
   const horasCompletas=horasJornadaConvenio();
-  if(!(horasSemanales>0 && horasSemanales<=horasCompletas)){
-    mostrarError('empError','Las horas semanales deben ser mayores que 0 y no superar la jornada completa del convenio ('+horasCompletas+' h). Si trabaja más, son horas extra y se cargan como novedad del mes.'); return;
+  const jornadaCompleta=$('eTipoJornada').value!=='reducida';
+  // Jornada completa es 1 exacto, sin dividir: así el empleado se liquida bien
+  // aunque el convenio todavía no tenga cargadas sus horas.
+  let proporcionJornada=1;
+  if(!jornadaCompleta){
+    const horasSemanales=Number($('eHorasSemanales').value);
+    if(!(horasSemanales>0)){
+      mostrarError('empError','Completá cuántas horas por día y cuántos días por semana trabaja.'); return; }
+    if(horasSemanales>horasCompletas){
+      mostrarError('empError','Esas horas ('+nHoras(horasSemanales)+' por semana) superan la jornada completa del convenio ('+nHoras(horasCompletas)+' h). Si trabaja más, son horas extra y se cargan en Novedades del mes.'); return; }
+    proporcionJornada=horasSemanales/horasCompletas;
+    if(proporcionJornada>LIMITE_JORNADA_PARCIAL && proporcionJornada<1){
+      mostrarError('empError','Con esas horas trabaja el '+nHoras(proporcionJornada*100)+'% de la jornada, y eso supera las dos terceras partes. Por el art. 92 ter de la LCT le corresponde el sueldo de jornada completa: elegí "Jornada completa", o bajá las horas si de verdad trabaja menos.'); return; }
   }
   const lugarElegido=$('eEstablecimiento').value || null;
   const lugarAnterior=editandoEmpleadoId ? (empleadosCache[editandoEmpleadoId].establecimiento_id||null) : null;
@@ -2766,7 +2869,7 @@ async function crearEmpleado(){
       cuil:$('eCuil').value.replace(/\D/g,''), fecha_ingreso:fechaIso($('eFecha').value,'Fecha de ingreso'),
       cct_numero:$('eConvenio').value, categoria:$('eCategoria').value,
       legajo:$('eLegajo').value.trim(),
-      proporcion_jornada:horasSemanales/horasCompletas,
+      proporcion_jornada:proporcionJornada,
       fecha_nacimiento:fechaIso($('eNacimiento').value,'Fecha de nacimiento'),
       sexo:$('eSexo').value || null,
       estado_civil:$('eEstadoCivil').value || null,

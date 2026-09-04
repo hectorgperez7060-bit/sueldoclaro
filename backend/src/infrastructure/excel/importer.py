@@ -15,7 +15,11 @@ from openpyxl import Workbook, load_workbook
 
 from domain.value_objects.cuil import digito_verificador, es_cuil_valido
 
-from domain.entities.jornada import HORAS_TOPE_LEY_11544, proporcion_jornada
+from domain.entities.jornada import (
+    HORAS_TOPE_LEY_11544,
+    excede_limite_parcial,
+    proporcion_jornada,
+)
 from infrastructure.excel.mapeo_columnas import (
     NOMBRE_COMPLETO,
     OBLIGATORIAS,
@@ -302,6 +306,17 @@ def parsear_con_mapeo(contenido: bytes, cuils_existentes: set[str] = None,
             proporcion = Decimal("1")
             errs.append(str(exc) if isinstance(exc, ValueError) and str(exc)
                         else f"horas_semanales inválidas para el convenio {cct_fila}")
+
+        # Mejor avisarlo acá que dejar un legajo que recién falla al liquidar.
+        if excede_limite_parcial(proporcion):
+            pct = (proporcion * 100).quantize(Decimal("0.01"))
+            errs.append(
+                f"{horas_semanales} horas semanales son el {pct}% de la jornada del "
+                f"convenio {cct_fila} ({horas_completas} h), y eso supera las dos "
+                "terceras partes. Por el art. 92 ter de la LCT le corresponde el "
+                "sueldo de jornada completa: dejá la columna de horas vacía para "
+                "cargarlo a jornada completa, o corregí las horas si trabaja menos."
+            )
 
         nom = str(val("nombre") or "").strip()
         ape = str(val("apellido") or "").strip()

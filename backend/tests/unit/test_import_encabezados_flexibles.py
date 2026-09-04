@@ -7,6 +7,7 @@ cualquiera de esas variantes rechazaba el archivo entero.
 from __future__ import annotations
 
 import io
+from decimal import Decimal
 
 from openpyxl import Workbook
 
@@ -165,3 +166,38 @@ def test_mapeo_explica_cada_columna_interpretada():
     por_columna = {i["columna_archivo"]: i["interpretada_como"] for i in interpretacion}
     assert por_columna["CUIL/CUIT"] == "cuil"
     assert por_columna["Convenio"] == "cct_numero"
+
+
+def test_sin_columna_de_horas_el_empleado_queda_a_jornada_completa():
+    """Lo habitual es la jornada completa: no hay que saber las horas del convenio."""
+    filas = [
+        ["Apellido", "Nombre", "CUIL", "Fecha de ingreso", "Convenio", "Categoría"],
+        ["Arancibia", "Oscar", CUIL_1, "01/07/2021", "76/75", "Oficial Especializado"],
+    ]
+    validos, errores = parsear(_libro(filas))
+    assert errores == []
+    assert validos[0]["proporcion_jornada"] == 1
+
+
+def test_horas_por_encima_de_dos_tercios_se_avisan_al_importar():
+    """Mejor rechazar la fila explicando, que crear un legajo que falla al liquidar."""
+    filas = [
+        ["Apellido", "Nombre", "CUIL", "Fecha de ingreso", "Convenio", "Categoría", "Horas semanales"],
+        ["Arancibia", "Oscar", CUIL_1, "01/07/2021", "76/75", "Oficial Especializado", 40],
+    ]
+    validos, errores = parsear(_libro(filas))
+    assert validos == []
+    texto = " ".join(errores[0]["errores"])
+    assert "92 ter" in texto
+    assert "jornada completa" in texto
+
+
+def test_jornada_parcial_genuina_se_importa_prorrateada():
+    """Media jornada está por debajo de 2/3: se prorratea y no se avisa nada."""
+    filas = [
+        ["Apellido", "Nombre", "CUIL", "Fecha de ingreso", "Convenio", "Categoría", "Horas semanales"],
+        ["Rodríguez", "Valeria", CUIL_2, "01/07/2021", "130/75", "Administrativo A", 24],
+    ]
+    validos, errores = parsear(_libro(filas), horas_por_cct={"130/75": 48})
+    assert errores == []
+    assert validos[0]["proporcion_jornada"] == Decimal("0.5")
