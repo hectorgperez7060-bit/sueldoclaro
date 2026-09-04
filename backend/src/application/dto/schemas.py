@@ -7,9 +7,27 @@ from typing import List, Literal, Optional
 
 from pydantic import BaseModel, EmailStr, Field, field_validator, model_validator
 
+from domain.value_objects.cuil import es_cuil_valido
+
 
 # --- Auth ---
 MODOS_CUENTA = ("ESTUDIO", "EMPRESA")
+
+
+def validar_cuit_empresa(valor: str) -> str:
+    """El CUIT de la empresa se verifica igual que el CUIL del trabajador.
+
+    Del CUIT solo se controlaba el largo, asi que uno con un digito mal entraba
+    y salia impreso en el recibo que firma el trabajador y en el archivo para
+    ARCA, que lo rechaza. Se guarda normalizado, sin guiones ni espacios.
+    """
+    limpio = str(valor or "").replace("-", "").replace(" ", "")
+    if not es_cuil_valido(limpio):
+        raise ValueError(
+            f"El CUIT {valor!r} no es válido: no verifica el dígito de control. "
+            "Revisá que esté completo y bien copiado."
+        )
+    return limpio
 
 
 class RegistroEstudio(BaseModel):
@@ -17,6 +35,11 @@ class RegistroEstudio(BaseModel):
     cuit: str = Field(min_length=11, max_length=13)
     email: EmailStr
     password: str = Field(min_length=8)
+
+    @field_validator("cuit")
+    @classmethod
+    def _validar_cuit(cls, v: str) -> str:
+        return validar_cuit_empresa(v)
     # ESTUDIO lleva empresas clientes; EMPRESA es una sola, con menos datos.
     modo_cuenta: str = "ESTUDIO"
 
@@ -69,6 +92,11 @@ class EmpresaIn(BaseModel):
     razon_social: str = Field(min_length=2, max_length=200)
     cuit: str = Field(min_length=11, max_length=13)
     grupo_cliente: str = Field(default="", max_length=200)
+
+    @field_validator("cuit")
+    @classmethod
+    def _validar_cuit(cls, v: str) -> str:
+        return validar_cuit_empresa(v)
 
 
 class EmpresaOut(BaseModel):
