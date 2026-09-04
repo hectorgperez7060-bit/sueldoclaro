@@ -601,12 +601,28 @@ tr:last-child td{border-bottom:0}tbody tr:hover{background:#f8fcfb}
             <b>Control quincenal — UOCRA CCT 76/75</b>
             <p style="font-size:.82rem;color:#6b7280;margin:5px 0 10px">Informá horas normales y asistencia por separado. No sumes horas extra acá.</p>
             <div class="fila">
-              <div><label>Horas normales · 1.ª quincena</label><input id="novHorasQ1" type="number" min="0" max="200" step="0.01" placeholder="Sin informar"></div>
+              <div><label>Horas normales · 1.ª quincena</label><input id="novHorasQ1" type="text" inputmode="decimal" placeholder="Sin informar"></div>
               <div><label>Asistencia perfecta · 1.ª quincena</label><select id="novAsistenciaQ1"><option value="">Sin informar</option><option value="true">Sí</option><option value="false">No</option></select></div>
               <div><label>Feriados no trabajados habilitados · 1.ª</label><input id="novFeriadosHabQ1" type="number" min="0" step="1" value="0"></div>
-              <div><label>Horas normales · 2.ª quincena</label><input id="novHorasQ2" type="number" min="0" max="200" step="0.01" placeholder="Sin informar"></div>
+              <div><label>Horas normales · 2.ª quincena</label><input id="novHorasQ2" type="text" inputmode="decimal" placeholder="Sin informar"></div>
               <div><label>Asistencia perfecta · 2.ª quincena</label><select id="novAsistenciaQ2"><option value="">Sin informar</option><option value="true">Sí</option><option value="false">No</option></select></div>
               <div><label>Feriados no trabajados habilitados · 2.ª</label><input id="novFeriadosHabQ2" type="number" min="0" step="1" value="0"></div>
+            </div>
+            <div style="margin-top:10px;padding:10px;border:1px dashed var(--borde);border-radius:6px;background:#f8fafc">
+              <b style="font-size:.88rem">¿No sabés cuántas horas poner?</b>
+              <p style="font-size:.82rem;color:#6b7280;margin:4px 0 8px">Decime cuánto trabaja por día y qué días, y las cuento del calendario del mes.</p>
+              <div class="fila">
+                <div><label style="font-size:.82rem">Horas por día</label>
+                  <input id="novHorasPorDia" type="text" inputmode="decimal" value="8"></div>
+                <div><label style="font-size:.82rem">Días que trabaja</label>
+                  <select id="novDiasSemanaUocra">
+                    <option value="5">De lunes a viernes</option>
+                    <option value="6">De lunes a sábado</option>
+                  </select></div>
+                <div style="display:flex;align-items:flex-end">
+                  <button type="button" class="chico secundario" onclick="calcularHorasQuincenales()">Calcular las horas del mes</button></div>
+              </div>
+              <small id="novHorasCalculoAyuda" style="display:block;color:#6b7280;margin-top:8px"></small>
             </div>
             <small style="color:#92400e">“Habilitado” significa que cumple el requisito legal previo; la app no lo presume.</small>
             <div style="margin-top:12px;border-top:1px solid var(--borde);padding-top:10px">
@@ -1648,7 +1664,18 @@ async function cargarEmpleados(){
 }
 
 function numeroNov(id){ return Number($(id).value || 0); }
-function numeroNovOpcional(id){ return $(id).value===''?null:Number($(id).value); }
+// Acepta el número como lo escribe cualquiera: "92", "92,5" o "92.5". Un campo
+// numérico del navegador devuelve vacío cuando el texto no le cierra, así que
+// una coma decimal se perdía sin que nadie lo viera y se guardaba como "sin
+// informar". Devuelve NaN si hay algo escrito que no es un número, para que
+// quien valide pueda avisar en vez de dar el dato por no cargado.
+function decimalEscrito(id){
+  const bruto = String($(id).value||'').replace(/\s/g,'').replace(',','.');
+  if(bruto==='') return null;
+  const n = Number(bruto);
+  return isFinite(n) ? n : NaN;
+}
+function numeroNovOpcional(id){ const n=decimalEscrito(id); return (n===null||isNaN(n))?null:n; }
 function booleanoNovOpcional(id){ return $(id).value===''?null:$(id).value==='true'; }
 const checksFarmacia=['novTituloFarmaceutico','novTituloAuxiliar','novTituloSecundario','novCajero','novAdminPerfumeria','novBicicleta','novFallaCaja'];
 function actualizarAdicionalesFarmacia(){
@@ -2511,13 +2538,53 @@ async function copiarMesAnterior(){
 // quincena. Sin esos cuatro datos el motor no puede calcular, pero la novedad se
 // guardaba igual con los campos vacíos y el problema recién aparecía al
 // liquidar, en otra pantalla. Se avisa acá, antes de guardar.
+// Cuenta los días del calendario del período elegido y propone las horas de
+// cada quincena. Se le pregunta a la persona lo que sabe -cuánto trabaja por
+// día y qué días- y la app hace la cuenta, en vez de pedirle un total que
+// tendría que sacar contando en un almanaque.
+function calcularHorasQuincenales(){
+  const ayuda=$('novHorasCalculoAyuda');
+  const periodo=$('novPeriodo').value;
+  const [anio,mes]=String(periodo||'').split('-').map(Number);
+  if(!anio||!mes){ ayuda.style.color='#b45309'; ayuda.textContent='Elegí primero el mes arriba.'; return; }
+
+  const horasDia=decimalEscrito('novHorasPorDia');
+  if(horasDia===null||isNaN(horasDia)||horasDia<=0){
+    ayuda.style.color='#b45309'; ayuda.textContent='Escribí cuántas horas por día trabaja.'; return; }
+
+  const ultimoDiaLaboral=Number($('novDiasSemanaUocra').value); // 5 = viernes, 6 = sábado
+  const diasDelMes=new Date(anio,mes,0).getDate();
+  let diasQ1=0, diasQ2=0;
+  for(let d=1; d<=diasDelMes; d++){
+    const semana=new Date(anio,mes-1,d).getDay(); // 0 domingo, 6 sábado
+    if(semana===0 || semana>ultimoDiaLaboral) continue;
+    if(d<=15) diasQ1++; else diasQ2++;
+  }
+  const q1=Math.round(diasQ1*horasDia*100)/100;
+  const q2=Math.round(diasQ2*horasDia*100)/100;
+  $('novHorasQ1').value=String(q1).replace('.', ',');
+  $('novHorasQ2').value=String(q2).replace('.', ',');
+
+  ayuda.style.color='#6b7280';
+  ayuda.innerHTML='1.ª quincena: <b>'+diasQ1+' días × '+nHoras(horasDia)+' h = '+nHoras(q1)+' h</b>. '
+    +'2.ª quincena: <b>'+diasQ2+' días × '+nHoras(horasDia)+' h = '+nHoras(q2)+' h</b>.<br>'
+    +'Es el calendario completo del mes: <b>no descuenta feriados ni faltas</b>. '
+    +'Si no trabajó algún día, restale esas horas acá. Las faltas del mes se cargan igual arriba.';
+}
+
 function faltantesQuincenalesUocra(){
   const emp=empleadosCache[$('novEmpleado').value];
   if(!emp || emp.cct_numero!=='76/75') return [];
   const faltan=[];
-  if($('novHorasQ1').value==='') faltan.push('Horas normales · 1.ª quincena');
+  const horas=(id,etiqueta)=>{
+    const v=decimalEscrito(id);
+    if(v===null) faltan.push(etiqueta);
+    else if(isNaN(v)) faltan.push(etiqueta+' (lo escrito ahí no es un número)');
+    else if(v<0||v>200) faltan.push(etiqueta+' (tiene que estar entre 0 y 200)');
+  };
+  horas('novHorasQ1','Horas normales · 1.ª quincena');
   if($('novAsistenciaQ1').value==='') faltan.push('Asistencia perfecta · 1.ª quincena');
-  if($('novHorasQ2').value==='') faltan.push('Horas normales · 2.ª quincena');
+  horas('novHorasQ2','Horas normales · 2.ª quincena');
   if($('novAsistenciaQ2').value==='') faltan.push('Asistencia perfecta · 2.ª quincena');
   return faltan;
 }
