@@ -6,6 +6,7 @@ una fila mala (sección 5.2 del prompt).
 from __future__ import annotations
 
 import io
+import re
 from datetime import date, datetime
 from decimal import Decimal, InvalidOperation
 from typing import List, Tuple
@@ -15,6 +16,13 @@ from openpyxl import Workbook, load_workbook
 from domain.value_objects.cuil import digito_verificador, es_cuil_valido
 
 from domain.entities.jornada import HORAS_TOPE_LEY_11544, proporcion_jornada
+from infrastructure.excel.mapeo_columnas import (
+    NOMBRE_COMPLETO,
+    OBLIGATORIAS,
+    SINONIMOS,
+    detectar_mapeo,
+    partir_nombre_completo,
+)
 
 
 def horas_jornada_de(horas_por_cct, cct_numero: str) -> Decimal:
@@ -90,48 +98,164 @@ def generar_demo_excel(cuils_existentes: set[str] = None) -> bytes:
 
 
 
+FORMATOS_FECHA = (
+    "%Y-%m-%d", "%d/%m/%Y", "%d-%m-%Y", "%d.%m.%Y",
+    "%Y/%m/%d", "%d/%m/%y", "%d-%m-%y",
+)
+
+
 def _a_fecha(valor) -> date:
+    """Acepta la fecha como la escriba el estudio, no sólo en ISO.
+
+    En una planilla argentina la fecha de ingreso viene casi siempre como
+    ``01/07/2021``. Exigir ``2021-07-01`` rechazaba archivos correctos.
+    """
     if isinstance(valor, datetime):
         return valor.date()
     if isinstance(valor, date):
         return valor
-    return datetime.strptime(str(valor).strip(), "%Y-%m-%d").date()
+    texto = str(valor).strip()
+    if not texto:
+        raise ValueError("fecha vacía")
+    if " " in texto:  # "01/07/2021 00:00:00"
+        texto = texto.split(" ", 1)[0]
+    for formato in FORMATOS_FECHA:
+        try:
+            return datetime.strptime(texto, formato).date()
+        except ValueError:
+            continue
+    raise ValueError(f"formato de fecha no reconocido: {valor!r}")
 
 
-def parsear(contenido: bytes, cuils_existentes: set[str] = None,
-            horas_por_cct: dict = None) -> Tuple[List[dict], List[dict]]:
-    """Devuelve (empleados_validos, errores_por_fila).
+def _a_texto_entero(valor) -> str:
+    """Pasa a texto un número de Excel sin arrastrar el ``.0`` del float.
 
-    ``horas_por_cct`` trae las horas de jornada completa declaradas por cada
-    convenio. La proporción de jornada se calcula contra la jornada del convenio
-    de esa fila, no contra 48 fijas: en un convenio de 44 horas, 44 horas son
-    jornada completa y prorratear contra 48 le recortaría el sueldo.
+    Un CUIL o un legajo cargados como número llegan como ``20123456789.0`` y
+    quedaban inválidos por culpa del formato, no del dato.
+    """
+    if valor is None:
+        return ""
+    if isinstance(valor, float) and valor.is_integer():
+        return str(int(valor))
+    if isinstance(valor, Decimal) and valor == valor.to_integral_value():
+        return str(int(valor))
+    return str(valor).strip()
+
+
+def _a_decimal(valor) -> Decimal:
+    """Interpreta importes escritos a la argentina: ``$ 1.234.567,89``."""
+    if isinstance(valor, (int, float, Decimal)):
+        return Decimal(str(valor))
+    texto = str(valor).strip()
+    texto = re.sub(r"[^0-9,.\-]", "", texto)
+    if "," in texto and "." in texto:
+        # El separador decimal es el último que aparece.
+        if texto.rfind(",") > texto.rfind("."):
+            texto = texto.replace(".", "").replace(",", ".")
+        else:
+            texto = texto.replace(",", "")
+    elif "," in texto:
+        texto = texto.replace(",", ".")
+    if not texto or texto in ("-", ".", "-."):
+        raise InvalidOperation("importe vacío")
+    return Decimal(texto)
+
+
+AFIRMATIVOS = {"SI", "S", "SÍ", "TRUE", "VERDADERO", "V", "1", "X", "Y", "YES", "AFILIADO"}
+
+
+def _fila_encabezado(filas: List[tuple]) -> int:
+    """Ubica la fila de títulos, salteando logos o títulos sueltos arriba.
+
+    Muchas planillas traen el nombre de la empresa en A1 y recién en la fila 3
+    los encabezados reales. Se elige la primera fila (de las cinco primeras) que
+    reconozca al menos dos columnas conocidas.
+    """
+    mejor, mejor_puntaje = 0, -1
+    for i, fila in enumerate(filas[:5]):
+        indices, _, _ = detectar_mapeo(list(fila))
+        puntaje = len(indices)
+        if puntaje > mejor_puntaje:
+            mejor, mejor_puntaje = i, puntaje
+        if puntaje >= 4:
+            break
+    return mejor if mejor_puntaje >= 2 else 0
+
+
+def _sugerencias(canonica: str) -> str:
+    ejemplos = list(SINONIMOS.get(canonica, ()))[:4]
+    return ", ".join(f'"{e}"' for e in ejemplos) if ejemplos else canonica
+
+
+def parsear_con_mapeo(contenido: bytes, cuils_existentes: set[str] = None,
+                      horas_por_cct: dict = None) -> Tuple[List[dict], List[dict], dict]:
+    """Igual que :func:`parsear`, pero además explica cómo leyó el encabezado.
+
+    El tercer valor es el informe de interpretación: qué columna del archivo se
+    tomó para cada dato, cuáles se ignoraron y si hubo que partir una celda con
+    apellido y nombre juntos. La UI lo muestra antes de confirmar la importación
+    para que el usuario vea qué entendió la app.
     """
     wb = load_workbook(io.BytesIO(contenido), read_only=True, data_only=True)
     ws = wb.active
     filas = list(ws.iter_rows(values_only=True))
     validos: List[dict] = []
     errores: List[dict] = []
+    mapeo: dict = {"columnas": [], "ignoradas": [], "fila_encabezado": 1}
     if not filas:
-        return validos, errores
+        return validos, errores, mapeo
 
-    encabezado = [str(c).strip().lower() if c is not None else "" for c in filas[0]]
-    idx = {col: encabezado.index(col) for col in COLUMNAS if col in encabezado}
+    fila_enc = _fila_encabezado(filas)
+    encabezado_bruto = list(filas[fila_enc])
+    idx, interpretacion, ignoradas = detectar_mapeo(encabezado_bruto)
+    mapeo = {
+        "columnas": interpretacion,
+        "ignoradas": ignoradas,
+        "fila_encabezado": fila_enc + 1,
+    }
 
-    faltantes = [c for c in ("nombre", "apellido", "cuil", "fecha_ingreso", "cct_numero", "categoria") if c not in idx]
+    # Una sola celda con apellido y nombre cubre ambas columnas obligatorias.
+    usa_nombre_completo = NOMBRE_COMPLETO in idx and not ({"nombre", "apellido"} <= idx.keys())
+    encabezado_nombre_completo = ""
+    ancho = len(encabezado_bruto)
+    if usa_nombre_completo:
+        pos = idx[NOMBRE_COMPLETO]
+        encabezado_nombre_completo = str(encabezado_bruto[pos] or "")
+        mapeo["nombre_completo_partido"] = True
+        # Dos posiciones virtuales al final de cada fila para el nombre partido.
+        idx["nombre"], idx["apellido"] = ancho, ancho + 1
+
+    faltantes = [
+        c for c in OBLIGATORIAS
+        if c not in idx and not (usa_nombre_completo and c in ("nombre", "apellido"))
+    ]
     if faltantes:
-        return validos, [{"fila": 1, "errores": [f"Faltan columnas obligatorias: {', '.join(faltantes)}"]}]
+        detalle = [
+            f"No encontré la columna «{c}». Podés titularla {_sugerencias(c)}."
+            for c in faltantes
+        ]
+        reconocidas = ", ".join(i["columna_archivo"] for i in interpretacion) or "ninguna"
+        detalle.append(f"Columnas que sí reconocí: {reconocidas}.")
+        return validos, [{"fila": fila_enc + 1, "errores": detalle}], mapeo
 
     cuils_vistos_excel: set[str] = set()
     cuils_existentes = cuils_existentes or set()
 
-    for n, fila in enumerate(filas[1:], start=2):
-        def val(col):
+    for n, fila_origen in enumerate(filas[fila_enc + 1:], start=fila_enc + 2):
+        if all(c is None or str(c).strip() == "" for c in fila_origen):
+            continue  # fila en blanco al pie de la planilla
+
+        fila = list(fila_origen) + [None] * (ancho - len(fila_origen))
+        if usa_nombre_completo:
+            _ape, _nom = partir_nombre_completo(fila[pos], encabezado_nombre_completo)
+            fila = fila + [_nom, _ape]
+
+        def val(col, _fila=fila):
             i = idx.get(col)
-            return fila[i] if (i is not None and i < len(fila)) else None
+            return _fila[i] if (i is not None and i < len(_fila)) else None
 
         errs: List[str] = []
-        cuil = str(val("cuil") or "").replace("-", "").strip()
+        cuil = _a_texto_entero(val("cuil")).replace("-", "").replace(" ", "").strip()
         if not es_cuil_valido(cuil):
             errs.append(f"CUIL inválido: {val('cuil')!r}")
         else:
@@ -147,7 +271,10 @@ def parsear(contenido: bytes, cuils_existentes: set[str] = None,
             fecha_ing = _a_fecha(val("fecha_ingreso"))
         except (ValueError, TypeError):
             fecha_ing = None
-            errs.append(f"fecha_ingreso inválida: {val('fecha_ingreso')!r} (usar YYYY-MM-DD)")
+            errs.append(
+                f"fecha_ingreso inválida: {val('fecha_ingreso')!r} "
+                "(se aceptan 01/07/2021, 01-07-2021 o 2021-07-01)"
+            )
 
         for req in ("nombre", "apellido", "cct_numero", "categoria"):
             if not str(val(req) or "").strip():
@@ -157,14 +284,18 @@ def parsear(contenido: bytes, cuils_existentes: set[str] = None,
         rem_dec = None
         if rem not in (None, ""):
             try:
-                rem_dec = Decimal(str(rem))
+                rem_dec = _a_decimal(rem)
             except (InvalidOperation, ValueError):
                 errs.append(f"remuneracion_pactada inválida: {rem!r}")
 
         cct_fila = str(val("cct_numero") or "").strip()
         horas_completas = horas_jornada_de(horas_por_cct, cct_fila)
         try:
-            horas_semanales = Decimal(str(val("horas_semanales") or horas_completas))
+            crudo_horas = val("horas_semanales")
+            horas_semanales = (
+                _a_decimal(crudo_horas)
+                if crudo_horas not in (None, "") else horas_completas
+            )
             proporcion = proporcion_jornada(horas_semanales, horas_completas)
         except (InvalidOperation, ValueError) as exc:
             horas_semanales = horas_completas
@@ -179,7 +310,12 @@ def parsear(contenido: bytes, cuils_existentes: set[str] = None,
             errores.append({"fila": n, "nombre": f"{ape}, {nom}".strip(", "), "cuil": cuil, "errores": errs})
             continue
 
-        afil = str(val("afiliado_sindicato") or "SI").strip().upper()
+        crudo_afil = val("afiliado_sindicato")
+        if isinstance(crudo_afil, bool):
+            afiliado = crudo_afil
+        else:
+            afil = str(crudo_afil if crudo_afil not in (None, "") else "SI").strip().upper()
+            afiliado = afil in AFIRMATIVOS
         validos.append({
             "fila": n,
             "nombre": nom,
@@ -188,11 +324,24 @@ def parsear(contenido: bytes, cuils_existentes: set[str] = None,
             "fecha_ingreso": fecha_ing,
             "cct_numero": str(val("cct_numero")).strip(),
             "categoria": str(val("categoria")).strip(),
-            "legajo": str(val("legajo") or "").strip(),
+            "legajo": _a_texto_entero(val("legajo")).strip(),
             "remuneracion_pactada": rem_dec,
             "proporcion_jornada": proporcion,
-            "afiliado_sindicato": afil in ("SI", "S", "TRUE", "1", "X"),
+            "afiliado_sindicato": afiliado,
             "email": (str(val("email")).strip() or None) if val("email") else None,
         })
 
+    return validos, errores, mapeo
+
+
+def parsear(contenido: bytes, cuils_existentes: set[str] = None,
+            horas_por_cct: dict = None) -> Tuple[List[dict], List[dict]]:
+    """Devuelve (empleados_validos, errores_por_fila).
+
+    ``horas_por_cct`` trae las horas de jornada completa declaradas por cada
+    convenio. La proporción de jornada se calcula contra la jornada del convenio
+    de esa fila, no contra 48 fijas: en un convenio de 44 horas, 44 horas son
+    jornada completa y prorratear contra 48 le recortaría el sueldo.
+    """
+    validos, errores, _ = parsear_con_mapeo(contenido, cuils_existentes, horas_por_cct)
     return validos, errores

@@ -2623,6 +2623,46 @@ async function descargarPlantillaExcel(){
   }catch(e){ alert(e.message); }
 }
 
+const ETIQUETA_COLUMNA = {
+  nombre:'Nombre', apellido:'Apellido', cuil:'CUIL', fecha_ingreso:'Fecha de ingreso',
+  cct_numero:'Convenio', categoria:'Categoría', legajo:'Legajo',
+  horas_semanales:'Horas semanales', remuneracion_pactada:'Remuneración pactada',
+  afiliado_sindicato:'Afiliado al sindicato', email:'Email'
+};
+
+// Le muestra al usuario qué entendió la app de SU planilla antes de importar
+// nada. No hace falta que arme el Excel como quiere el sistema: el sistema
+// interpreta el Excel y acá rinde cuentas de cómo lo leyó.
+function mostrarMapeoExcel(mapeo){
+  let caja = $('mapeoExcel');
+  if(!caja){
+    caja = document.createElement('div');
+    caja.id = 'mapeoExcel';
+    caja.style.cssText = 'margin:10px 0;padding:10px 12px;border:1px solid #cbd5e1;border-radius:8px;background:#f8fafc;font-size:.85rem';
+    $('resumenExcel').insertAdjacentElement('afterend', caja);
+  }
+  if(!mapeo || !(mapeo.columnas||[]).length){ caja.style.display='none'; return; }
+  caja.style.display='block';
+
+  const filas = mapeo.columnas.map(c=>{
+    const destino = ETIQUETA_COLUMNA[c.interpretada_como] || c.interpretada_como;
+    const nota = c.modo==='aproximado' ? ' <span style="color:#b45309">(parecido, revisalo)</span>' : '';
+    return `<li><b>${c.columna_archivo}</b> → ${destino}${nota}</li>`;
+  }).join('');
+
+  const avisos = [];
+  if(mapeo.fila_encabezado > 1)
+    avisos.push(`Los títulos se tomaron de la fila ${mapeo.fila_encabezado}.`);
+  if(mapeo.nombre_completo_partido)
+    avisos.push('La columna con apellido y nombre juntos se separó en dos.');
+  if((mapeo.ignoradas||[]).length)
+    avisos.push(`Columnas que no se usan: ${mapeo.ignoradas.join(', ')}.`);
+
+  caja.innerHTML = `<div style="font-weight:600;margin-bottom:6px">Así interpreté tu planilla</div>
+    <ul style="margin:0 0 6px 18px;padding:0">${filas}</ul>
+    ${avisos.length ? `<div style="color:#475569">${avisos.join(' ')}</div>` : ''}`;
+}
+
 async function subirExcelPreview(input){
   if(!input.files || !input.files[0]) return;
   const file = input.files[0];
@@ -2642,6 +2682,7 @@ async function subirExcelPreview(input){
     const total = res.total_filas || 0;
     
     $('resumenExcel').textContent = `Se leyeron ${total} filas del archivo "${file.name}": ${validos.length} filas válidas para importar, ${errores.length} filas con errores.`;
+    mostrarMapeoExcel(res.mapeo);
     $('countValidos').textContent = validos.length;
     $('countErrores').textContent = errores.length;
     

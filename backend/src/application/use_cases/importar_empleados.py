@@ -6,7 +6,7 @@ import uuid
 from domain.entities.encuadramiento import validar_filas_encuadramiento
 from infrastructure.database.repositories import AuditRepo, EmpleadoRepo, ParametrosRepo
 from infrastructure.database.session import tenant_session
-from infrastructure.excel.importer import parsear
+from infrastructure.excel.importer import parsear, parsear_con_mapeo
 
 
 class ImportarEmpleados:
@@ -18,7 +18,7 @@ class ImportarEmpleados:
             parametros = ParametrosRepo(s)
             catalogo = await parametros.catalogo_encuadramientos()
             horas_por_cct = await parametros.horas_jornada_por_cct()
-        validos, errores = parsear(contenido, cuils_existentes, horas_por_cct)
+        validos, errores, mapeo = parsear_con_mapeo(contenido, cuils_existentes, horas_por_cct)
         validos, errores_encuadramiento = validar_filas_encuadramiento(validos, catalogo)
         errores.extend(errores_encuadramiento)
         # Convert date objects to isoformat string for JSON serialization
@@ -32,6 +32,9 @@ class ImportarEmpleados:
             "validos": validos_serializables,
             "errores": errores,
             "total_filas": len(validos) + len(errores),
+            # Cómo se interpretó el encabezado del archivo, para mostrarlo antes
+            # de confirmar: el usuario tiene que poder ver qué entendió la app.
+            "mapeo": mapeo,
         }
 
     async def ejecutar(self, tenant_id: str, contenido: bytes, usuario_id: str) -> dict:
