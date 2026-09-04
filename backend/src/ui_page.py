@@ -2587,23 +2587,33 @@ function faltantesQuincenalesUocra(){
   horas('novHorasQ2','Horas normales · 2.ª quincena');
   if($('novAsistenciaQ2').value==='') faltan.push('Asistencia perfecta · 2.ª quincena');
   const base=decimalEscrito('novBaseUocraAnterior');
-  if(base===null) faltan.push('Base remunerativa UOCRA del plantel del mes anterior');
-  else if(isNaN(base)||base<0) faltan.push('Base remunerativa del mes anterior (tiene que ser un importe)');
+  const etiquetaBase='Base remunerativa UOCRA del plantel del mes anterior, al final del formulario';
+  if(base===null) faltan.push(etiquetaBase);
+  else if(isNaN(base)||base<0) faltan.push(etiquetaBase+' (tiene que ser un importe)');
   return faltan;
+}
+
+// El aviso nombra sólo lo que falta de verdad: agregarle siempre la explicación
+// de la asistencia cuando lo que faltaba era otra cosa manda a buscar al lugar
+// equivocado.
+function avisoFaltantesUocra(faltan){
+  let texto='Para liquidar por el convenio 76/75 (UOCRA) falta cargar: '+faltan.join('; ')+'.';
+  if(faltan.some(f=>f.startsWith('Asistencia perfecta')))
+    texto+=' En asistencia perfecta hay que elegir Sí o No: «Sin informar» no sirve, '
+      +'porque de ese dato depende el premio del art. 52 y la app no lo presume.';
+  if(faltan.some(f=>f.startsWith('Horas normales')))
+    texto+=' Para las horas usá el botón «Calcular las horas del mes», que las cuenta del calendario.';
+  if(faltan.some(f=>f.startsWith('Base remunerativa')))
+    texto+=' La base del mes anterior es la suma de lo que cobró todo tu personal de UOCRA el mes pasado, '
+      +'no la de esta persona: sobre ese total se calcula la contribución empresaria del convenio.';
+  return texto;
 }
 
 async function guardarNovedad(){
   ocultar('novFormError'); ocultar('novOk');
   if(!$('novEmpleado').value){ mostrarError('novFormError','Elegí un empleado.'); return; }
   const faltan=faltantesQuincenalesUocra();
-  if(faltan.length){
-    mostrarError('novFormError',
-      'Para liquidar por el convenio 76/75 (UOCRA) faltan estos datos, que están en '
-      + '«Control quincenal»: ' + faltan.join('; ') + '. '
-      + 'En asistencia perfecta hay que elegir Sí o No: dejarlo en «Sin informar» no sirve, '
-      + 'porque de ese dato depende el premio del art. 52 y la app no lo presume.');
-    return;
-  }
+  if(faltan.length){ mostrarError('novFormError',avisoFaltantesUocra(faltan)); return; }
   try{
     const eraEdicion=Boolean(editandoNovedadId);
     const ruta=editandoNovedadId?'/novedades/'+editandoNovedadId:'/novedades';
