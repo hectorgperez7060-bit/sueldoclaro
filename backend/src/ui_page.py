@@ -651,7 +651,7 @@ tr:last-child td{border-bottom:0}tbody tr:hover{background:#f8fcfb}
                 <div><label>Criterio Fondo de Cese</label><select id="novFclCriterio"><option value="">No corresponde / sin definir</option><option value="MES_COMPLETO_12">Mes completo al 12%</option><option value="MES_COMPLETO_8">Mes completo al 8%</option><option value="PRORRATEO_DIAS">Prorrateo por bases separadas</option></select></div>
                 <div><label>Profesional que lo aprueba</label><input id="novFclAprobado" maxlength="200" placeholder="Nombre y matrícula"></div>
                 <div style="grid-column:1/-1"><label>Fundamento</label><textarea id="novFclFundamento" rows="2" placeholder="Criterio profesional documentado"></textarea></div>
-                <div style="grid-column:1/-1"><label>Base remunerativa UOCRA del plantel del mes anterior ($)</label><input id="novBaseUocraAnterior" type="number" min="0" step="0.01" placeholder="Obligatoria para calcular la contribución empresaria del 2%"><small style="color:#6b7280">Copiar de la liquidación cerrada del mes anterior. Queda guardada para auditoría.</small></div>
+                <div style="grid-column:1/-1"><label>Base remunerativa UOCRA del plantel del mes anterior ($)</label><input id="novBaseUocraAnterior" type="text" inputmode="decimal" placeholder="Obligatoria: sin esto la liquidación no calcula"><small style="color:#6b7280">Es la suma de las remuneraciones de <b>todo el personal de UOCRA</b> del mes anterior, no la de esta persona. Sobre ese total se calcula la contribución empresaria del convenio, y por eso nunca se usa el mes que estás liquidando. Si ya liquidaste el mes anterior acá, copiala de esa liquidación; si es el primer mes, tomala del F.931 anterior.</small></div>
               </div>
             </div>
           </div>
@@ -2586,6 +2586,9 @@ function faltantesQuincenalesUocra(){
   if($('novAsistenciaQ1').value==='') faltan.push('Asistencia perfecta · 1.ª quincena');
   horas('novHorasQ2','Horas normales · 2.ª quincena');
   if($('novAsistenciaQ2').value==='') faltan.push('Asistencia perfecta · 2.ª quincena');
+  const base=decimalEscrito('novBaseUocraAnterior');
+  if(base===null) faltan.push('Base remunerativa UOCRA del plantel del mes anterior');
+  else if(isNaN(base)||base<0) faltan.push('Base remunerativa del mes anterior (tiene que ser un importe)');
   return faltan;
 }
 
