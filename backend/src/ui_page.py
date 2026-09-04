@@ -3032,16 +3032,29 @@ const CS_MISMO_CONCEPTO = {
   CONTRIB_OBRA_SOCIAL_ART92TER:'CONTRIB_OBRA_SOCIAL',
 };
 const csCodigo = codigo => CS_MISMO_CONCEPTO[codigo] || codigo;
-const CS_CONTRIB = {CONTRIB_JUBILACION:'Contribución jubilatoria', CONTRIB_OBRA_SOCIAL:'Contribución obra social', CONTRIB_INSSJP:'Contribución INSSJP/PAMI', CONTRIB_ASIG_FAM:'Contribución asignaciones familiares'};
+const CS_CONTRIB = {CONTRIB_JUBILACION:'Contribución jubilatoria', CONTRIB_SEGURIDAD_SOCIAL:'Contribuciones patronales seguridad social', CONTRIB_OBRA_SOCIAL:'Contribución obra social', CONTRIB_INSSJP:'Contribución INSSJP/PAMI', CONTRIB_ASIG_FAM:'Contribución asignaciones familiares'};
+
+// Contribuciones que existen en el recibo pero NO van al F.931: se pagan por
+// otra vía, cada una a su destino. Se enumeran para poder distinguirlas de una
+// contribución que el resumen no conoce, que es un error y no un descarte.
+const CS_CONTRIB_FUERA_F931 = {
+  CONTRIB_EMPRESARIA_UOCRA:'Contribución empresaria UOCRA',
+  FONDO_CESE_LABORAL:'Fondo de Cese Laboral',
+  SEGURO_VIDA_SEPELIO_UOM_EMP:'Seguro de vida y sepelio UOM',
+};
 
 function resumenF931(d){
-  const ap = {}, co = {}; let remun = 0;
+  const ap = {}, co = {}, desconocidas = {}; let remun = 0;
   d.detalles.forEach(det=>{
     remun += Number(det.bruto);
     det.conceptos.forEach(c=>{
       const cod=csCodigo(c.codigo);
       if(CS_APORTES[cod]) ap[cod]=(ap[cod]||0)+Number(c.importe);
-      if(CS_CONTRIB[cod]) co[cod]=(co[cod]||0)+Number(c.importe);
+      else if(CS_CONTRIB[cod]) co[cod]=(co[cod]||0)+Number(c.importe);
+      // Una contribución que el resumen no sabe clasificar no se descarta en
+      // silencio: quedaría fuera del total y el F.931 se pagaría de menos.
+      else if(c.tipo==='contribucion' && !CS_CONTRIB_FUERA_F931[cod])
+        desconocidas[cod]=(desconocidas[cod]||0)+Number(c.importe);
     });
   });
   const totAp = Object.values(ap).reduce((a,b)=>a+b,0);
@@ -3056,7 +3069,11 @@ function resumenF931(d){
     <table style="margin-top:12px"><thead><tr><th>Contribuciones del empleador</th><th class="num">Importe</th></tr></thead>
       <tbody>${fCo}<tr><td><b>Total contribuciones</b></td><td class="num"><b>$ ${fmt(totCo)}</b></td></tr></tbody></table>
     <div style="display:flex;justify-content:space-between;margin-top:14px;flex-wrap:wrap;gap:8px">
-      <span style="font-size:.8rem;color:#6b7280">La cuota sindical va por boleta aparte. Este subtotal todavía no incluye ART ni otros datos contractuales pendientes.</span>
+      ${Object.keys(desconocidas).length ? `<div style="flex:1 1 100%;background:#fef2f2;border-left:4px solid #dc2626;padding:10px 12px;font-size:.85rem">
+        <b style="color:#dc2626">Hay contribuciones que este resumen no sabe clasificar</b><br>
+        ${Object.keys(desconocidas).map(k=>`${esc(k)}: $ ${fmt(desconocidas[k])}`).join('<br>')}<br>
+        No están sumadas en el subtotal de abajo. Revisalas antes de pagar el F.931.</div>` : ''}
+      <span style="font-size:.8rem;color:#6b7280">La cuota sindical, el Fondo de Cese y la contribución empresaria del convenio van por boleta aparte, cada una a su destino. Este subtotal todavía no incluye ART ni otros datos contractuales pendientes.</span>
       <span class="neto" style="color:#b45309">Subtotal calculado — falta ART: $ ${fmt(totAp+totCo)}</span>
     </div>
   </div>`;
