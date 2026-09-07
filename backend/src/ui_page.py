@@ -3038,6 +3038,7 @@ const CS_CONTRIB = {CONTRIB_JUBILACION:'Contribución jubilatoria', CONTRIB_SEGU
 // otra vía, cada una a su destino. Se enumeran para poder distinguirlas de una
 // contribución que el resumen no conoce, que es un error y no un descarte.
 const CS_CONTRIB_FUERA_F931 = {
+  ART_CONTRATO:'Cuota de ART',
   CONTRIB_EMPRESARIA_UOCRA:'Contribución empresaria UOCRA',
   FONDO_CESE_LABORAL:'Fondo de Cese Laboral',
   SEGURO_VIDA_SEPELIO_UOM_EMP:'Seguro de vida y sepelio UOM',

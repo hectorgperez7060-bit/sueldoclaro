@@ -11,6 +11,23 @@ from datetime import date
 from decimal import Decimal
 from typing import Dict
 
+from domain.entities.art import ContratoArt, calcular_cuota_art
+
+
+def contrato_art_de(establecimiento) -> "ContratoArt | None":
+    """Traduce el establecimiento al contrato de ART que entiende el dominio."""
+    if establecimiento is None:
+        return None
+    return ContratoArt(
+        nombre=establecimiento.art_nombre or "",
+        alicuota_pct=establecimiento.art_alicuota_pct,
+        suma_fija=establecimiento.art_suma_fija,
+        vigencia_desde=establecimiento.art_vigencia_desde,
+        vigencia_hasta=establecimiento.art_vigencia_hasta,
+        comprobante=establecimiento.art_comprobante_ref or "",
+    )
+
+from domain.entities.concepto import Regimen, TipoConcepto
 from domain.entities.empleado import Empleado
 from domain.entities.jornada import (
     describir_jornada, excede_limite_parcial, horas_desde_reglas,
@@ -46,6 +63,7 @@ from infrastructure.database.repositories import (
     AuditRepo,
     CarpetaMensualRepo,
     EmpleadoRepo,
+    EstablecimientoRepo,
     LiquidacionRepo,
     NovedadMensualRepo,
     ParametrosRepo,
@@ -212,6 +230,11 @@ class LiquidarPeriodo:
             # Horas de jornada completa por convenio: sirven para controlar el
             # límite del art. 92 ter y para dejar la jornada escrita en el recibo.
             horas_jornada = await params_repo.horas_jornada_por_cct()
+            # Los contratos de ART viven en el establecimiento: se traen una vez
+            # y no una por empleado.
+            establecimientos = {
+                e.id: e for e in await EstablecimientoRepo(s).listar(incluir_inactivos=True)
+            }
             for emp in empleados:
                 cct_cfg = await params_repo.cct_config(emp.cct_numero, fecha_ref)
                 zona_escala, error_zona = await params_repo.zona_escala(
@@ -955,6 +978,29 @@ class LiquidarPeriodo:
                     }
                     for c in res.conceptos
                 ]
+
+                # Cuota de ART: sale del contrato cargado en el establecimiento.
+                # Si el contrato está y cubre el período, se calcula acá y el
+                # recibo deja de pedirle el importe al empleador. Si no, no se
+                # estima nada y lo informa él, como venía siendo.
+                establecimiento = establecimientos.get(emp.establecimiento_id)
+                cuota_art = calcular_cuota_art(
+                    contrato_art_de(establecimiento), res.bruto.monto, fecha_ref,
+                )
+                if cuota_art is not None:
+                    conceptos.append({
+                        "codigo": "ART_CONTRATO", "descripcion": cuota_art.descripcion,
+                        "tipo": TipoConcepto.CONTRIBUCION.value,
+                        "importe": str(cuota_art.importe),
+                        "regimen": Regimen.NO_APLICA.value,
+                        "cantidad": "1", "base_calculo": str(res.bruto.redondear().monto),
+                        "unidad": cuota_art.detalle,
+                        "articulo_amparo": "", "destino_pago": establecimiento.art_nombre or "",
+                        "codigo_boleta": "ART", "canal_pago": None, "url_pago": None,
+                        "regla_vencimiento": None,
+                        "fuente_pago": establecimiento.art_comprobante_ref or "",
+                    })
+
                 try:
                     bases_lsd, trazabilidad_lsd = calcular_bases_snapshot(
                         conceptos, periodo_str, dict(getattr(emp, "perfil_arca", None) or {}),
