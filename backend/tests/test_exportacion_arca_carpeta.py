@@ -47,10 +47,20 @@ def test_sin_confirmar_detraccion_no_hay_bases():
         calcular_bases_snapshot(conceptos_funeraria(), "2026-08", {})
 
 
+def test_septiembre_usa_el_tope_oficial_publicado():
+    bases, traza = calcular_bases_snapshot(
+        conceptos_funeraria(), "2026-09",
+        {"detraccion_confirmada": True, "detraccion_ley_27541": 0},
+    )
+    assert len(bases) == 10
+    assert traza["tope_sipa_max"] == "4691748.47"
+    assert "Resolución 257/2026" in traza["fuente_tope"]
+
+
 def test_periodo_sin_tope_oficial_no_se_estima():
     with pytest.raises(ValueError, match="topes oficiales"):
         calcular_bases_snapshot(
-            conceptos_funeraria(), "2026-09",
+            conceptos_funeraria(), "2026-10",
             {"detraccion_confirmada": True, "detraccion_ley_27541": 0},
         )
 

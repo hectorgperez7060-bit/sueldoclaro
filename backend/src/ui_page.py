@@ -753,7 +753,7 @@ tr:last-child td{border-bottom:0}tbody tr:hover{background:#f8fcfb}
         <div class="cabecera-seccion"><h3 id="panelVersionTitulo">Versión</h3><button class="chico secundario" onclick="cerrarPanelVersion()">Cerrar</button></div>
         <p id="panelVersionMeta" style="font-size:.85rem;color:#4b5563"></p>
         <div class="aviso" id="panelVersionFaltantes" style="display:none"></div>
-        <div style="margin:10px 0;display:flex;gap:8px;flex-wrap:wrap"><button class="chico" onclick="descargarRecibosDeVersion()">Descargar recibos para firma</button><button class="chico secundario" onclick="controlarArcaVersion()">Controlar ARCA</button><button class="chico secundario" onclick="descargarArcaVersion()">Descargar TXT ARCA</button><button class="chico secundario" onclick="descargarMapaArcaVersion()">Mapa de conceptos ARCA</button><button class="chico secundario" id="btnSoecraVersion" onclick="descargarSoecraVersion()">Planilla SOECRA</button></div>
+        <div style="margin:10px 0;display:flex;gap:8px;flex-wrap:wrap"><button class="chico" onclick="descargarRecibosDeVersion()">Descargar recibos para firma</button><button class="chico secundario" onclick="controlarArcaVersion()">Controlar ARCA</button><button class="chico secundario" onclick="descargarArcaVersion()">Descargar TXT ARCA</button><button class="chico secundario" onclick="descargarMapaArcaVersion()">Mapa de conceptos ARCA</button><button class="chico secundario" onclick="descargarSindicalVersion()">Boletas sindicales (CSV)</button><button class="chico secundario" id="btnSoecraVersion" onclick="descargarSoecraVersion()">Planilla SOECRA</button></div>
         <div class="fila" style="max-width:520px;margin:8px 0"><div><label>Fecha de pago para ARCA</label><input id="fechaArcaPago" type="date"></div><div><label>Fecha de rúbrica (si corresponde)</label><input id="fechaArcaRubrica" type="date"></div></div>
         <div class="error" id="arcaDescargaError"></div>
         <table id="tablaVersionDetalle" class="tabla-movil"><thead><tr><th>Empleado</th><th class="num">Bruto</th><th class="num">Descuentos</th><th class="num">Neto</th><th>Conceptos</th><th></th></tr></thead><tbody></tbody></table>
@@ -2182,6 +2182,15 @@ async function descargarSoecraVersion(){
   }catch(e){ alert(e.message); }
 }
 
+async function descargarSindicalVersion(){
+  if(!versionAbierta) return;
+  try{
+    const r=await fetchAutenticado('/exportaciones/carpetas/'+versionAbierta+'/sindical.csv');
+    if(!r.ok) throw new Error(await mensajeErrorDescarga(r,'No se pudo generar la planilla sindical'));
+    descargarBlob(r,await r.blob(),'boletas-sindicales.csv');
+  }catch(e){ alert(e.message); }
+}
+
 function cerrarPanelVersion(){ $('panelVersion').style.display='none'; versionAbierta=null; }
 
 function verConceptosVersion(empleadoId){
@@ -3094,13 +3103,12 @@ const CS_MISMO_CONCEPTO = {
   CONTRIB_OBRA_SOCIAL_ART92TER:'CONTRIB_OBRA_SOCIAL',
 };
 const csCodigo = codigo => CS_MISMO_CONCEPTO[codigo] || codigo;
-const CS_CONTRIB = {CONTRIB_JUBILACION:'Contribución jubilatoria', CONTRIB_SEGURIDAD_SOCIAL:'Contribuciones patronales seguridad social', CONTRIB_OBRA_SOCIAL:'Contribución obra social', CONTRIB_INSSJP:'Contribución INSSJP/PAMI', CONTRIB_ASIG_FAM:'Contribución asignaciones familiares'};
+const CS_CONTRIB = {CONTRIB_JUBILACION:'Contribución jubilatoria', CONTRIB_SEGURIDAD_SOCIAL:'Contribuciones patronales seguridad social', CONTRIB_OBRA_SOCIAL:'Contribución obra social', CONTRIB_INSSJP:'Contribución INSSJP/PAMI', CONTRIB_ASIG_FAM:'Contribución asignaciones familiares', ART_CONTRATO:'ART según contrato del establecimiento'};
 
 // Contribuciones que existen en el recibo pero NO van al F.931: se pagan por
 // otra vía, cada una a su destino. Se enumeran para poder distinguirlas de una
 // contribución que el resumen no conoce, que es un error y no un descarte.
 const CS_CONTRIB_FUERA_F931 = {
-  ART_CONTRATO:'Cuota de ART',
   CONTRIB_EMPRESARIA_UOCRA:'Contribución empresaria UOCRA',
   FONDO_CESE_LABORAL:'Fondo de Cese Laboral',
   SEGURO_VIDA_SEPELIO_UOM_EMP:'Seguro de vida y sepelio UOM',
@@ -3122,6 +3130,7 @@ function resumenF931(d){
   });
   const totAp = Object.values(ap).reduce((a,b)=>a+b,0);
   const totCo = Object.values(co).reduce((a,b)=>a+b,0);
+  const tieneArt = Object.prototype.hasOwnProperty.call(co,'ART_CONTRATO');
   let fAp = Object.keys(CS_APORTES).filter(k=>ap[k]).map(k=>`<tr><td>${CS_APORTES[k]}</td><td class="num">$ ${fmt(ap[k])}</td></tr>`).join('');
   let fCo = Object.keys(CS_CONTRIB).filter(k=>co[k]).map(k=>`<tr><td>${CS_CONTRIB[k]}</td><td class="num">$ ${fmt(co[k])}</td></tr>`).join('');
   return `<div class="tarjeta" style="border:2px solid var(--verde);margin-top:20px">
@@ -3136,8 +3145,8 @@ function resumenF931(d){
         <b style="color:#dc2626">Hay contribuciones que este resumen no sabe clasificar</b><br>
         ${Object.keys(desconocidas).map(k=>`${esc(k)}: $ ${fmt(desconocidas[k])}`).join('<br>')}<br>
         No están sumadas en el subtotal de abajo. Revisalas antes de pagar el F.931.</div>` : ''}
-      <span style="font-size:.8rem;color:#6b7280">La cuota sindical, el Fondo de Cese y la contribución empresaria del convenio van por boleta aparte, cada una a su destino. Este subtotal todavía no incluye ART ni otros datos contractuales pendientes.</span>
-      <span class="neto" style="color:#b45309">Subtotal calculado — falta ART: $ ${fmt(totAp+totCo)}</span>
+      <span style="font-size:.8rem;color:#6b7280">La cuota sindical, el Fondo de Cese y las demás obligaciones del convenio van por boleta aparte. La ART contractual integra este cálculo; al validar la declaración, ARCA incorpora automáticamente el FFEP.</span>
+      <span class="neto" style="color:${tieneArt?'var(--verde)':'#b45309'}">${tieneArt?'Total calculado para F.931 (ARCA agrega FFEP)':'Total sin ART: cargá el contrato del establecimiento'}: $ ${fmt(totAp+totCo)}</span>
     </div>
   </div>`;
 }
@@ -3146,6 +3155,7 @@ function resumenSindical(d){
   const grupos={};
   d.detalles.forEach(det=>{
     det.conceptos.forEach(c=>{
+      if(c.codigo==='ART_CONTRATO') return;
       if(!c.destino_pago || !c.codigo_boleta) return;
       const filial=det.filial_sindical||'';
       const localidad=det.localidad||'';
@@ -3171,7 +3181,7 @@ function resumenSindical(d){
   </div>`;
   let items=lista.map(g=>`<div class="detalle" style="margin-top:10px">
     <b>${g.destino}</b> <span class="etiqueta">CCT ${g.cct}</span>
-    <div style="margin-top:6px"><b>Boleta:</b> ${g.boleta}</div>
+    <div style="margin-top:6px"><b>Tipo de boleta:</b> ${g.boleta}</div>
     ${g.filial?`<div><b>Filial:</b> ${g.filial}</div>`:''}
     ${g.localidad?`<div><b>Localidad:</b> ${g.localidad}</div>`:''}
     ${g.canal?`<div><b>Canal oficial:</b> ${g.url?`<a href="${g.url}" target="_blank" rel="noopener">${g.canal}</a>`:g.canal}</div>`:''}
@@ -3182,7 +3192,7 @@ function resumenSindical(d){
   </div>`).join('');
   return `<div class="tarjeta" style="margin-top:20px;border:2px solid var(--verde)">
     <h2>Obligaciones sindicales agrupadas</h2>
-    <p style="font-size:.85rem;color:#6b7280">Control previo. No es una boleta presentable hasta incorporar y verificar el formulario oficial del gremio.</p>
+    <p style="font-size:.85rem;color:#6b7280">Importes calculados y agrupados para cargar en el canal oficial. Al emitirla, el portal del gremio asigna el número definitivo y confirma el vencimiento.</p>
     ${items}
   </div>`;
 }

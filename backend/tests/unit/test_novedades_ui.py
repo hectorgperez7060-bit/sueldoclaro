@@ -35,10 +35,11 @@ def test_ui_muestra_historial_de_carpetas_mensuales_solo_lectura():
     assert "(c.hash_sha256||'').slice(0,12)" in HTML
 
 
-def test_ui_muestra_obligaciones_sindicales_sin_presentarlas_como_boleta_oficial():
+def test_ui_muestra_importes_sindicales_listos_para_el_canal_oficial():
     assert "function resumenSindical(d)" in HTML
     assert "Obligaciones sindicales agrupadas" in HTML
-    assert "No es una boleta presentable" in HTML
+    assert "Importes calculados y agrupados para cargar en el canal oficial" in HTML
+    assert "el portal del gremio asigna el número definitivo" in HTML
     assert "No se generó ningún pago por suposición" in HTML
 
 

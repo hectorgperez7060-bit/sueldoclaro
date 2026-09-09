@@ -18,6 +18,11 @@ def agrupar_obligaciones_sindicales(detalles: list[dict]) -> list[dict]:
         localidad = detalle.get("localidad") or ""
         empleado_id = str(detalle.get("empleado_id") or "")
         for concepto in detalle.get("conceptos", []):
+            # La ART integra la declaración F.931. Carpetas creadas antes de
+            # separar ambos circuitos podían traer destino/código "ART" y no
+            # deben convertirla en una obligación sindical.
+            if str(concepto.get("codigo") or "") == "ART_CONTRATO":
+                continue
             destino = (concepto.get("destino_pago") or "").strip()
             codigo_boleta = (concepto.get("codigo_boleta") or "").strip()
             if not destino or not codigo_boleta:
