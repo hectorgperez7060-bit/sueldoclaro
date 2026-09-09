@@ -11,6 +11,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import Response
 
 from api.dependencies.auth import Principal, require_rol
+from domain.entities.boleta_sindical import agrupar_obligaciones_sindicales
 from infrastructure.database import models as m
 from infrastructure.database.session import tenant_session
 from infrastructure.lsd.bases_snapshot import codigo_empleador, codigo_tipo_arca
@@ -44,6 +45,43 @@ def _unidad_lsd(valor: str) -> str:
 def _datos(carpeta: m.CarpetaMensual):
     contenido = carpeta.contenido or {}
     return contenido, contenido.get("snapshot_parametros", {}), contenido.get("detalles", [])
+
+
+def construir_planilla_sindical(
+    contenido: dict, periodo: str, version: int,
+) -> bytes:
+    """CSV multigremio con los importes ya calculados, sin recalcularlos."""
+    grupos = contenido.get("obligaciones_sindicales")
+    if grupos is None:
+        grupos = agrupar_obligaciones_sindicales(contenido.get("detalles", []))
+    if not grupos:
+        raise ValueError("La carpeta no contiene obligaciones sindicales")
+
+    snapshot = contenido.get("snapshot_parametros", {})
+    empresa = snapshot.get("empresa", {})
+    out = io.StringIO(newline="")
+    writer = csv.writer(out, delimiter=";")
+    writer.writerow([
+        "periodo", "version", "cuit_empleador", "razon_social", "cct",
+        "destino", "tipo_boleta", "filial", "localidad", "empleados",
+        "conceptos", "importe_total", "canal_oficial", "url_oficial",
+        "regla_vencimiento", "fuente",
+    ])
+    for grupo in grupos:
+        conceptos = " | ".join(
+            f"{codigo}: {importe}"
+            for codigo, importe in sorted((grupo.get("conceptos") or {}).items())
+        )
+        writer.writerow([
+            periodo, version, empresa.get("cuit", ""), empresa.get("razon_social", ""),
+            grupo.get("cct_numero", ""), grupo.get("destino_pago", ""),
+            grupo.get("codigo_boleta", ""), grupo.get("filial_sindical", ""),
+            grupo.get("localidad", ""), grupo.get("cantidad_empleados", 0),
+            conceptos, grupo.get("importe", "0.00"), grupo.get("canal_pago", ""),
+            grupo.get("url_pago", ""), grupo.get("regla_vencimiento", ""),
+            grupo.get("fuente_pago", ""),
+        ])
+    return ("sep=;\r\n" + out.getvalue()).encode("utf-8-sig")
 
 
 async def _carpeta(s, carpeta_id: str) -> m.CarpetaMensual:
@@ -280,4 +318,23 @@ async def planilla_soecra(carpeta_id: str, principal: Principal = _ROLES):
                 "X-Sueldo-Claro-Documento": "control-no-oficial",
                 "X-SOECRA-DDJJ": _URL_SOECRA,
             },
+        )
+
+
+@router.get("/carpetas/{carpeta_id}/sindical.csv")
+async def planilla_sindical(carpeta_id: str, principal: Principal = _ROLES):
+    """Totales listos para cargar en el canal oficial de cada gremio."""
+    async with tenant_session(principal.tenant_id) as s:
+        carpeta = await _carpeta(s, carpeta_id)
+        try:
+            contenido = construir_planilla_sindical(
+                carpeta.contenido or {}, carpeta.periodo, carpeta.version,
+            )
+        except ValueError as exc:
+            raise HTTPException(status.HTTP_409_CONFLICT, str(exc)) from exc
+        return Response(
+            contenido, media_type="text/csv; charset=utf-8",
+            headers={"Content-Disposition": (
+                f'attachment; filename="boletas-sindicales-{carpeta.periodo}-v{carpeta.version}.csv"'
+            )},
         )

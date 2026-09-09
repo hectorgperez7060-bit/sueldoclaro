@@ -50,6 +50,16 @@ def test_concepto_sin_destino_no_se_inventa_como_sindical():
     }]) == []
 
 
+def test_art_no_se_mezcla_con_las_boletas_sindicales_aunque_una_carpeta_vieja_tenga_destino():
+    assert agrupar_obligaciones_sindicales([{
+        "empleado_id": "e1", "cct_numero": "414/05",
+        "conceptos": [{
+            "codigo": "ART_CONTRATO", "importe": "25000.00",
+            "destino_pago": "Provincia ART", "codigo_boleta": "ART",
+        }],
+    }]) == []
+
+
 def test_boleta_conserva_canal_oficial_y_regla_de_vencimiento():
     grupos = agrupar_obligaciones_sindicales([_detalle(
         "e1", "414/05", "ADEF", "ADEF_APORTES", "20000.00",

@@ -244,7 +244,7 @@ tr:last-child td{border-bottom:0}tbody tr:hover{background:#f8fcfb}
         <nav class="navegacion">
           <button class="activo" onclick="irA('seccionInicio',this)"><span class="icono">🏠</span>Inicio</button>
           <button onclick="irA('seccionEmpresas',this)"><span class="icono">🏢</span><span id="navEmpresas">Empresas</span></button>
-          <button onclick="irA('seccionConvenios',this);cargarGestorNormativo()"><span class="icono">📚</span>Convenios y escalas</button>
+          <button onclick="irA('seccionConvenios',this)"><span class="icono">📚</span>Convenios y escalas</button>
           <button onclick="irA('seccionEstablecimientos',this)"><span class="icono">📍</span>Establecimientos</button>
           <button onclick="irA('seccionEmpleados',this)"><span class="icono">👥</span>Empleados</button>
           <button onclick="irA('seccionNovedades',this)"><span class="icono">🗓</span>Novedades</button>
@@ -260,6 +260,7 @@ tr:last-child td{border-bottom:0}tbody tr:hover{background:#f8fcfb}
       <main class="contenido-app">
         <button id="botonMenu" class="boton-menu secundario" onclick="alternarMenu()" aria-expanded="false">☰ Menú</button>
         <div class="contexto-empresa"><span><b id="empresaNombreActiva">Empresa</b><br><small>Los empleados y liquidaciones visibles pertenecen únicamente a esta empresa.</small></span><span id="empresaRol" class="etiqueta"></span></div>
+        <div id="estadoCargaApp" role="status" aria-live="polite" style="display:none;align-items:center;gap:8px;margin:0 0 10px;padding:9px 12px;border:1px solid #b9d9d4;border-radius:9px;background:#f2fbf9;color:#245b54;font-size:.84rem;font-weight:700"></div>
         <div class="pasos" aria-label="Camino de trabajo"><div class="paso activo"><b>1</b>Cliente / grupo</div><div class="paso activo"><b>2</b>Sociedad / CUIT</div><div class="paso"><b>3</b>Establecimiento</div><div class="paso"><b>4</b>Empleado</div><div class="paso"><b>5</b>Novedades</div><div class="paso"><b>6</b>Liquidación</div><div class="paso"><b>7</b>Recibo</div></div>
         <div id="nuevaEmpresa" class="tarjeta" style="display:none">
           <div class="cabecera-seccion"><h2>Nueva empresa o cliente</h2><button class="chico secundario" onclick="mostrarNuevaEmpresa(false)">Cerrar</button></div>
@@ -290,6 +291,11 @@ tr:last-child td{border-bottom:0}tbody tr:hover{background:#f8fcfb}
           <div id="kpiPendientes" style="font-size:1.7rem;font-weight:800;color:var(--verde);margin-top:2px;line-height:1">—</div>
           <div id="kpiEstadoLiq" style="font-size:.78rem;color:#6b7280;margin-top:3px"></div>
         </div>
+      </div>
+
+      <div id="siguientePaso" style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:14px;padding:14px;border:2px solid #5fb8aa;border-radius:12px;background:#f2fbf9">
+        <div><small style="display:block;color:#52706d;font-weight:700;text-transform:uppercase">Tu próximo paso</small><strong id="siguientePasoTitulo">Preparando la empresa…</strong><div id="siguientePasoAyuda" style="font-size:.82rem;color:#52706d;margin-top:2px"></div></div>
+        <button id="siguientePasoBoton" type="button" class="chico">Continuar</button>
       </div>
 
       <section class="mapa-uso" aria-labelledby="tituloMapaUso">
@@ -722,7 +728,7 @@ tr:last-child td{border-bottom:0}tbody tr:hover{background:#f8fcfb}
     <div class="tarjeta seccion-app" id="seccionLiquidar">
       <h2>Liquidar sueldos</h2>
       <div class="fila">
-        <div><label>Mes a liquidar</label><input id="periodo" type="month" onchange="cargarConvenios();cargarCarpetas();mostrarEstadoNormativo()"></div>
+        <div><label>Mes a liquidar</label><input id="periodo" type="month" onchange="cargarConvenios();mostrarEstadoNormativo()"></div>
         <div style="display:flex;align-items:end"><button onclick="liquidar()" style="width:100%">Liquidar todos los empleados</button></div>
       </div>
       <div id="estadoNormativo" style="margin-top:12px;font-size:.9rem"></div>
@@ -747,7 +753,7 @@ tr:last-child td{border-bottom:0}tbody tr:hover{background:#f8fcfb}
         <div class="cabecera-seccion"><h3 id="panelVersionTitulo">Versión</h3><button class="chico secundario" onclick="cerrarPanelVersion()">Cerrar</button></div>
         <p id="panelVersionMeta" style="font-size:.85rem;color:#4b5563"></p>
         <div class="aviso" id="panelVersionFaltantes" style="display:none"></div>
-        <div style="margin:10px 0;display:flex;gap:8px;flex-wrap:wrap"><button class="chico" onclick="descargarRecibosDeVersion()">Descargar recibos para firma</button><button class="chico secundario" onclick="controlarArcaVersion()">Controlar ARCA</button><button class="chico secundario" onclick="descargarArcaVersion()">Descargar TXT ARCA</button><button class="chico secundario" onclick="descargarMapaArcaVersion()">Mapa de conceptos ARCA</button><button class="chico secundario" id="btnSoecraVersion" onclick="descargarSoecraVersion()">Planilla SOECRA</button></div>
+        <div style="margin:10px 0;display:flex;gap:8px;flex-wrap:wrap"><button class="chico" onclick="descargarRecibosDeVersion()">Descargar recibos para firma</button><button class="chico secundario" onclick="controlarArcaVersion()">Controlar ARCA</button><button class="chico secundario" onclick="descargarArcaVersion()">Descargar TXT ARCA</button><button class="chico secundario" onclick="descargarMapaArcaVersion()">Mapa de conceptos ARCA</button><button class="chico secundario" onclick="descargarSindicalVersion()">Boletas sindicales (CSV)</button><button class="chico secundario" id="btnSoecraVersion" onclick="descargarSoecraVersion()">Planilla SOECRA</button></div>
         <div class="fila" style="max-width:520px;margin:8px 0"><div><label>Fecha de pago para ARCA</label><input id="fechaArcaPago" type="date"></div><div><label>Fecha de rúbrica (si corresponde)</label><input id="fechaArcaRubrica" type="date"></div></div>
         <div class="error" id="arcaDescargaError"></div>
         <table id="tablaVersionDetalle" class="tabla-movil"><thead><tr><th>Empleado</th><th class="num">Bruto</th><th class="num">Descuentos</th><th class="num">Neto</th><th>Conceptos</th><th></th></tr></thead><tbody></tbody></table>
@@ -1036,6 +1042,24 @@ function guardarCredenciales(d){
   localStorage.setItem('sc_refresh', d.refresh_token);
   if(d.tenant_id) localStorage.setItem('sc_tenant',d.tenant_id);
 }
+
+// Los datos de ayuda que se guardan en el dispositivo pertenecen a una sola
+// empresa. Antes se usaban claves globales y, al cambiar de CUIT, podían
+// aparecer como sugerencia los datos de la empresa anterior.
+const CLAVES_EMPRESA_LOCALES=[
+  'sc_empresa_domicilio','sc_fecha_pago_hist','sc_lugar_pago','sc_forma_pago',
+  'sc_fecha_cargas','sc_periodo_cargas','sc_banco_cargas',
+];
+function claveDatoEmpresa(clave){
+  const tenant=localStorage.getItem('sc_tenant')||'sin_empresa';
+  return `sc_${tenant}_${String(clave).replace(/^sc_/,'')}`;
+}
+function datoEmpresaLeer(clave){ return localStorage.getItem(claveDatoEmpresa(clave))||''; }
+function datoEmpresaGuardar(clave,valor){ localStorage.setItem(claveDatoEmpresa(clave),valor); }
+function descartarClavesEmpresaGlobales(){
+  CLAVES_EMPRESA_LOCALES.forEach(clave=>localStorage.removeItem(clave));
+  localStorage.removeItem('sc_borrador');
+}
 function guardarSesion(d){
   guardarCredenciales(d);
   entrar();
@@ -1068,17 +1092,18 @@ function salir(aviso){
 // --- Borrador: lo que se escribe queda guardado en este dispositivo ---------
 // Si la sesion se corta, se cierra la pestana o se va el internet, al volver
 // los campos vacios se recuperan solos. Nunca pisa un dato ya cargado.
-const BORRADOR_CLAVE='sc_borrador';
 const BORRADOR_VIDA_MS=24*60*60*1000;
 const BORRADOR_EXCLUIDOS=/^(li|rz)/;
+function claveBorrador(){ return claveDatoEmpresa('sc_borrador'); }
 
 function borradorLeer(){
   try{
-    const crudo=localStorage.getItem(BORRADOR_CLAVE);
+    const clave=claveBorrador();
+    const crudo=localStorage.getItem(clave);
     if(!crudo) return {campos:{},ts:0};
     const d=JSON.parse(crudo);
     if(!d||typeof d!=='object'||!d.campos) return {campos:{},ts:0};
-    if(Date.now()-(d.ts||0)>BORRADOR_VIDA_MS){ localStorage.removeItem(BORRADOR_CLAVE); return {campos:{},ts:0}; }
+    if(Date.now()-(d.ts||0)>BORRADOR_VIDA_MS){ localStorage.removeItem(clave); return {campos:{},ts:0}; }
     return d;
   }catch(e){ return {campos:{},ts:0}; }
 }
@@ -1093,12 +1118,13 @@ function borradorGuardable(el){
 let borradorPendiente=null;
 function borradorAnotar(el){
   if(!borradorGuardable(el)) return;
+  const clave=claveBorrador();
   const d=borradorLeer();
   d.campos[el.id]=el.type==='checkbox'?!!el.checked:el.value;
   d.ts=Date.now();
   clearTimeout(borradorPendiente);
   borradorPendiente=setTimeout(()=>{
-    try{ localStorage.setItem(BORRADOR_CLAVE, JSON.stringify(d)); }catch(e){}
+    try{ localStorage.setItem(clave, JSON.stringify(d)); }catch(e){}
   },300);
 }
 
@@ -1162,6 +1188,38 @@ const CARGA_SECCION = {
   seccionHistorial: ()=>cargarCarpetas(),
 };
 let seccionActual = 'seccionInicio';
+let datosBaseCargando = false;
+let versionCargaVisible = 0;
+let temporizadorCargaVisible = null;
+const NOMBRE_SECCION = {
+  seccionInicio:'el inicio', seccionEmpresas:'las empresas',
+  seccionConvenios:'los convenios', seccionEstablecimientos:'los establecimientos',
+  seccionEmpleados:'los empleados', seccionNovedades:'las novedades',
+  seccionLiquidar:'la liquidación', seccionHistorial:'el historial',
+};
+
+function mostrarCargaApp(texto){
+  const estado=$('estadoCargaApp'); if(!estado) return;
+  if(temporizadorCargaVisible){clearTimeout(temporizadorCargaVisible);temporizadorCargaVisible=null;}
+  estado.textContent='⏳ '+texto;
+  estado.style.display='flex';
+}
+
+function completarCargaApp(){
+  const estado=$('estadoCargaApp'); if(!estado) return;
+  estado.textContent='✓ Listo';
+  temporizadorCargaVisible=setTimeout(()=>{estado.style.display='none';},700);
+}
+
+async function cargarSeccion(id){
+  const carga=CARGA_SECCION[id];
+  if(!carga || !token() || datosBaseCargando) return false;
+  const version=++versionCargaVisible;
+  mostrarCargaApp('Cargando '+(NOMBRE_SECCION[id]||'la pantalla')+'…');
+  try{ await carga(); }
+  finally{ if(version===versionCargaVisible) completarCargaApp(); }
+  return true;
+}
 
 function irA(id,boton,actualizarHash=true){
   if(!HASH_POR_SECCION[id]) id='seccionInicio';
@@ -1179,8 +1237,7 @@ function irA(id,boton,actualizarHash=true){
   }
   cerrarMenu();
   window.scrollTo({top:0,behavior:'auto'});
-  const carga=CARGA_SECCION[id];
-  if(carga){ try{ carga(); }catch(e){} }
+  void cargarSeccion(id);
 }
 
 function seccionDelHash(){
@@ -1251,9 +1308,10 @@ async function cambiarEmpresa(tenantId){
   try{
     const d=await api('/auth/seleccionar-empresa','POST',{tenant_id:tenantId});
     guardarCredenciales(d);
-    cancelarEdicion(); cancelarNovedad(); ultimaLiq=null;
-    $('resultados').innerHTML='';
+    limpiarContextoEmpresa();
     await recargarEmpresaActiva();
+    const recuperados=restaurarBorrador();
+    if(recuperados) avisarBorradorRecuperado(recuperados);
   }catch(e){
     window.alert('No se pudo cambiar de empresa: '+e.message);
     await cargarEmpresas();
@@ -1268,6 +1326,7 @@ async function crearEmpresa(){
   try{
     const d=await api('/auth/empresas','POST',{razon_social:razon,cuit:cuit,grupo_cliente:$('nuevaEmpresaGrupo').value.trim()});
     guardarCredenciales(d);
+    limpiarContextoEmpresa();
     $('nuevaEmpresaGrupo').value=''; $('nuevaEmpresaRazon').value=''; $('nuevaEmpresaCuit').value='';
     mostrarNuevaEmpresa(false);
     await recargarEmpresaActiva();
@@ -1275,22 +1334,23 @@ async function crearEmpresa(){
 }
 
 async function recargarEmpresaActiva(){
-  const primeraTanda=await Promise.all([
-    cargarEmpresas(),
-    api('/empresa'),
-    cargarConvenios(),
-    cargarEstablecimientos(),
-    cargarEmpleados(),
-    cargarCarpetas(),
-    cargarEmpresasSeccion(),
-  ]);
-  empresaCache=primeraTanda[1];
-  await Promise.all([
-    cargarNovedades(),
-    mostrarEstadoNormativo(),
-    cargarInicio(),
-    cargarGestorNormativo(),
-  ]);
+  datosBaseCargando=true;
+  ++versionCargaVisible;
+  mostrarCargaApp('Preparando la empresa…');
+  try{
+    const datosBase=await Promise.all([
+      cargarEmpresas(),
+      api('/empresa'),
+      cargarConvenios(),
+      cargarEstablecimientos(),
+      cargarEmpleados(),
+    ]);
+    empresaCache=datosBase[1];
+  }finally{
+    datosBaseCargando=false;
+  }
+  const cargoPantalla=await cargarSeccion(seccionActual);
+  if(!cargoPantalla) completarCargaApp();
 }
 
 async function entrar(){
@@ -1302,11 +1362,13 @@ async function entrar(){
   $('periodoGestor').value = $('periodo').value;
   $('novPeriodo').value = $('periodo').value;
   // El menú y la sección son interfaz: no esperan consultas al servidor.
+  datosBaseCargando=true;
   aplicarHash();
   abrirMenuInicialEnTelefono();
   try{ await recargarEmpresaActiva(); }
   catch(e){ salir(e.message); return; }
   await cargarPerfilCuenta();
+  descartarClavesEmpresaGlobales();
   const recuperados=restaurarBorrador();
   if(recuperados) avisarBorradorRecuperado(recuperados);
 }
@@ -1483,6 +1545,28 @@ async function cargarGestorNormativo(){
   }catch(e){ mostrarError('gestorNormativoError',e.message); }
   finally{if(boton){boton.disabled=false;boton.textContent='Actualizar estado';}}
 }
+
+function mostrarSiguientePaso(nEmp, activos, estado){
+  let destino='seccionNovedades';
+  let titulo='Contá qué pasó este mes';
+  let ayuda='Cargá faltas, horas extra, feriados o vacaciones. Si no hubo cambios, podés seguir.';
+  let boton='Ir a novedades';
+  if(!activos){
+    destino='seccionEstablecimientos'; titulo='Primero cargá el lugar de trabajo';
+    ayuda='Ahí también se guardan los datos reales de la ART.'; boton='Agregar establecimiento';
+  }else if(!nEmp){
+    destino='seccionEmpleados'; titulo='Ahora agregá a los empleados';
+    ayuda='Podés cargarlos manualmente o importar la planilla Excel.'; boton='Agregar empleados';
+  }else if(estado==='Presentada'){
+    destino='seccionHistorial'; titulo='El mes ya fue presentado';
+    ayuda='Consultá los recibos y archivos guardados.'; boton='Ver recibos e historial';
+  }
+  $('siguientePasoTitulo').textContent=titulo;
+  $('siguientePasoAyuda').textContent=ayuda;
+  $('siguientePasoBoton').textContent=boton;
+  $('siguientePasoBoton').onclick=()=>irA(destino);
+}
+
 async function cargarInicio(){
   let emp=empresaCache; if(!emp||!emp.razon_social){ try{ emp=await api('/empresa'); }catch(e){ emp={razon_social:'',cuit:''}; } }
   $('kpiEmpresa').textContent=emp.razon_social||'—';
@@ -1503,6 +1587,7 @@ async function cargarInicio(){
   }catch(e){ /* período sin carpetas: queda Sin generar */ }
   $('kpiPendientes').textContent = nEmp ? pend : '—';
   $('kpiEstadoLiq').textContent = nEmp ? ('Mes '+periodo+' · '+estado) : 'Cargá empleados para liquidar';
+  mostrarSiguientePaso(nEmp, activos, estado);
 }
 
 const IDENTIDAD_CONVENIO={
@@ -2120,6 +2205,15 @@ async function descargarSoecraVersion(){
   }catch(e){ alert(e.message); }
 }
 
+async function descargarSindicalVersion(){
+  if(!versionAbierta) return;
+  try{
+    const r=await fetchAutenticado('/exportaciones/carpetas/'+versionAbierta+'/sindical.csv');
+    if(!r.ok) throw new Error(await mensajeErrorDescarga(r,'No se pudo generar la planilla sindical'));
+    descargarBlob(r,await r.blob(),'boletas-sindicales.csv');
+  }catch(e){ alert(e.message); }
+}
+
 function cerrarPanelVersion(){ $('panelVersion').style.display='none'; versionAbierta=null; }
 
 function verConceptosVersion(empleadoId){
@@ -2214,7 +2308,7 @@ async function pedirMetadatosRecibo(carpeta){
   if(metadatosRecibo && metadatosRecibo.carpeta===carpeta.id) return metadatosRecibo;
   const snap=(carpeta.contenido&&carpeta.contenido.snapshot_parametros)||{};
   const empresa=snap.empresa||{};
-  const guardado=k=>localStorage.getItem(k)||'';
+  const guardado=k=>datoEmpresaLeer(k);
   const campos=[];
   if(!empresa.razon_social) campos.push({id:'razon',etiqueta:'Razón social del empleador',
     valor:empresaCache.razon_social||'', ayuda:'No figura en esta carpeta'});
@@ -2239,13 +2333,13 @@ async function pedirMetadatosRecibo(carpeta){
     +'Quedan guardados en este dispositivo: la próxima vez ya vienen completos.',
     campos);
   if(!v) return null;
-  localStorage.setItem('sc_empresa_domicilio',v.domicilio);
-  localStorage.setItem('sc_fecha_pago_hist',v.fechaPago);
-  localStorage.setItem('sc_lugar_pago',v.lugarPago);
-  localStorage.setItem('sc_forma_pago',v.formaPago);
-  localStorage.setItem('sc_fecha_cargas',v.cargasFecha);
-  localStorage.setItem('sc_periodo_cargas',v.cargasPeriodo);
-  localStorage.setItem('sc_banco_cargas',v.cargasBanco);
+  datoEmpresaGuardar('sc_empresa_domicilio',v.domicilio);
+  datoEmpresaGuardar('sc_fecha_pago_hist',v.fechaPago);
+  datoEmpresaGuardar('sc_lugar_pago',v.lugarPago);
+  datoEmpresaGuardar('sc_forma_pago',v.formaPago);
+  datoEmpresaGuardar('sc_fecha_cargas',v.cargasFecha);
+  datoEmpresaGuardar('sc_periodo_cargas',v.cargasPeriodo);
+  datoEmpresaGuardar('sc_banco_cargas',v.cargasBanco);
   metadatosRecibo={
     carpeta:carpeta.id,
     razon: empresa.razon_social||v.razon,
@@ -2802,6 +2896,36 @@ function cancelarEdicion(){
   toggleCbu();
 }
 
+function limpiarContextoEmpresa(){
+  // Primero se limpian formularios y ediciones; después se descartan todas
+  // las copias en memoria y toda salida perteneciente al CUIT anterior.
+  cancelarEdicion();
+  cancelarNovedad();
+  cancelarEdicionEst();
+  cancelarVistaPreviaExcel();
+  empleadosCache={};
+  establecimientosCache={};
+  novedadesCache={};
+  carpetasCache={};
+  convenios=[];
+  empresaCache={razon_social:'',cuit:''};
+  ultimaLiq=null;
+  versionAbierta=null;
+  cierreActualId=null;
+  metadatosRecibo=null;
+  Object.keys(metadatosEmpleadoHistorico).forEach(k=>delete metadatosEmpleadoHistorico[k]);
+  ['tablaEstablecimientos','tablaEmpleados','tablaNovedades','tablaCarpetas',
+   'tablaVersionDetalle','tablaObligaciones'].forEach(id=>{
+    const cuerpo=$(id)?.querySelector('tbody'); if(cuerpo) cuerpo.innerHTML='';
+  });
+  ['resultados','estadoNormativo','listaGestorNormativo'].forEach(id=>{if($(id)) $(id).innerHTML='';});
+  if($('panelVersion')) $('panelVersion').style.display='none';
+  if($('panelCierre')) $('panelCierre').style.display='none';
+  if($('cierreObservaciones')) $('cierreObservaciones').value='';
+  if($('empresaRespaldoPatronal')) $('empresaRespaldoPatronal').value='';
+  if($('empresaMipymeHasta')) $('empresaMipymeHasta').value='';
+}
+
 async function borrarEmpleado(id, nombre){
   if(!confirm('¿Eliminar a '+(nombre||'este empleado')+'? Esta acción no se puede deshacer.')) return;
   try{
@@ -3032,13 +3156,12 @@ const CS_MISMO_CONCEPTO = {
   CONTRIB_OBRA_SOCIAL_ART92TER:'CONTRIB_OBRA_SOCIAL',
 };
 const csCodigo = codigo => CS_MISMO_CONCEPTO[codigo] || codigo;
-const CS_CONTRIB = {CONTRIB_JUBILACION:'Contribución jubilatoria', CONTRIB_SEGURIDAD_SOCIAL:'Contribuciones patronales seguridad social', CONTRIB_OBRA_SOCIAL:'Contribución obra social', CONTRIB_INSSJP:'Contribución INSSJP/PAMI', CONTRIB_ASIG_FAM:'Contribución asignaciones familiares'};
+const CS_CONTRIB = {CONTRIB_JUBILACION:'Contribución jubilatoria', CONTRIB_SEGURIDAD_SOCIAL:'Contribuciones patronales seguridad social', CONTRIB_OBRA_SOCIAL:'Contribución obra social', CONTRIB_INSSJP:'Contribución INSSJP/PAMI', CONTRIB_ASIG_FAM:'Contribución asignaciones familiares', ART_CONTRATO:'ART según contrato del establecimiento'};
 
 // Contribuciones que existen en el recibo pero NO van al F.931: se pagan por
 // otra vía, cada una a su destino. Se enumeran para poder distinguirlas de una
 // contribución que el resumen no conoce, que es un error y no un descarte.
 const CS_CONTRIB_FUERA_F931 = {
-  ART_CONTRATO:'Cuota de ART',
   CONTRIB_EMPRESARIA_UOCRA:'Contribución empresaria UOCRA',
   FONDO_CESE_LABORAL:'Fondo de Cese Laboral',
   SEGURO_VIDA_SEPELIO_UOM_EMP:'Seguro de vida y sepelio UOM',
@@ -3060,6 +3183,7 @@ function resumenF931(d){
   });
   const totAp = Object.values(ap).reduce((a,b)=>a+b,0);
   const totCo = Object.values(co).reduce((a,b)=>a+b,0);
+  const tieneArt = Object.prototype.hasOwnProperty.call(co,'ART_CONTRATO');
   let fAp = Object.keys(CS_APORTES).filter(k=>ap[k]).map(k=>`<tr><td>${CS_APORTES[k]}</td><td class="num">$ ${fmt(ap[k])}</td></tr>`).join('');
   let fCo = Object.keys(CS_CONTRIB).filter(k=>co[k]).map(k=>`<tr><td>${CS_CONTRIB[k]}</td><td class="num">$ ${fmt(co[k])}</td></tr>`).join('');
   return `<div class="tarjeta" style="border:2px solid var(--verde);margin-top:20px">
@@ -3074,8 +3198,8 @@ function resumenF931(d){
         <b style="color:#dc2626">Hay contribuciones que este resumen no sabe clasificar</b><br>
         ${Object.keys(desconocidas).map(k=>`${esc(k)}: $ ${fmt(desconocidas[k])}`).join('<br>')}<br>
         No están sumadas en el subtotal de abajo. Revisalas antes de pagar el F.931.</div>` : ''}
-      <span style="font-size:.8rem;color:#6b7280">La cuota sindical, el Fondo de Cese y la contribución empresaria del convenio van por boleta aparte, cada una a su destino. Este subtotal todavía no incluye ART ni otros datos contractuales pendientes.</span>
-      <span class="neto" style="color:#b45309">Subtotal calculado — falta ART: $ ${fmt(totAp+totCo)}</span>
+      <span style="font-size:.8rem;color:#6b7280">La cuota sindical, el Fondo de Cese y las demás obligaciones del convenio van por boleta aparte. La ART contractual integra este cálculo; al validar la declaración, ARCA incorpora automáticamente el FFEP.</span>
+      <span class="neto" style="color:${tieneArt?'var(--verde)':'#b45309'}">${tieneArt?'Total calculado para F.931 (ARCA agrega FFEP)':'Total sin ART: cargá el contrato del establecimiento'}: $ ${fmt(totAp+totCo)}</span>
     </div>
   </div>`;
 }
@@ -3084,6 +3208,7 @@ function resumenSindical(d){
   const grupos={};
   d.detalles.forEach(det=>{
     det.conceptos.forEach(c=>{
+      if(c.codigo==='ART_CONTRATO') return;
       if(!c.destino_pago || !c.codigo_boleta) return;
       const filial=det.filial_sindical||'';
       const localidad=det.localidad||'';
@@ -3109,7 +3234,7 @@ function resumenSindical(d){
   </div>`;
   let items=lista.map(g=>`<div class="detalle" style="margin-top:10px">
     <b>${g.destino}</b> <span class="etiqueta">CCT ${g.cct}</span>
-    <div style="margin-top:6px"><b>Boleta:</b> ${g.boleta}</div>
+    <div style="margin-top:6px"><b>Tipo de boleta:</b> ${g.boleta}</div>
     ${g.filial?`<div><b>Filial:</b> ${g.filial}</div>`:''}
     ${g.localidad?`<div><b>Localidad:</b> ${g.localidad}</div>`:''}
     ${g.canal?`<div><b>Canal oficial:</b> ${g.url?`<a href="${g.url}" target="_blank" rel="noopener">${g.canal}</a>`:g.canal}</div>`:''}
@@ -3120,7 +3245,7 @@ function resumenSindical(d){
   </div>`).join('');
   return `<div class="tarjeta" style="margin-top:20px;border:2px solid var(--verde)">
     <h2>Obligaciones sindicales agrupadas</h2>
-    <p style="font-size:.85rem;color:#6b7280">Control previo. No es una boleta presentable hasta incorporar y verificar el formulario oficial del gremio.</p>
+    <p style="font-size:.85rem;color:#6b7280">Importes calculados y agrupados para cargar en el canal oficial. Al emitirla, el portal del gremio asigna el número definitivo y confirma el vencimiento.</p>
     ${items}
   </div>`;
 }
@@ -3375,13 +3500,13 @@ function abrirDatosRecibo(empId){
     <b style="color:var(--verde)">Emitir recibo por el empleador</b>
     <p style="font-size:.82rem;color:#52706d;margin:4px 0 10px">Completá los datos marcados. Se generará el ejemplar para firmar y entregar al trabajador; no necesita aprobación previa de un contador.</p>
     <div class="fila">
-      <div><label>Domicilio legal del empleador *</label><input id="recDomicilio-${empId}" value="${esc(localStorage.getItem('sc_empresa_domicilio')||'')}"></div>
+      <div><label>Domicilio legal del empleador *</label><input id="recDomicilio-${empId}" value="${esc(datoEmpresaLeer('sc_empresa_domicilio'))}"></div>
       <div><label>Fecha efectiva de pago *</label><input id="recFecha-${empId}" type="date" value="${new Date().toISOString().slice(0,10)}"></div>
-      <div><label>Lugar de pago *</label><input id="recLugar-${empId}" value="${esc(emp.lugar_trabajo||localStorage.getItem('sc_lugar_pago')||'')}"></div>
-      <div><label>Forma de pago *</label><input id="recForma-${empId}" value="${esc(formasPago[emp.forma_pago]||localStorage.getItem('sc_forma_pago')||'')}"></div>
-      <div><label>Fecha del último depósito de aportes *</label><input id="recCargasFecha-${empId}" type="date" value="${esc(localStorage.getItem('sc_fecha_cargas')||'')}"></div>
-      <div><label>Período de ese depósito *</label><input id="recCargasPeriodo-${empId}" type="month" value="${esc(localStorage.getItem('sc_periodo_cargas')||'')}"></div>
-      <div><label>Banco o entidad del depósito *</label><input id="recCargasBanco-${empId}" value="${esc(localStorage.getItem('sc_banco_cargas')||'')}"></div>
+      <div><label>Lugar de pago *</label><input id="recLugar-${empId}" value="${esc(emp.lugar_trabajo||datoEmpresaLeer('sc_lugar_pago'))}"></div>
+      <div><label>Forma de pago *</label><input id="recForma-${empId}" value="${esc(formasPago[emp.forma_pago]||datoEmpresaLeer('sc_forma_pago'))}"></div>
+      <div><label>Fecha del último depósito de aportes *</label><input id="recCargasFecha-${empId}" type="date" value="${esc(datoEmpresaLeer('sc_fecha_cargas'))}"></div>
+      <div><label>Período de ese depósito *</label><input id="recCargasPeriodo-${empId}" type="month" value="${esc(datoEmpresaLeer('sc_periodo_cargas'))}"></div>
+      <div><label>Banco o entidad del depósito *</label><input id="recCargasBanco-${empId}" value="${esc(datoEmpresaLeer('sc_banco_cargas'))}"></div>
     </div>
     ${artCalculada?`<div style="margin:10px 0;padding:9px;border:1px solid #86c8be;border-radius:8px;background:#e7f5f2"><b>ART ya incluida:</b> ${esc(artCalculada.descripcion)} · $ ${fmt(artCalculada.importe)}</div>`:`<div style="margin:10px 0;padding:10px;border:1px solid #b9d9d4;border-radius:8px;background:#fff"><b>ART de este trabajador *</b><p style="font-size:.82rem;color:#4b5563;margin:5px 0 8px">Copiá el importe individual exacto de la póliza, factura o detalle mensual. Si sólo tenés un porcentaje y una suma fija, no los multipliques a ojo: pedí a la ART el detalle por trabajador.</p><div class="fila"><div><label>Aseguradora *</label><input id="recArtAseguradora-${empId}" value="${esc(localStorage.getItem(claveArt(empId,'aseguradora'))||'')}"></div><div><label>Importe mensual individual *</label><input id="recArtImporte-${empId}" type="number" min="0.01" step="0.01" value="${esc(localStorage.getItem(claveArt(empId,'importe'))||'')}"></div><div><label>Póliza, factura o referencia *</label><input id="recArtReferencia-${empId}" value="${esc(localStorage.getItem(claveArt(empId,'referencia'))||'')}"></div></div></div>`}
     <div id="recError-${empId}" class="error"></div>
@@ -3415,12 +3540,12 @@ async function descargarReciboPdf(empId, reintento=true){
   if(!artCalculada&&(!artAseguradora||artImporte<=0||!artReferencia)){
     mostrarError('recError-'+empId,'Completá aseguradora, importe individual y referencia de ART.'); return;
   }
-  localStorage.setItem('sc_empresa_domicilio',domicilioEmpresa);
-  localStorage.setItem('sc_lugar_pago',lugarPago);
-  localStorage.setItem('sc_forma_pago',formaPago);
-  localStorage.setItem('sc_fecha_cargas',fechaCargas);
-  localStorage.setItem('sc_periodo_cargas',periodoCargas);
-  localStorage.setItem('sc_banco_cargas',bancoCargas);
+  datoEmpresaGuardar('sc_empresa_domicilio',domicilioEmpresa);
+  datoEmpresaGuardar('sc_lugar_pago',lugarPago);
+  datoEmpresaGuardar('sc_forma_pago',formaPago);
+  datoEmpresaGuardar('sc_fecha_cargas',fechaCargas);
+  datoEmpresaGuardar('sc_periodo_cargas',periodoCargas);
+  datoEmpresaGuardar('sc_banco_cargas',bancoCargas);
   if(!artCalculada){
     localStorage.setItem(claveArt(empId,'aseguradora'),artAseguradora);
     localStorage.setItem(claveArt(empId,'importe'),String(artImporte));

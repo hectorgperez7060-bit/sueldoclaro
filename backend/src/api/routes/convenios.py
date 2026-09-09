@@ -287,7 +287,7 @@ def _estado_item(
 ) -> dict:
     problemas = []
     if not verificado:
-        problemas.append("pendiente de aprobación profesional")
+        problemas.append("dato pendiente de confirmar contra la fuente publicada")
     if not (fuente or "").strip():
         problemas.append("fuente legal faltante")
     if not habilitado:

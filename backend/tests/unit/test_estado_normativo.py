@@ -11,10 +11,10 @@ def test_periodo_normativo_estricto():
             _fecha_periodo(invalido)
 
 
-def test_regla_no_aprobada_y_sin_fuente_informa_ambos_problemas():
+def test_regla_no_confirmada_y_sin_fuente_informa_ambos_problemas():
     item = _estado_item("parametro", "APORTE_X", False, "")
     assert not item["verificado"]
-    assert "pendiente de aprobación profesional" in item["problemas"]
+    assert "dato pendiente de confirmar contra la fuente publicada" in item["problemas"]
     assert "fuente legal faltante" in item["problemas"]
 
 

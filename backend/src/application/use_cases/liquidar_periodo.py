@@ -995,8 +995,8 @@ class LiquidarPeriodo:
                         "regimen": Regimen.NO_APLICA.value,
                         "cantidad": "1", "base_calculo": str(res.bruto.redondear().monto),
                         "unidad": cuota_art.detalle,
-                        "articulo_amparo": "", "destino_pago": establecimiento.art_nombre or "",
-                        "codigo_boleta": "ART", "canal_pago": None, "url_pago": None,
+                        "articulo_amparo": "", "destino_pago": None,
+                        "codigo_boleta": None, "canal_pago": None, "url_pago": None,
                         "regla_vencimiento": None,
                         "fuente_pago": establecimiento.art_comprobante_ref or "",
                     })

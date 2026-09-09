@@ -15,6 +15,10 @@ TOPES_SIPA_MAX = {
         Decimal("4594798.23"),
         "ANSES Resolución 232/2026, base imponible máxima agosto 2026",
     ),
+    "2026-09": (
+        Decimal("4691748.47"),
+        "ANSES Resolución 257/2026, base imponible máxima septiembre 2026",
+    ),
 }
 
 
@@ -22,7 +26,10 @@ def _info(codigo: str):
     info = concepto_arca(codigo)
     if info is not None:
         return info
-    if codigo.startswith(("APORTE_SOLIDARIO_SOECRA_", "CUOTA_SINDICAL_SOECRA_")):
+    if codigo.startswith((
+        "APORTE_SOLIDARIO_SOECRA_", "CUOTA_SINDICAL_SOECRA_",
+        "APORTE_ADEF_", "CUOTA_SINDICAL_ART47_414/05",
+    )):
         return {
             "grupo": GrupoARCA.DESCUENTO, "codigo_tipo_arca": "820000",
             "integra_os": False, "integra_lrt": False, "verificado": True,
@@ -62,6 +69,10 @@ def codigo_empleador(codigo: str) -> str:
         return "SOLIDSOE"
     if codigo.startswith("CUOTA_SINDICAL_SOECRA_"):
         return "CUOTASOE"
+    if codigo.startswith("APORTE_ADEF_"):
+        return "APORTEADEF"
+    if codigo == "CUOTA_SINDICAL_ART47_414/05":
+        return "CUOTAADEF"
     if "SINDICAL" in codigo:
         return "SINDICAL"
     if "SOLIDARIO" in codigo:

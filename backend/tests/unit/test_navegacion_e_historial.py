@@ -76,17 +76,34 @@ def test_en_telefono_el_menu_arranca_abierto_y_muestra_sus_accesos():
     assert "✕ Cerrar menú" in UI
 
 
-def test_el_ingreso_agrupa_las_consultas_en_dos_tandas():
+def test_el_ingreso_carga_solo_los_datos_base_y_la_pantalla_visible():
     bloque = UI[UI.index("async function recargarEmpresaActiva()"):
                 UI.index("async function entrar()")]
-    assert bloque.count("Promise.all(") == 2
+    assert bloque.count("Promise.all(") == 1
     for llamada in (
         "cargarEmpresas()", "api('/empresa')", "cargarConvenios()",
-        "cargarEstablecimientos()", "cargarEmpleados()", "cargarCarpetas()",
-        "cargarEmpresasSeccion()", "cargarNovedades()",
-        "mostrarEstadoNormativo()", "cargarInicio()", "cargarGestorNormativo()",
+        "cargarEstablecimientos()", "cargarEmpleados()",
     ):
         assert llamada in bloque
+    for llamada in (
+        "cargarCarpetas()", "cargarEmpresasSeccion()", "cargarNovedades()",
+        "mostrarEstadoNormativo()", "cargarInicio()", "cargarGestorNormativo()",
+    ):
+        assert llamada not in bloque
+    assert "await cargarSeccion(seccionActual)" in bloque
+
+
+def test_la_interfaz_muestra_que_esta_cargando_y_no_duplica_convenios():
+    assert 'id="estadoCargaApp"' in UI
+    assert "Cargando '+(NOMBRE_SECCION[id]" in UI
+    assert "Preparando la empresa…" in UI
+    assert "✓ Listo" in UI
+    assert "irA('seccionConvenios',this);cargarGestorNormativo()" not in UI
+
+
+def test_cambiar_el_mes_no_carga_el_historial_fuera_de_su_pantalla():
+    assert 'onchange="cargarConvenios();mostrarEstadoNormativo()"' in UI
+    assert 'onchange="cargarConvenios();cargarCarpetas();mostrarEstadoNormativo()"' not in UI
 
 
 def test_cambiar_de_seccion_no_destruye_lo_ya_cargado():
@@ -270,11 +287,28 @@ def test_bajar_un_recibo_no_abre_una_fila_de_ventanitas_que_falla_sin_avisar():
     assert "la próxima vez ya vienen completos" in UI
     for clave in ("sc_empresa_domicilio", "sc_lugar_pago", "sc_forma_pago",
                   "sc_fecha_cargas", "sc_periodo_cargas", "sc_banco_cargas"):
-        assert f"localStorage.setItem('{clave}'" in UI
+        assert f"datoEmpresaGuardar('{clave}'" in UI
 
     # Y cuando algo falla, se dice cuál y por qué, no un contador mudo.
     assert "No se pudieron generar estos recibos:" in UI
     assert "fallados.push(" in UI
+
+
+def test_cambiar_empresa_limpia_la_vista_y_separa_borradores_por_tenant():
+    cambio = UI[UI.index("async function cambiarEmpresa("):
+                UI.index("async function crearEmpresa(")]
+    limpieza = UI[UI.index("function limpiarContextoEmpresa("):
+                   UI.index("async function borrarEmpleado(")]
+    assert "limpiarContextoEmpresa();" in cambio
+    assert "function claveDatoEmpresa(" in UI
+    assert "function claveBorrador()" in UI
+    assert "localStorage.getItem('sc_tenant')" in UI
+    for cache in ("empleadosCache={}", "establecimientosCache={}",
+                  "novedadesCache={}", "carpetasCache={}"):
+        assert cache in limpieza
+    for formulario in ("cancelarEdicion()", "cancelarNovedad()",
+                       "cancelarEdicionEst()", "cancelarVistaPreviaExcel()"):
+        assert formulario in limpieza
 
 
 def test_la_jornada_llega_del_calculo_al_recibo():

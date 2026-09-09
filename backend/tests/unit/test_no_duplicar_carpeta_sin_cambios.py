@@ -13,10 +13,12 @@ def test_comparacion_ignora_solo_el_id_de_liquidacion():
     assert "await liq_repo.descartar(liq)" in source
 
 
-def test_ui_no_publica_como_total_un_f931_sin_art():
+def test_ui_suma_la_art_contractual_y_aclara_el_ffep_de_arca():
     ui = (
         Path(__file__).parents[2] / "src" / "ui_page.py"
     ).read_text(encoding="utf-8")
 
-    assert "Subtotal calculado — falta ART" in ui
-    assert "Total a depositar (F.931)" not in ui
+    assert "ART_CONTRATO:'ART según contrato del establecimiento'" in ui
+    assert "Total calculado para F.931 (ARCA agrega FFEP)" in ui
+    assert "Total sin ART: cargá el contrato del establecimiento" in ui
+    assert "Subtotal calculado — falta ART" not in ui
