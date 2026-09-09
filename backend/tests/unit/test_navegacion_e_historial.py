@@ -76,17 +76,34 @@ def test_en_telefono_el_menu_arranca_abierto_y_muestra_sus_accesos():
     assert "✕ Cerrar menú" in UI
 
 
-def test_el_ingreso_agrupa_las_consultas_en_dos_tandas():
+def test_el_ingreso_carga_solo_los_datos_base_y_la_pantalla_visible():
     bloque = UI[UI.index("async function recargarEmpresaActiva()"):
                 UI.index("async function entrar()")]
-    assert bloque.count("Promise.all(") == 2
+    assert bloque.count("Promise.all(") == 1
     for llamada in (
         "cargarEmpresas()", "api('/empresa')", "cargarConvenios()",
-        "cargarEstablecimientos()", "cargarEmpleados()", "cargarCarpetas()",
-        "cargarEmpresasSeccion()", "cargarNovedades()",
-        "mostrarEstadoNormativo()", "cargarInicio()", "cargarGestorNormativo()",
+        "cargarEstablecimientos()", "cargarEmpleados()",
     ):
         assert llamada in bloque
+    for llamada in (
+        "cargarCarpetas()", "cargarEmpresasSeccion()", "cargarNovedades()",
+        "mostrarEstadoNormativo()", "cargarInicio()", "cargarGestorNormativo()",
+    ):
+        assert llamada not in bloque
+    assert "await cargarSeccion(seccionActual)" in bloque
+
+
+def test_la_interfaz_muestra_que_esta_cargando_y_no_duplica_convenios():
+    assert 'id="estadoCargaApp"' in UI
+    assert "Cargando '+(NOMBRE_SECCION[id]" in UI
+    assert "Preparando la empresa…" in UI
+    assert "✓ Listo" in UI
+    assert "irA('seccionConvenios',this);cargarGestorNormativo()" not in UI
+
+
+def test_cambiar_el_mes_no_carga_el_historial_fuera_de_su_pantalla():
+    assert 'onchange="cargarConvenios();mostrarEstadoNormativo()"' in UI
+    assert 'onchange="cargarConvenios();cargarCarpetas();mostrarEstadoNormativo()"' not in UI
 
 
 def test_cambiar_de_seccion_no_destruye_lo_ya_cargado():

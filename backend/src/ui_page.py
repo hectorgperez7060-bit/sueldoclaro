@@ -244,7 +244,7 @@ tr:last-child td{border-bottom:0}tbody tr:hover{background:#f8fcfb}
         <nav class="navegacion">
           <button class="activo" onclick="irA('seccionInicio',this)"><span class="icono">🏠</span>Inicio</button>
           <button onclick="irA('seccionEmpresas',this)"><span class="icono">🏢</span><span id="navEmpresas">Empresas</span></button>
-          <button onclick="irA('seccionConvenios',this);cargarGestorNormativo()"><span class="icono">📚</span>Convenios y escalas</button>
+          <button onclick="irA('seccionConvenios',this)"><span class="icono">📚</span>Convenios y escalas</button>
           <button onclick="irA('seccionEstablecimientos',this)"><span class="icono">📍</span>Establecimientos</button>
           <button onclick="irA('seccionEmpleados',this)"><span class="icono">👥</span>Empleados</button>
           <button onclick="irA('seccionNovedades',this)"><span class="icono">🗓</span>Novedades</button>
@@ -260,6 +260,7 @@ tr:last-child td{border-bottom:0}tbody tr:hover{background:#f8fcfb}
       <main class="contenido-app">
         <button id="botonMenu" class="boton-menu secundario" onclick="alternarMenu()" aria-expanded="false">☰ Menú</button>
         <div class="contexto-empresa"><span><b id="empresaNombreActiva">Empresa</b><br><small>Los empleados y liquidaciones visibles pertenecen únicamente a esta empresa.</small></span><span id="empresaRol" class="etiqueta"></span></div>
+        <div id="estadoCargaApp" role="status" aria-live="polite" style="display:none;align-items:center;gap:8px;margin:0 0 10px;padding:9px 12px;border:1px solid #b9d9d4;border-radius:9px;background:#f2fbf9;color:#245b54;font-size:.84rem;font-weight:700"></div>
         <div class="pasos" aria-label="Camino de trabajo"><div class="paso activo"><b>1</b>Cliente / grupo</div><div class="paso activo"><b>2</b>Sociedad / CUIT</div><div class="paso"><b>3</b>Establecimiento</div><div class="paso"><b>4</b>Empleado</div><div class="paso"><b>5</b>Novedades</div><div class="paso"><b>6</b>Liquidación</div><div class="paso"><b>7</b>Recibo</div></div>
         <div id="nuevaEmpresa" class="tarjeta" style="display:none">
           <div class="cabecera-seccion"><h2>Nueva empresa o cliente</h2><button class="chico secundario" onclick="mostrarNuevaEmpresa(false)">Cerrar</button></div>
@@ -290,6 +291,11 @@ tr:last-child td{border-bottom:0}tbody tr:hover{background:#f8fcfb}
           <div id="kpiPendientes" style="font-size:1.7rem;font-weight:800;color:var(--verde);margin-top:2px;line-height:1">—</div>
           <div id="kpiEstadoLiq" style="font-size:.78rem;color:#6b7280;margin-top:3px"></div>
         </div>
+      </div>
+
+      <div id="siguientePaso" style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:14px;padding:14px;border:2px solid #5fb8aa;border-radius:12px;background:#f2fbf9">
+        <div><small style="display:block;color:#52706d;font-weight:700;text-transform:uppercase">Tu próximo paso</small><strong id="siguientePasoTitulo">Preparando la empresa…</strong><div id="siguientePasoAyuda" style="font-size:.82rem;color:#52706d;margin-top:2px"></div></div>
+        <button id="siguientePasoBoton" type="button" class="chico">Continuar</button>
       </div>
 
       <section class="mapa-uso" aria-labelledby="tituloMapaUso">
@@ -722,7 +728,7 @@ tr:last-child td{border-bottom:0}tbody tr:hover{background:#f8fcfb}
     <div class="tarjeta seccion-app" id="seccionLiquidar">
       <h2>Liquidar sueldos</h2>
       <div class="fila">
-        <div><label>Mes a liquidar</label><input id="periodo" type="month" onchange="cargarConvenios();cargarCarpetas();mostrarEstadoNormativo()"></div>
+        <div><label>Mes a liquidar</label><input id="periodo" type="month" onchange="cargarConvenios();mostrarEstadoNormativo()"></div>
         <div style="display:flex;align-items:end"><button onclick="liquidar()" style="width:100%">Liquidar todos los empleados</button></div>
       </div>
       <div id="estadoNormativo" style="margin-top:12px;font-size:.9rem"></div>
@@ -1162,6 +1168,38 @@ const CARGA_SECCION = {
   seccionHistorial: ()=>cargarCarpetas(),
 };
 let seccionActual = 'seccionInicio';
+let datosBaseCargando = false;
+let versionCargaVisible = 0;
+let temporizadorCargaVisible = null;
+const NOMBRE_SECCION = {
+  seccionInicio:'el inicio', seccionEmpresas:'las empresas',
+  seccionConvenios:'los convenios', seccionEstablecimientos:'los establecimientos',
+  seccionEmpleados:'los empleados', seccionNovedades:'las novedades',
+  seccionLiquidar:'la liquidación', seccionHistorial:'el historial',
+};
+
+function mostrarCargaApp(texto){
+  const estado=$('estadoCargaApp'); if(!estado) return;
+  if(temporizadorCargaVisible){clearTimeout(temporizadorCargaVisible);temporizadorCargaVisible=null;}
+  estado.textContent='⏳ '+texto;
+  estado.style.display='flex';
+}
+
+function completarCargaApp(){
+  const estado=$('estadoCargaApp'); if(!estado) return;
+  estado.textContent='✓ Listo';
+  temporizadorCargaVisible=setTimeout(()=>{estado.style.display='none';},700);
+}
+
+async function cargarSeccion(id){
+  const carga=CARGA_SECCION[id];
+  if(!carga || !token() || datosBaseCargando) return false;
+  const version=++versionCargaVisible;
+  mostrarCargaApp('Cargando '+(NOMBRE_SECCION[id]||'la pantalla')+'…');
+  try{ await carga(); }
+  finally{ if(version===versionCargaVisible) completarCargaApp(); }
+  return true;
+}
 
 function irA(id,boton,actualizarHash=true){
   if(!HASH_POR_SECCION[id]) id='seccionInicio';
@@ -1179,8 +1217,7 @@ function irA(id,boton,actualizarHash=true){
   }
   cerrarMenu();
   window.scrollTo({top:0,behavior:'auto'});
-  const carga=CARGA_SECCION[id];
-  if(carga){ try{ carga(); }catch(e){} }
+  void cargarSeccion(id);
 }
 
 function seccionDelHash(){
@@ -1275,22 +1312,23 @@ async function crearEmpresa(){
 }
 
 async function recargarEmpresaActiva(){
-  const primeraTanda=await Promise.all([
-    cargarEmpresas(),
-    api('/empresa'),
-    cargarConvenios(),
-    cargarEstablecimientos(),
-    cargarEmpleados(),
-    cargarCarpetas(),
-    cargarEmpresasSeccion(),
-  ]);
-  empresaCache=primeraTanda[1];
-  await Promise.all([
-    cargarNovedades(),
-    mostrarEstadoNormativo(),
-    cargarInicio(),
-    cargarGestorNormativo(),
-  ]);
+  datosBaseCargando=true;
+  ++versionCargaVisible;
+  mostrarCargaApp('Preparando la empresa…');
+  try{
+    const datosBase=await Promise.all([
+      cargarEmpresas(),
+      api('/empresa'),
+      cargarConvenios(),
+      cargarEstablecimientos(),
+      cargarEmpleados(),
+    ]);
+    empresaCache=datosBase[1];
+  }finally{
+    datosBaseCargando=false;
+  }
+  const cargoPantalla=await cargarSeccion(seccionActual);
+  if(!cargoPantalla) completarCargaApp();
 }
 
 async function entrar(){
@@ -1302,6 +1340,7 @@ async function entrar(){
   $('periodoGestor').value = $('periodo').value;
   $('novPeriodo').value = $('periodo').value;
   // El menú y la sección son interfaz: no esperan consultas al servidor.
+  datosBaseCargando=true;
   aplicarHash();
   abrirMenuInicialEnTelefono();
   try{ await recargarEmpresaActiva(); }
@@ -1483,6 +1522,28 @@ async function cargarGestorNormativo(){
   }catch(e){ mostrarError('gestorNormativoError',e.message); }
   finally{if(boton){boton.disabled=false;boton.textContent='Actualizar estado';}}
 }
+
+function mostrarSiguientePaso(nEmp, activos, estado){
+  let destino='seccionNovedades';
+  let titulo='Contá qué pasó este mes';
+  let ayuda='Cargá faltas, horas extra, feriados o vacaciones. Si no hubo cambios, podés seguir.';
+  let boton='Ir a novedades';
+  if(!activos){
+    destino='seccionEstablecimientos'; titulo='Primero cargá el lugar de trabajo';
+    ayuda='Ahí también se guardan los datos reales de la ART.'; boton='Agregar establecimiento';
+  }else if(!nEmp){
+    destino='seccionEmpleados'; titulo='Ahora agregá a los empleados';
+    ayuda='Podés cargarlos manualmente o importar la planilla Excel.'; boton='Agregar empleados';
+  }else if(estado==='Presentada'){
+    destino='seccionHistorial'; titulo='El mes ya fue presentado';
+    ayuda='Consultá los recibos y archivos guardados.'; boton='Ver recibos e historial';
+  }
+  $('siguientePasoTitulo').textContent=titulo;
+  $('siguientePasoAyuda').textContent=ayuda;
+  $('siguientePasoBoton').textContent=boton;
+  $('siguientePasoBoton').onclick=()=>irA(destino);
+}
+
 async function cargarInicio(){
   let emp=empresaCache; if(!emp||!emp.razon_social){ try{ emp=await api('/empresa'); }catch(e){ emp={razon_social:'',cuit:''}; } }
   $('kpiEmpresa').textContent=emp.razon_social||'—';
@@ -1503,6 +1564,7 @@ async function cargarInicio(){
   }catch(e){ /* período sin carpetas: queda Sin generar */ }
   $('kpiPendientes').textContent = nEmp ? pend : '—';
   $('kpiEstadoLiq').textContent = nEmp ? ('Mes '+periodo+' · '+estado) : 'Cargá empleados para liquidar';
+  mostrarSiguientePaso(nEmp, activos, estado);
 }
 
 const IDENTIDAD_CONVENIO={

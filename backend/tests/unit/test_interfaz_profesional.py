@@ -42,6 +42,16 @@ def test_tablero_inicio_con_kpis_y_accesos():
     assert 'await cargarInicio();' in HTML
 
 
+def test_inicio_indica_un_solo_proximo_paso_para_quien_recien_empieza():
+    for elemento in ('siguientePaso', 'siguientePasoTitulo',
+                     'siguientePasoAyuda', 'siguientePasoBoton'):
+        assert f'id="{elemento}"' in HTML
+    assert 'function mostrarSiguientePaso' in HTML
+    assert 'Primero cargá el lugar de trabajo' in HTML
+    assert 'Ahora agregá a los empleados' in HTML
+    assert 'Contá qué pasó este mes' in HTML
+
+
 def test_seccion_empresas():
     assert 'id="seccionEmpresas"' in HTML
     assert 'id="tablaEmpresas"' in HTML
