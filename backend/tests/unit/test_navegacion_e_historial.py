@@ -287,11 +287,28 @@ def test_bajar_un_recibo_no_abre_una_fila_de_ventanitas_que_falla_sin_avisar():
     assert "la próxima vez ya vienen completos" in UI
     for clave in ("sc_empresa_domicilio", "sc_lugar_pago", "sc_forma_pago",
                   "sc_fecha_cargas", "sc_periodo_cargas", "sc_banco_cargas"):
-        assert f"localStorage.setItem('{clave}'" in UI
+        assert f"datoEmpresaGuardar('{clave}'" in UI
 
     # Y cuando algo falla, se dice cuál y por qué, no un contador mudo.
     assert "No se pudieron generar estos recibos:" in UI
     assert "fallados.push(" in UI
+
+
+def test_cambiar_empresa_limpia_la_vista_y_separa_borradores_por_tenant():
+    cambio = UI[UI.index("async function cambiarEmpresa("):
+                UI.index("async function crearEmpresa(")]
+    limpieza = UI[UI.index("function limpiarContextoEmpresa("):
+                   UI.index("async function borrarEmpleado(")]
+    assert "limpiarContextoEmpresa();" in cambio
+    assert "function claveDatoEmpresa(" in UI
+    assert "function claveBorrador()" in UI
+    assert "localStorage.getItem('sc_tenant')" in UI
+    for cache in ("empleadosCache={}", "establecimientosCache={}",
+                  "novedadesCache={}", "carpetasCache={}"):
+        assert cache in limpieza
+    for formulario in ("cancelarEdicion()", "cancelarNovedad()",
+                       "cancelarEdicionEst()", "cancelarVistaPreviaExcel()"):
+        assert formulario in limpieza
 
 
 def test_la_jornada_llega_del_calculo_al_recibo():

@@ -1042,6 +1042,24 @@ function guardarCredenciales(d){
   localStorage.setItem('sc_refresh', d.refresh_token);
   if(d.tenant_id) localStorage.setItem('sc_tenant',d.tenant_id);
 }
+
+// Los datos de ayuda que se guardan en el dispositivo pertenecen a una sola
+// empresa. Antes se usaban claves globales y, al cambiar de CUIT, podían
+// aparecer como sugerencia los datos de la empresa anterior.
+const CLAVES_EMPRESA_LOCALES=[
+  'sc_empresa_domicilio','sc_fecha_pago_hist','sc_lugar_pago','sc_forma_pago',
+  'sc_fecha_cargas','sc_periodo_cargas','sc_banco_cargas',
+];
+function claveDatoEmpresa(clave){
+  const tenant=localStorage.getItem('sc_tenant')||'sin_empresa';
+  return `sc_${tenant}_${String(clave).replace(/^sc_/,'')}`;
+}
+function datoEmpresaLeer(clave){ return localStorage.getItem(claveDatoEmpresa(clave))||''; }
+function datoEmpresaGuardar(clave,valor){ localStorage.setItem(claveDatoEmpresa(clave),valor); }
+function descartarClavesEmpresaGlobales(){
+  CLAVES_EMPRESA_LOCALES.forEach(clave=>localStorage.removeItem(clave));
+  localStorage.removeItem('sc_borrador');
+}
 function guardarSesion(d){
   guardarCredenciales(d);
   entrar();
@@ -1074,17 +1092,18 @@ function salir(aviso){
 // --- Borrador: lo que se escribe queda guardado en este dispositivo ---------
 // Si la sesion se corta, se cierra la pestana o se va el internet, al volver
 // los campos vacios se recuperan solos. Nunca pisa un dato ya cargado.
-const BORRADOR_CLAVE='sc_borrador';
 const BORRADOR_VIDA_MS=24*60*60*1000;
 const BORRADOR_EXCLUIDOS=/^(li|rz)/;
+function claveBorrador(){ return claveDatoEmpresa('sc_borrador'); }
 
 function borradorLeer(){
   try{
-    const crudo=localStorage.getItem(BORRADOR_CLAVE);
+    const clave=claveBorrador();
+    const crudo=localStorage.getItem(clave);
     if(!crudo) return {campos:{},ts:0};
     const d=JSON.parse(crudo);
     if(!d||typeof d!=='object'||!d.campos) return {campos:{},ts:0};
-    if(Date.now()-(d.ts||0)>BORRADOR_VIDA_MS){ localStorage.removeItem(BORRADOR_CLAVE); return {campos:{},ts:0}; }
+    if(Date.now()-(d.ts||0)>BORRADOR_VIDA_MS){ localStorage.removeItem(clave); return {campos:{},ts:0}; }
     return d;
   }catch(e){ return {campos:{},ts:0}; }
 }
@@ -1099,12 +1118,13 @@ function borradorGuardable(el){
 let borradorPendiente=null;
 function borradorAnotar(el){
   if(!borradorGuardable(el)) return;
+  const clave=claveBorrador();
   const d=borradorLeer();
   d.campos[el.id]=el.type==='checkbox'?!!el.checked:el.value;
   d.ts=Date.now();
   clearTimeout(borradorPendiente);
   borradorPendiente=setTimeout(()=>{
-    try{ localStorage.setItem(BORRADOR_CLAVE, JSON.stringify(d)); }catch(e){}
+    try{ localStorage.setItem(clave, JSON.stringify(d)); }catch(e){}
   },300);
 }
 
@@ -1288,9 +1308,10 @@ async function cambiarEmpresa(tenantId){
   try{
     const d=await api('/auth/seleccionar-empresa','POST',{tenant_id:tenantId});
     guardarCredenciales(d);
-    cancelarEdicion(); cancelarNovedad(); ultimaLiq=null;
-    $('resultados').innerHTML='';
+    limpiarContextoEmpresa();
     await recargarEmpresaActiva();
+    const recuperados=restaurarBorrador();
+    if(recuperados) avisarBorradorRecuperado(recuperados);
   }catch(e){
     window.alert('No se pudo cambiar de empresa: '+e.message);
     await cargarEmpresas();
@@ -1305,6 +1326,7 @@ async function crearEmpresa(){
   try{
     const d=await api('/auth/empresas','POST',{razon_social:razon,cuit:cuit,grupo_cliente:$('nuevaEmpresaGrupo').value.trim()});
     guardarCredenciales(d);
+    limpiarContextoEmpresa();
     $('nuevaEmpresaGrupo').value=''; $('nuevaEmpresaRazon').value=''; $('nuevaEmpresaCuit').value='';
     mostrarNuevaEmpresa(false);
     await recargarEmpresaActiva();
@@ -1346,6 +1368,7 @@ async function entrar(){
   try{ await recargarEmpresaActiva(); }
   catch(e){ salir(e.message); return; }
   await cargarPerfilCuenta();
+  descartarClavesEmpresaGlobales();
   const recuperados=restaurarBorrador();
   if(recuperados) avisarBorradorRecuperado(recuperados);
 }
@@ -2285,7 +2308,7 @@ async function pedirMetadatosRecibo(carpeta){
   if(metadatosRecibo && metadatosRecibo.carpeta===carpeta.id) return metadatosRecibo;
   const snap=(carpeta.contenido&&carpeta.contenido.snapshot_parametros)||{};
   const empresa=snap.empresa||{};
-  const guardado=k=>localStorage.getItem(k)||'';
+  const guardado=k=>datoEmpresaLeer(k);
   const campos=[];
   if(!empresa.razon_social) campos.push({id:'razon',etiqueta:'Razón social del empleador',
     valor:empresaCache.razon_social||'', ayuda:'No figura en esta carpeta'});
@@ -2310,13 +2333,13 @@ async function pedirMetadatosRecibo(carpeta){
     +'Quedan guardados en este dispositivo: la próxima vez ya vienen completos.',
     campos);
   if(!v) return null;
-  localStorage.setItem('sc_empresa_domicilio',v.domicilio);
-  localStorage.setItem('sc_fecha_pago_hist',v.fechaPago);
-  localStorage.setItem('sc_lugar_pago',v.lugarPago);
-  localStorage.setItem('sc_forma_pago',v.formaPago);
-  localStorage.setItem('sc_fecha_cargas',v.cargasFecha);
-  localStorage.setItem('sc_periodo_cargas',v.cargasPeriodo);
-  localStorage.setItem('sc_banco_cargas',v.cargasBanco);
+  datoEmpresaGuardar('sc_empresa_domicilio',v.domicilio);
+  datoEmpresaGuardar('sc_fecha_pago_hist',v.fechaPago);
+  datoEmpresaGuardar('sc_lugar_pago',v.lugarPago);
+  datoEmpresaGuardar('sc_forma_pago',v.formaPago);
+  datoEmpresaGuardar('sc_fecha_cargas',v.cargasFecha);
+  datoEmpresaGuardar('sc_periodo_cargas',v.cargasPeriodo);
+  datoEmpresaGuardar('sc_banco_cargas',v.cargasBanco);
   metadatosRecibo={
     carpeta:carpeta.id,
     razon: empresa.razon_social||v.razon,
@@ -2871,6 +2894,36 @@ function cancelarEdicion(){
   $('btnCancelarEmp').style.display = 'none';
   ocultar('empError'); ocultar('empOk');
   toggleCbu();
+}
+
+function limpiarContextoEmpresa(){
+  // Primero se limpian formularios y ediciones; después se descartan todas
+  // las copias en memoria y toda salida perteneciente al CUIT anterior.
+  cancelarEdicion();
+  cancelarNovedad();
+  cancelarEdicionEst();
+  cancelarVistaPreviaExcel();
+  empleadosCache={};
+  establecimientosCache={};
+  novedadesCache={};
+  carpetasCache={};
+  convenios=[];
+  empresaCache={razon_social:'',cuit:''};
+  ultimaLiq=null;
+  versionAbierta=null;
+  cierreActualId=null;
+  metadatosRecibo=null;
+  Object.keys(metadatosEmpleadoHistorico).forEach(k=>delete metadatosEmpleadoHistorico[k]);
+  ['tablaEstablecimientos','tablaEmpleados','tablaNovedades','tablaCarpetas',
+   'tablaVersionDetalle','tablaObligaciones'].forEach(id=>{
+    const cuerpo=$(id)?.querySelector('tbody'); if(cuerpo) cuerpo.innerHTML='';
+  });
+  ['resultados','estadoNormativo','listaGestorNormativo'].forEach(id=>{if($(id)) $(id).innerHTML='';});
+  if($('panelVersion')) $('panelVersion').style.display='none';
+  if($('panelCierre')) $('panelCierre').style.display='none';
+  if($('cierreObservaciones')) $('cierreObservaciones').value='';
+  if($('empresaRespaldoPatronal')) $('empresaRespaldoPatronal').value='';
+  if($('empresaMipymeHasta')) $('empresaMipymeHasta').value='';
 }
 
 async function borrarEmpleado(id, nombre){
@@ -3447,13 +3500,13 @@ function abrirDatosRecibo(empId){
     <b style="color:var(--verde)">Emitir recibo por el empleador</b>
     <p style="font-size:.82rem;color:#52706d;margin:4px 0 10px">Completá los datos marcados. Se generará el ejemplar para firmar y entregar al trabajador; no necesita aprobación previa de un contador.</p>
     <div class="fila">
-      <div><label>Domicilio legal del empleador *</label><input id="recDomicilio-${empId}" value="${esc(localStorage.getItem('sc_empresa_domicilio')||'')}"></div>
+      <div><label>Domicilio legal del empleador *</label><input id="recDomicilio-${empId}" value="${esc(datoEmpresaLeer('sc_empresa_domicilio'))}"></div>
       <div><label>Fecha efectiva de pago *</label><input id="recFecha-${empId}" type="date" value="${new Date().toISOString().slice(0,10)}"></div>
-      <div><label>Lugar de pago *</label><input id="recLugar-${empId}" value="${esc(emp.lugar_trabajo||localStorage.getItem('sc_lugar_pago')||'')}"></div>
-      <div><label>Forma de pago *</label><input id="recForma-${empId}" value="${esc(formasPago[emp.forma_pago]||localStorage.getItem('sc_forma_pago')||'')}"></div>
-      <div><label>Fecha del último depósito de aportes *</label><input id="recCargasFecha-${empId}" type="date" value="${esc(localStorage.getItem('sc_fecha_cargas')||'')}"></div>
-      <div><label>Período de ese depósito *</label><input id="recCargasPeriodo-${empId}" type="month" value="${esc(localStorage.getItem('sc_periodo_cargas')||'')}"></div>
-      <div><label>Banco o entidad del depósito *</label><input id="recCargasBanco-${empId}" value="${esc(localStorage.getItem('sc_banco_cargas')||'')}"></div>
+      <div><label>Lugar de pago *</label><input id="recLugar-${empId}" value="${esc(emp.lugar_trabajo||datoEmpresaLeer('sc_lugar_pago'))}"></div>
+      <div><label>Forma de pago *</label><input id="recForma-${empId}" value="${esc(formasPago[emp.forma_pago]||datoEmpresaLeer('sc_forma_pago'))}"></div>
+      <div><label>Fecha del último depósito de aportes *</label><input id="recCargasFecha-${empId}" type="date" value="${esc(datoEmpresaLeer('sc_fecha_cargas'))}"></div>
+      <div><label>Período de ese depósito *</label><input id="recCargasPeriodo-${empId}" type="month" value="${esc(datoEmpresaLeer('sc_periodo_cargas'))}"></div>
+      <div><label>Banco o entidad del depósito *</label><input id="recCargasBanco-${empId}" value="${esc(datoEmpresaLeer('sc_banco_cargas'))}"></div>
     </div>
     ${artCalculada?`<div style="margin:10px 0;padding:9px;border:1px solid #86c8be;border-radius:8px;background:#e7f5f2"><b>ART ya incluida:</b> ${esc(artCalculada.descripcion)} · $ ${fmt(artCalculada.importe)}</div>`:`<div style="margin:10px 0;padding:10px;border:1px solid #b9d9d4;border-radius:8px;background:#fff"><b>ART de este trabajador *</b><p style="font-size:.82rem;color:#4b5563;margin:5px 0 8px">Copiá el importe individual exacto de la póliza, factura o detalle mensual. Si sólo tenés un porcentaje y una suma fija, no los multipliques a ojo: pedí a la ART el detalle por trabajador.</p><div class="fila"><div><label>Aseguradora *</label><input id="recArtAseguradora-${empId}" value="${esc(localStorage.getItem(claveArt(empId,'aseguradora'))||'')}"></div><div><label>Importe mensual individual *</label><input id="recArtImporte-${empId}" type="number" min="0.01" step="0.01" value="${esc(localStorage.getItem(claveArt(empId,'importe'))||'')}"></div><div><label>Póliza, factura o referencia *</label><input id="recArtReferencia-${empId}" value="${esc(localStorage.getItem(claveArt(empId,'referencia'))||'')}"></div></div></div>`}
     <div id="recError-${empId}" class="error"></div>
@@ -3487,12 +3540,12 @@ async function descargarReciboPdf(empId, reintento=true){
   if(!artCalculada&&(!artAseguradora||artImporte<=0||!artReferencia)){
     mostrarError('recError-'+empId,'Completá aseguradora, importe individual y referencia de ART.'); return;
   }
-  localStorage.setItem('sc_empresa_domicilio',domicilioEmpresa);
-  localStorage.setItem('sc_lugar_pago',lugarPago);
-  localStorage.setItem('sc_forma_pago',formaPago);
-  localStorage.setItem('sc_fecha_cargas',fechaCargas);
-  localStorage.setItem('sc_periodo_cargas',periodoCargas);
-  localStorage.setItem('sc_banco_cargas',bancoCargas);
+  datoEmpresaGuardar('sc_empresa_domicilio',domicilioEmpresa);
+  datoEmpresaGuardar('sc_lugar_pago',lugarPago);
+  datoEmpresaGuardar('sc_forma_pago',formaPago);
+  datoEmpresaGuardar('sc_fecha_cargas',fechaCargas);
+  datoEmpresaGuardar('sc_periodo_cargas',periodoCargas);
+  datoEmpresaGuardar('sc_banco_cargas',bancoCargas);
   if(!artCalculada){
     localStorage.setItem(claveArt(empId,'aseguradora'),artAseguradora);
     localStorage.setItem(claveArt(empId,'importe'),String(artImporte));
