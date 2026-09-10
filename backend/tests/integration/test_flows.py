@@ -11,7 +11,7 @@ def _auth(token):
 async def _registrar(client, email="dueno@estudio.com"):
     r = await client.post("/auth/register", json={
         "razon_social": "Estudio Demo", "cuit": "30111111118",
-        "email": email, "password": "password123",
+        "email": email, "password": "password123", "codigo_invitacion": "codigo-de-prueba",
     })
     assert r.status_code == 201, r.text
     return r.json()

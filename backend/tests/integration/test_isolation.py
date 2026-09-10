@@ -9,6 +9,7 @@ def _auth(token):
 async def _registrar(client, razon, cuit, email):
     r = await client.post("/auth/register", json={
         "razon_social": razon, "cuit": cuit, "email": email, "password": "password123",
+        "codigo_invitacion": "codigo-de-prueba",
     })
     assert r.status_code == 201, r.text
     return r.json()
