@@ -8,6 +8,7 @@ from decimal import Decimal
 from typing import Optional
 
 from domain.value_objects.periodo import Periodo
+from domain.payroll_engine.casas_particulares import validar_novedad_casas
 
 
 @dataclass(frozen=True)
@@ -46,6 +47,7 @@ class DatosNovedadMensual:
     altura_metros_uocra: Optional[Decimal] = None
     camioneros_detalle: dict = field(default_factory=dict)
     uom_detalle: dict = field(default_factory=dict)
+    casas_particulares_detalle: dict = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         try:
@@ -170,6 +172,8 @@ class DatosNovedadMensual:
             from domain.payroll_engine.uom import validar_novedad_uom
 
             validar_novedad_uom(self.uom_detalle)
+        if self.casas_particulares_detalle:
+            validar_novedad_casas(self.casas_particulares_detalle)
         total_extra_detalle = Decimal("0")
         for detalle in self.horas_extra_uocra_detalle:
             try:
@@ -262,4 +266,8 @@ class DatosNovedadMensual:
             "altura_metros_uocra": self.altura_metros_uocra,
             "camioneros_detalle": dict(self.camioneros_detalle),
             "uom_detalle": dict(self.uom_detalle),
+            "casas_particulares_detalle": (
+                validar_novedad_casas(self.casas_particulares_detalle)
+                if self.casas_particulares_detalle else {}
+            ),
         }

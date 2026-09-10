@@ -469,6 +469,15 @@ class ParametrosRepo:
             | (m.CctZonaVigencia.valid_to >= fecha),
         ).order_by(m.CctZonaVigencia.valid_from.desc()))).scalars().all()
         buscada = normalizar_provincia(establecimiento.provincia)
+        # Algunas normas definen una excepción menor que la provincia. Casas
+        # Particulares incluye al Partido de Patagones, pero no a toda Buenos
+        # Aires. La excepción también queda versionada en la regla, no en código.
+        excepciones = (regla.configuracion or {}).get("localidades_excepcion", [])
+        localidad = normalizar_provincia(establecimiento.localidad or "")
+        for excepcion in excepciones:
+            nombres = excepcion.get("localidades", [])
+            if localidad in {normalizar_provincia(x) for x in nombres}:
+                return str(excepcion["zona"]), None
         zona = next((f.zona for f in filas if normalizar_provincia(f.provincia) == buscada), None)
         if zona is None:
             return "", (
@@ -494,6 +503,7 @@ class ParametrosRepo:
             return None
         basico_puro = getattr(e, "basico_puro", None)
         adicional_zona = getattr(e, "adicional_zona", None)
+        valor_hora = getattr(e, "valor_hora", None)
         return EscalaDom(
             e.cct_numero, e.categoria, Dinero(Decimal(e.basico)),
             e.valid_from, e.valid_to, e.is_verified, e.fuente,
@@ -503,6 +513,7 @@ class ParametrosRepo:
             getattr(e, "estado_fuente", "VERIFICADA_OFICIAL"),
             Dinero(Decimal(basico_puro)) if basico_puro is not None else None,
             Dinero(Decimal(adicional_zona)) if adicional_zona is not None else None,
+            Dinero(Decimal(valor_hora)) if valor_hora is not None else None,
         )
 
 

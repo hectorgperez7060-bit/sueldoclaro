@@ -50,6 +50,9 @@ class EscalaSalarial:
     estado_fuente: str = "VERIFICADA_OFICIAL"
     basico_puro: Optional[Dinero] = None
     adicional_zona: Optional[Dinero] = None
+    # Regímenes que publican simultáneamente mínimo mensual y por hora
+    # (por ejemplo Casas Particulares) conservan ambos en la misma escala.
+    valor_hora: Optional[Dinero] = None
 
 
 @dataclass(frozen=True)

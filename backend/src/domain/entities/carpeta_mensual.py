@@ -87,13 +87,35 @@ def validar_transicion_obligacion(actual: str, nuevo: str, comprobante: str = ""
 
 def obligaciones_desde_contenido(contenido: dict) -> list[dict]:
     """Convierte las salidas calculadas en tareas pagables, sin recalcular importes."""
-    salida = [{
-        "tipo": "ARCA_F931", "cct_numero": None, "destino_pago": "ARCA",
-        "codigo_boleta": "F931", "importe": None,
-        "canal_pago": "Libro de Sueldos Digital / Declaración en Línea",
-        "url_pago": "https://www.arca.gob.ar/",
-        "fuente_pago": "RG 3781 y normativa SUSS vigente",
-    }]
+    detalles = contenido.get("detalles") or []
+    tiene_general = not detalles or any(
+        d.get("cct_numero") != "LEY 26844" for d in detalles
+    )
+    salida = []
+    if tiene_general:
+        salida.append({
+            "tipo": "ARCA_F931", "cct_numero": None, "destino_pago": "ARCA",
+            "codigo_boleta": "F931", "importe": None,
+            "canal_pago": "Libro de Sueldos Digital / Declaración en Línea",
+            "url_pago": "https://www.arca.gob.ar/",
+            "fuente_pago": "RG 3781 y normativa SUSS vigente",
+        })
+    detalles_casas = [d for d in detalles if d.get("cct_numero") == "LEY 26844"]
+    if detalles_casas:
+        total_f102 = sum((
+            Decimal(str(c.get("importe", "0")))
+            for detalle in detalles_casas
+            for c in detalle.get("conceptos", [])
+            if c.get("codigo_boleta") == "F102RT"
+        ), Decimal("0"))
+        salida.append({
+            "tipo": "ARCA_F102RT", "cct_numero": "LEY 26844",
+            "destino_pago": "ARCA", "codigo_boleta": "F102RT",
+            "importe": total_f102.quantize(Decimal("0.01")),
+            "canal_pago": "ARCA · Casas Particulares",
+            "url_pago": "https://www.arca.gob.ar/casasparticulares/",
+            "fuente_pago": "Régimen especial Ley 26.844 y valores ARCA vigentes",
+        })
     for boleta in contenido.get("obligaciones_sindicales", []):
         salida.append({
             "tipo": "SINDICAL", "cct_numero": boleta.get("cct_numero") or None,

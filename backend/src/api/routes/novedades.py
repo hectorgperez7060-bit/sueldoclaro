@@ -73,6 +73,7 @@ def _to_out(novedad, bloqueada: bool = False) -> NovedadMensualOut:
         altura_metros_uocra=novedad.altura_metros_uocra,
         camioneros_detalle=novedad.camioneros_detalle or {},
         uom_detalle=novedad.uom_detalle or {},
+        casas_particulares_detalle=novedad.casas_particulares_detalle or {},
         bloqueada=bloqueada,
     )
 
@@ -119,7 +120,7 @@ _CAMPOS_COPIABLES = (
 _CAMPOS_TUPLA = (
     "adicionales_convencionales", "feriados_uocra_detalle", "horas_extra_uocra_detalle",
 )
-_CAMPOS_DICT = ("camioneros_detalle", "uom_detalle")
+_CAMPOS_DICT = ("camioneros_detalle", "uom_detalle", "casas_particulares_detalle")
 
 
 def _copia_al_periodo(novedad, periodo: str) -> DatosNovedadMensual:
