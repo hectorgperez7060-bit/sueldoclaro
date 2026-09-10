@@ -71,7 +71,8 @@ async def _crear_empleado(tenant_id, categoria, cuil, apellido, proporcion_jorna
 
 async def _registrar(app_client, razon, cuit, email):
     r = await app_client.post("/auth/register", json={
-        "razon_social": razon, "cuit": cuit, "email": email, "password": "password123"})
+        "razon_social": razon, "cuit": cuit, "email": email, "password": "password123",
+        "codigo_invitacion": "codigo-de-prueba"})
     assert r.status_code == 201, r.text
     return r.json()["tenant_id"], _sub(r.json()["access_token"])
 

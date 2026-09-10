@@ -35,6 +35,7 @@ class RegistroEstudio(BaseModel):
     cuit: str = Field(min_length=11, max_length=13)
     email: EmailStr
     password: str = Field(min_length=8)
+    codigo_invitacion: str = Field(default="", max_length=100)
 
     @field_validator("cuit")
     @classmethod

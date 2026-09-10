@@ -6,6 +6,7 @@ Config: SUELDOCLARO_TEST_DATABASE_URL (async, asyncpg).
 """
 from __future__ import annotations
 
+import hashlib
 import os
 
 import pytest
@@ -17,6 +18,16 @@ TEST_DB = os.environ.get(
 )
 # La app crea su engine desde SUELDOCLARO_DATABASE_URL al importarse: lo fijamos ANTES.
 os.environ["SUELDOCLARO_DATABASE_URL"] = TEST_DB
+
+CODIGO_INVITACION_PRUEBA = "codigo-de-prueba"
+
+
+@pytest.fixture(autouse=True)
+def configurar_codigo_invitacion_de_prueba(monkeypatch):
+    from api.routes import auth
+
+    resumen = hashlib.sha256(CODIGO_INVITACION_PRUEBA.encode("utf-8")).hexdigest()
+    monkeypatch.setattr(auth, "INVITE_CODE_SHA256", resumen)
 
 
 @pytest_asyncio.fixture(scope="function")
@@ -61,6 +72,7 @@ async def app_client():
 async def _registrar(client, razon, cuit, email):
     r = await client.post("/auth/register", json={
         "razon_social": razon, "cuit": cuit, "email": email, "password": "password123",
+        "codigo_invitacion": CODIGO_INVITACION_PRUEBA,
     })
     assert r.status_code == 201, r.text
     return r.json()

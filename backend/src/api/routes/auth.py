@@ -1,6 +1,9 @@
 """Rutas de autenticación."""
 from __future__ import annotations
 
+import hashlib
+import hmac
+import os
 import uuid
 
 import jwt
@@ -23,6 +26,19 @@ from infrastructure.security.tokens import decode, emitir_access, emitir_refresh
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
+# SHA-256 del código compartido de la beta. Puede rotarse en producción
+# con SUELDOCLARO_INVITE_CODE_SHA256 sin publicar el código en el frontend.
+INVITE_CODE_SHA256 = os.getenv(
+    "SUELDOCLARO_INVITE_CODE_SHA256",
+    "1616506d687bd879cf3009b8db9eb9962766cc92fc71870c17b8af86a9613b90",
+).strip().lower()
+
+
+def codigo_invitacion_valido(codigo: str) -> bool:
+    normalizado = str(codigo or "").strip().lower()
+    recibido = hashlib.sha256(normalizado.encode("utf-8")).hexdigest()
+    return bool(INVITE_CODE_SHA256) and hmac.compare_digest(recibido, INVITE_CODE_SHA256)
+
 
 async def _emitir_par(usuario_id: str, tenant_id: str | None, rol: str | None) -> TokenResponse:
     access = emitir_access(usuario_id, tenant_id, rol)
@@ -34,6 +50,11 @@ async def _emitir_par(usuario_id: str, tenant_id: str | None, rol: str | None) -
 
 @router.post("/register", response_model=TokenResponse, status_code=201)
 async def register(body: RegistroEstudio):
+    if not codigo_invitacion_valido(body.codigo_invitacion):
+        raise HTTPException(
+            status.HTTP_403_FORBIDDEN,
+            "El código de invitación no es válido",
+        )
     try:
         reg = await RegistrarEstudio().ejecutar(
             body.razon_social, body.cuit, body.email, body.password, body.modo_cuenta,

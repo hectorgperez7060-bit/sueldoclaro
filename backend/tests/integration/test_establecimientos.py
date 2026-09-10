@@ -15,6 +15,7 @@ async def _registrar(client):
     r = await client.post("/auth/register", json={
         "razon_social": "Empresa Lugares", "cuit": "30777777774",
         "email": "lugares@estudio.com", "password": "password123",
+        "codigo_invitacion": "codigo-de-prueba",
     })
     assert r.status_code == 201, r.text
     return r.json()

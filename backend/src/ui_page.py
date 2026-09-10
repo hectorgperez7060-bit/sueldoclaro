@@ -219,6 +219,7 @@ tr:last-child td{border-bottom:0}tbody tr:hover{background:#f8fcfb}
         <label>CUIT (11 dígitos)</label><input id="rzCuit" placeholder="30123456789" maxlength="13">
         <label>Email</label><input id="rzEmail" type="email" placeholder="tu@email.com">
         <label>Contraseña (mínimo 8)</label><input id="rzPass" type="password">
+        <label>Código de invitación</label><input id="rzCodigoInvitacion" autocomplete="one-time-code" placeholder="Código proporcionado por Sueldo Claro">
         <button onclick="crearCuenta()" style="width:100%">Crear cuenta gratis</button>
       </div>
       <div class="error" id="authError"></div>
@@ -1070,6 +1071,7 @@ async function crearCuenta(){
     const d = await api('/auth/register','POST',{
       razon_social:$('rzRazon').value.trim(), cuit:$('rzCuit').value.replace(/\D/g,''),
       email:$('rzEmail').value.trim(), password:$('rzPass').value,
+      codigo_invitacion:$('rzCodigoInvitacion').value.trim(),
       modo_cuenta:modoElegidoAlCrear });
     guardarSesion(d);
   }catch(e){ mostrarError('authError', e.message); }
