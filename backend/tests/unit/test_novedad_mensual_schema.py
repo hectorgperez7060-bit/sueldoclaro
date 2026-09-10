@@ -28,6 +28,7 @@ def test_novedad_mensual_tiene_columnas_y_claves_esperadas():
         "horas_hormigon_manual_uocra", "horas_altura_uocra", "altura_metros_uocra",
         "camioneros_detalle",
         "uom_detalle",
+        "casas_particulares_detalle",
         "created_at", "updated_at",
     }
     assert esperadas == set(tabla.columns.keys())

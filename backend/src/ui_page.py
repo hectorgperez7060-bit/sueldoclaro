@@ -710,6 +710,16 @@ tr:last-child td{border-bottom:0}tbody tr:hover{background:#f8fcfb}
             </div>
             <small style="color:#92400e">El IMGR es una garantía, no un básico. Los adicionales se habilitan únicamente con su hecho generador y nunca se marcan solos.</small>
           </div>
+          <div id="novCasasParticulares" style="display:none;grid-column:1/-1;border:1px solid var(--borde);border-radius:8px;padding:12px">
+            <b>Personal de Casas Particulares — Ley 26.844</b>
+            <p style="font-size:.82rem;color:#6b7280;margin:5px 0 10px">La escala distingue categoría, con/sin retiro y zona. ARCA calcula aportes, contribución y ART por horas semanales y condición de la persona.</p>
+            <div class="fila">
+              <div><label>Condición para ARCA</label><select id="casasCondicion"><option value="ACTIVO">Persona activa de 18 años o más</option><option value="ADOLESCENTE_16_17">Adolescente de 16 o 17 años</option><option value="JUBILADO">Persona jubilada</option></select></div>
+              <div><label>Horas normales realmente trabajadas en el mes</label><input id="casasHorasMes" type="number" min="0" max="300" step="0.01" placeholder="Obligatorio si trabaja menos de 24 h semanales"><small>Con 24 h semanales o más se usa el mínimo mensual proporcional.</small></div>
+              <div><label>Valor por hora pactado ($)</label><input id="casasValorHoraPactado" type="number" min="0" step="0.01" placeholder="Opcional, si supera el mínimo"></div>
+            </div>
+            <small style="color:#92400e">Las horas extra comunes van arriba al 50%; sábados después de las 13, domingos y feriados van al 100%.</small>
+          </div>
           <div style="grid-column:1/-1"><label>Observaciones</label><textarea id="novObservaciones" rows="3" placeholder="Detalle opcional"></textarea></div>
         </div>
         <div style="display:flex;gap:8px;margin-top:10px">
@@ -1593,6 +1603,7 @@ async function cargarInicio(){
 }
 
 const IDENTIDAD_CONVENIO={
+  'LEY 26844':{actividad:'Casas particulares',sindicato:'Régimen especial · Ley 26.844',obraSocial:''},
   '414/05':{actividad:'Farmacia comercial / comunitaria',sindicato:'ADEF',obraSocial:'OSADEF - Obra Social de las Asociaciones de Empleados de Farmacia'},
   '659/13':{actividad:'Farmacia comercial / comunitaria',sindicato:'FATFA',obraSocial:''},
   '122/75':{actividad:'Clínica, sanatorio o geriátrico con internación',sindicato:'FATSA',obraSocial:'OSPSA - Obra Social del Personal de la Sanidad Argentina'},
@@ -1665,6 +1676,7 @@ function llenarConvenios(preseleccion=null){
     const identidad=IDENTIDAD_CONVENIO[c.numero];
     const sindicato=identidad?identidad.sindicato:(c.sindicato||'Sin sindicato informado');
     o.value=c.numero; o.textContent=`CCT ${c.numero} — ${sindicato}`;
+    if(c.numero==='LEY 26844') o.textContent=`Ley 26.844 — ${sindicato}`;
     if(!c.tiene_escala_vigente) o.textContent+=' — sin escala vigente';
     sel.appendChild(o);
   });
@@ -1808,6 +1820,7 @@ function actualizarAdicionalesConvenio(){
   $('novUocra').style.display=emp && emp.cct_numero==='76/75'?'block':'none';
   $('novCamioneros').style.display=emp && emp.cct_numero==='40/89'?'block':'none';
   $('novUom').style.display=emp && emp.cct_numero==='260/75'?'block':'none';
+  $('novCasasParticulares').style.display=emp && emp.cct_numero==='LEY 26844'?'block':'none';
 }
 const camposCamioneros={dias_comida:'camDiasComida',dias_viatico_especial:'camDiasViatico',pernoctadas:'camPernoctadas',kilometros_extra:'camKmExtra',kilometros_viatico:'camKmViatico',dias_en_viaje:'camDiasViaje',viajes_cordilleranos:'camCordillera',permanencias:'camPermanencias',simples_presencias:'camPresencias',permanencias_sur:'camPermanenciasSur',simples_presencias_sur:'camPresenciasSur',cruces_frontera:'camFrontera',ingresos_egresos_tdf:'camTdf',dias_plus_vacacional:'camVacaciones',traslados_unidad_descarga:'camTrasladosDescarga',viajes_transporte_automoviles:'camViajesAutomoviles',dias_asfalto_caliente:'camDiasAsfalto',unidades_bitrenes:'camBitrenes'};
 function datosCamioneros(){
@@ -1832,6 +1845,15 @@ function datosUom(){
 }
 function limpiarUom(){ $('uomHorasNormales').value=''; $('uomIngresosImgr').value=''; $('uomDiasAbrJul').value=''; $('uomContratoJulio').checked=false; $('uomPagosCuenta').value='0'; }
 function cargarUom(datos={}){ limpiarUom(); $('uomHorasNormales').value=datos.horas_normales??''; $('uomIngresosImgr').value=datos.ingresos_computables_imgr??''; $('uomDiasAbrJul').value=datos.dias_trabajados_abril_julio??''; $('uomContratoJulio').checked=Boolean(datos.contrato_vigente_31_07); $('uomPagosCuenta').value=datos.pagos_a_cuenta_absorbibles??0; }
+function datosCasasParticulares(){
+  const emp=empleadosCache[$('novEmpleado').value];
+  if(!emp || emp.cct_numero!=='LEY 26844') return {};
+  return {condicion_arca:$('casasCondicion').value,
+    horas_normales_mes:numeroNovOpcional('casasHorasMes'),
+    valor_hora_pactado:numeroNovOpcional('casasValorHoraPactado')};
+}
+function limpiarCasasParticulares(){ $('casasCondicion').value='ACTIVO'; $('casasHorasMes').value=''; $('casasValorHoraPactado').value=''; }
+function cargarCasasParticulares(datos={}){ limpiarCasasParticulares(); $('casasCondicion').value=datos.condicion_arca||'ACTIVO'; $('casasHorasMes').value=datos.horas_normales_mes??''; $('casasValorHoraPactado').value=datos.valor_hora_pactado??''; }
 function agregarFeriadoUocra(datos={}){
   const fila=document.createElement('div'); fila.className='feriado-uocra-fila fila';
   fila.style.cssText='border:1px solid var(--borde);border-radius:8px;padding:8px';
@@ -2006,6 +2028,7 @@ function limpiarNovedad(){
   limpiarAdicionalesSanidad();
   limpiarCamioneros();
   limpiarUom();
+  limpiarCasasParticulares();
   $('tituloNovedad').textContent='Nueva novedad';
   $('btnGuardarNovedad').textContent='Guardar novedad';
   ocultar('novFormError');
@@ -2574,6 +2597,7 @@ function cuerpoNovedad(incluirEmpleado=true){
     ,altura_metros_uocra:numeroNovOpcional('novAlturaMetrosUocra')
     ,camioneros_detalle:datosCamioneros()
     ,uom_detalle:datosUom()
+    ,casas_particulares_detalle:datosCasasParticulares()
   });
   Object.assign(cuerpo,datosAdicionalesConvenio());
   if(incluirEmpleado) cuerpo.empleado_id=$('novEmpleado').value;
@@ -2705,11 +2729,27 @@ function avisoFaltantesUocra(faltan){
   return texto;
 }
 
+function faltantesCasasParticulares(){
+  const emp=empleadosCache[$('novEmpleado').value];
+  if(!emp || emp.cct_numero!=='LEY 26844') return [];
+  const faltan=[];
+  const horasSemanales=Number(emp.proporcion_jornada||1)*48;
+  const horasMes=decimalEscrito('casasHorasMes');
+  if(horasSemanales<24 && horasMes===null)
+    faltan.push('horas normales realmente trabajadas en el mes');
+  if(horasMes!==null && (isNaN(horasMes)||horasMes<0||horasMes>300))
+    faltan.push('horas normales válidas, entre 0 y 300');
+  if(!$('casasCondicion').value) faltan.push('condición para ARCA');
+  return faltan;
+}
+
 async function guardarNovedad(){
   ocultar('novFormError'); ocultar('novOk');
   if(!$('novEmpleado').value){ mostrarError('novFormError','Elegí un empleado.'); return; }
   const faltan=faltantesQuincenalesUocra();
   if(faltan.length){ mostrarError('novFormError',avisoFaltantesUocra(faltan)); return; }
+  const faltanCasas=faltantesCasasParticulares();
+  if(faltanCasas.length){ mostrarError('novFormError','Para liquidar Casas Particulares falta cargar: '+faltanCasas.join('; ')+'.'); return; }
   try{
     const eraEdicion=Boolean(editandoNovedadId);
     const ruta=editandoNovedadId?'/novedades/'+editandoNovedadId:'/novedades';
@@ -2749,6 +2789,7 @@ function editarNovedad(id){
   $('novAlturaMetrosUocra').value=n.altura_metros_uocra??'';
   cargarCamioneros(n.camioneros_detalle||{});
   cargarUom(n.uom_detalle||{});
+  cargarCasasParticulares(n.casas_particulares_detalle||{});
   $('novPremios').value=n.premios;
   $('novTipoPremio').value=n.tipo_premio||'pendiente';
   $('novDescuentos').value=n.descuentos_adicionales; $('novObservaciones').value=n.observaciones||'';

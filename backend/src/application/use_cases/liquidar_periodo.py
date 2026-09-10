@@ -38,6 +38,11 @@ from domain.entities.carpeta_mensual import (
 from domain.entities.escala_verificada import evaluar_escala
 from domain.entities.parametros import ParametroLegal as ParamDom
 from domain.payroll_engine.engine import MotorLiquidacion, Novedades
+from domain.payroll_engine.casas_particulares import (
+    CCT_CASAS_PARTICULARES, ImportesArcaCasas, ValoresEscalaCasas,
+    armar_recibo_casas, calcular_base_casas, datos_casas_desde_dict,
+    tramo_horas_arca, validar_condicion_trabajador,
+)
 from domain.payroll_engine.camioneros import (
     ValoresVariablesCamioneros, armar_recibo_camioneros_general,
     calcular_variables_camioneros, novedades_camioneros_desde_dict,
@@ -142,6 +147,14 @@ def resolver_horas_extra(
             "altura_metros_uocra": getattr(novedad, "altura_metros_uocra", None),
             "camioneros_detalle": dict(getattr(novedad, "camioneros_detalle", None) or {}),
             "uom_detalle": dict(getattr(novedad, "uom_detalle", None) or {}),
+            "casas_particulares_detalle": dict(
+                getattr(novedad, "casas_particulares_detalle", None) or {}
+            ),
+            "dias_trabajados": int(getattr(novedad, "dias_trabajados", 0) or 0),
+            "faltas_justificadas": int(getattr(novedad, "faltas_justificadas", 0) or 0),
+            "faltas_injustificadas": int(getattr(novedad, "faltas_injustificadas", 0) or 0),
+            "licencias": int(getattr(novedad, "licencias", 0) or 0),
+            "vacaciones": int(getattr(novedad, "vacaciones", 0) or 0),
         }
     return res
 
@@ -159,6 +172,10 @@ class LiquidarPeriodo:
             empresa = await TenantRepo(s).obtener(uuid.UUID(tenant_id))
             if empresa is None:
                 raise ValueError("Empresa no encontrada")
+            empleados = await EmpleadoRepo(s).listar()
+            requiere_regimen_general = any(
+                emp.cct_numero != CCT_CASAS_PARTICULARES for emp in empleados
+            )
             regimen = empresa.regimen_contribucion_patronal
             tasas_patronales = {
                 "PRIVADO_18": (
@@ -170,7 +187,7 @@ class LiquidarPeriodo:
                     "ARCA — Ley 27.541 art. 19 inc. a: alícuota patronal 20,40%",
                 ),
             }
-            if (
+            if requiere_regimen_general and (
                 empresa.condicion_mipyme == "CERTIFICADO_VIGENTE"
                 and (
                     empresa.certificado_mipyme_vigente_hasta is None
@@ -180,22 +197,21 @@ class LiquidarPeriodo:
                 raise ValueError(
                     "El Certificado MiPyME no está vigente para el período liquidado"
                 )
-            if regimen not in tasas_patronales:
+            if requiere_regimen_general and regimen not in tasas_patronales:
                 raise ValueError(
                     "Completá actividad y situación MiPyME de la empresa antes de liquidar"
                 )
-            tasa_patronal, fuente_patronal = tasas_patronales[regimen]
-            parametros = parametros.con_extra(ParamDom(
-                "CONTRIB_JUBILACION", tasa_patronal, "%", "empleador",
-                fecha_ref, None, True, fuente_patronal, None,
-                {
-                    "modo_liquidacion": empresa.modo_liquidacion,
-                    "regimen_empresa": regimen,
-                    "fundamento_empresa": empresa.fundamento_regimen_patronal,
-                },
-            ))
-
-            empleados = await EmpleadoRepo(s).listar()
+            if requiere_regimen_general:
+                tasa_patronal, fuente_patronal = tasas_patronales[regimen]
+                parametros = parametros.con_extra(ParamDom(
+                    "CONTRIB_JUBILACION", tasa_patronal, "%", "empleador",
+                    fecha_ref, None, True, fuente_patronal, None,
+                    {
+                        "modo_liquidacion": empresa.modo_liquidacion,
+                        "regimen_empresa": regimen,
+                        "fundamento_empresa": empresa.fundamento_regimen_patronal,
+                    },
+                ))
             novedades_guardadas = await NovedadMensualRepo(s).listar_periodo(
                 uuid.UUID(tenant_id), periodo_str
             )
@@ -236,6 +252,7 @@ class LiquidarPeriodo:
                 e.id: e for e in await EstablecimientoRepo(s).listar(incluir_inactivos=True)
             }
             for emp in empleados:
+                es_motor_casas = emp.cct_numero == CCT_CASAS_PARTICULARES
                 cct_cfg = await params_repo.cct_config(emp.cct_numero, fecha_ref)
                 zona_escala, error_zona = await params_repo.zona_escala(
                     emp.cct_numero, emp.establecimiento_id, fecha_ref
@@ -314,7 +331,7 @@ class LiquidarPeriodo:
                 # remuneración de jornada completa. El motor no lo resuelve solo:
                 # prorratear seria pagar de menos y pagar completo sin que nadie
                 # lo decida seria cambiarle el contrato al empleador.
-                if excede_limite_parcial(emp.proporcion_jornada):
+                if not es_motor_casas and excede_limite_parcial(emp.proporcion_jornada):
                     horas_cct = horas_jornada.get(emp.cct_numero)
                     detalle = describir_jornada(emp.proporcion_jornada, horas_cct)
                     bloqueos.append({
@@ -359,7 +376,7 @@ class LiquidarPeriodo:
                 aviso_cuota_afiliado = None
                 cuota_sindical_verificada = None
                 params_emp = parametros
-                if emp.afiliado_sindicato:
+                if emp.afiliado_sindicato and not es_motor_casas:
                     cuota = await params_repo.resolver_art101(
                         emp.cct_numero, emp.localidad, emp.filial_sindical, fecha_ref)
                     if cuota is not None:
@@ -413,7 +430,61 @@ class LiquidarPeriodo:
                 es_motor_uocra = emp.cct_numero == "76/75"
                 es_motor_uom = emp.cct_numero == "260/75"
                 es_motor_camioneros = emp.cct_numero == "40/89"
-                if es_motor_uocra:
+                if es_motor_casas:
+                    try:
+                        detalle_casas = datos_casas_desde_dict(
+                            nv.get("casas_particulares_detalle") or {}
+                        )
+                        horas_semanales = (
+                            Decimal(str(emp.proporcion_jornada or 1)) * Decimal("48")
+                        )
+                        tramo = tramo_horas_arca(horas_semanales)
+                        if escala.valor_hora is None:
+                            raise ValueError("la escala no tiene cargado el valor por hora oficial")
+                        validar_condicion_trabajador(
+                            detalle_casas.condicion_arca, emp.fecha_nacimiento,
+                            fecha_ref, horas_semanales, emp.categoria,
+                        )
+                        prefijo = f"CP_ARCA_{{}}_{detalle_casas.condicion_arca}_{tramo}"
+                        arca = ImportesArcaCasas(
+                            params_emp.valor_ars(prefijo.format("APORTE")),
+                            params_emp.valor_ars(prefijo.format("CONTRIB")),
+                            params_emp.valor_ars(prefijo.format("ART")),
+                        )
+                        suma_nr = (
+                            params_emp.valor_ars(f"CP_SUMA_NR_{tramo}")
+                            if params_emp.existe(f"CP_SUMA_NR_{tramo}") else Dinero.cero()
+                        )
+                        base = calcular_base_casas(
+                            ValoresEscalaCasas(escala.basico, escala.valor_hora),
+                            horas_semanales,
+                            detalle_casas.horas_normales_mes,
+                            dom_emp.remuneracion_pactada,
+                            detalle_casas.valor_hora_pactado,
+                        )
+                        res = armar_recibo_casas(
+                            emp.cuil, periodo, base, emp.fecha_ingreso, fecha_ref,
+                            cct_cfg.antiguedad_pct_por_anio,
+                            Decimal(str(nv.get("horas_extra_50", 0))),
+                            Decimal(str(nv.get("horas_extra_100", 0))),
+                            arca, suma_nr,
+                            faltas_injustificadas=int(nv.get("faltas_injustificadas", 0)),
+                            premio=Dinero(Decimal(str(nv.get("premio", 0)))),
+                            tipo_premio=nv.get("tipo_premio", "pendiente"),
+                            descuento_adicional=Dinero(
+                                Decimal(str(nv.get("descuento_adicional", 0)))
+                            ),
+                            detalle_descuento=nv.get("detalle_descuento", ""),
+                        )
+                    except (AttributeError, KeyError, TypeError, ValueError) as exc:
+                        bloqueos.append({
+                            "empleado_id": str(emp.id), "cct_numero": emp.cct_numero,
+                            "categoria": emp.categoria, "provisorio": False,
+                            "requiere_confirmacion": False,
+                            "motivo": f"Liquidación Casas Particulares bloqueada: {exc}",
+                        })
+                        continue
+                elif es_motor_uocra:
                     try:
                         base = calcular_base_quincenal(escala, HechosQuincenalesUocra(
                             nv.get("horas_normales_q1"), nv.get("horas_normales_q2"),
@@ -984,7 +1055,7 @@ class LiquidarPeriodo:
                 # recibo deja de pedirle el importe al empleador. Si no, no se
                 # estima nada y lo informa él, como venía siendo.
                 establecimiento = establecimientos.get(emp.establecimiento_id)
-                cuota_art = calcular_cuota_art(
+                cuota_art = None if es_motor_casas else calcular_cuota_art(
                     contrato_art_de(establecimiento), res.bruto.monto, fecha_ref,
                 )
                 if cuota_art is not None:
@@ -1001,15 +1072,23 @@ class LiquidarPeriodo:
                         "fuente_pago": establecimiento.art_comprobante_ref or "",
                     })
 
-                try:
-                    bases_lsd, trazabilidad_lsd = calcular_bases_snapshot(
-                        conceptos, periodo_str, dict(getattr(emp, "perfil_arca", None) or {}),
-                    )
-                    bases_lsd_out = [str(base) for base in bases_lsd]
-                    error_lsd = None
-                except ValueError as exc:
+                if es_motor_casas:
                     bases_lsd_out, trazabilidad_lsd = None, {}
-                    error_lsd = str(exc)
+                    error_lsd = (
+                        "Casas Particulares se registra y paga por el régimen especial "
+                        "de ARCA (F.102/RT), no por Libro de Sueldos Digital/F.931"
+                    )
+                else:
+                    try:
+                        bases_lsd, trazabilidad_lsd = calcular_bases_snapshot(
+                            conceptos, periodo_str,
+                            dict(getattr(emp, "perfil_arca", None) or {}),
+                        )
+                        bases_lsd_out = [str(base) for base in bases_lsd]
+                        error_lsd = None
+                    except ValueError as exc:
+                        bases_lsd_out, trazabilidad_lsd = None, {}
+                        error_lsd = str(exc)
 
                 await liq_repo.agregar_detalle(
                     uuid.UUID(tenant_id), liq.id, emp.id, conceptos,
@@ -1060,6 +1139,9 @@ class LiquidarPeriodo:
                             codigo: str(cantidad)
                             for codigo, cantidad in nv.get("cantidades_adicionales", ())
                         },
+                        "casas_particulares_detalle": dict(
+                            nv.get("casas_particulares_detalle") or {}
+                        ),
                     },
                 }
                 detalles_out.append({

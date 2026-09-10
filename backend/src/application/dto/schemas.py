@@ -264,6 +264,7 @@ class NovedadMensualIn(BaseModel):
     altura_metros_uocra: Optional[Decimal] = Field(default=None, ge=0)
     camioneros_detalle: dict = Field(default_factory=dict)
     uom_detalle: dict = Field(default_factory=dict)
+    casas_particulares_detalle: dict = Field(default_factory=dict)
 
     @model_validator(mode="after")
     def _validar_novedad(self):
@@ -327,6 +328,7 @@ class NovedadMensualUpdate(BaseModel):
     altura_metros_uocra: Optional[Decimal] = Field(default=None, ge=0)
     camioneros_detalle: dict = Field(default_factory=dict)
     uom_detalle: dict = Field(default_factory=dict)
+    casas_particulares_detalle: dict = Field(default_factory=dict)
 
     @model_validator(mode="after")
     def _validar_novedad(self):
@@ -431,6 +433,7 @@ class NovedadMensualOut(BaseModel):
     altura_metros_uocra: Optional[Decimal] = None
     camioneros_detalle: dict = Field(default_factory=dict)
     uom_detalle: dict = Field(default_factory=dict)
+    casas_particulares_detalle: dict = Field(default_factory=dict)
     bloqueada: bool = False
 
 

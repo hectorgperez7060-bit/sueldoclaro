@@ -93,6 +93,7 @@ class EscalaSalarial(Base):
     unidad_escala: Mapped[str] = mapped_column(String(12), default="MENSUAL")
     basico_puro: Mapped[Optional[Decimal]] = mapped_column(MONEY, nullable=True)
     adicional_zona: Mapped[Optional[Decimal]] = mapped_column(MONEY, nullable=True)
+    valor_hora: Mapped[Optional[Decimal]] = mapped_column(MONEY, nullable=True)
     habilitada_liquidacion: Mapped[bool] = mapped_column(Boolean, default=True)
 
 
@@ -440,6 +441,7 @@ class NovedadMensual(TenantMixin, Base):
     altura_metros_uocra: Mapped[Optional[Decimal]] = mapped_column(Numeric(8, 2), nullable=True)
     camioneros_detalle: Mapped[dict] = mapped_column(JSONB, default=dict)
     uom_detalle: Mapped[dict] = mapped_column(JSONB, default=dict)
+    casas_particulares_detalle: Mapped[dict] = mapped_column(JSONB, default=dict)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=now_utc, onupdate=now_utc
