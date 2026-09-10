@@ -151,15 +151,15 @@ def test_al_cortarse_la_sesion_no_se_borra_lo_que_la_persona_escribio():
     assert "lo que estabas cargando quedó guardado" in ui
 
 
-def test_la_cuenta_distingue_estudio_contable_de_empresa():
-    """Un estudio lleva clientes; una empresa se liquida a sí misma.
+def test_la_cuenta_distingue_estudio_empresa_y_hogar():
+    """Un estudio lleva clientes; empresa y hogar tienen recorridos simples.
 
     Mostrarle a una empresa la capa de "clientes" solo le complica la carga:
     tiene que inventar un grupo, elegir empresa activa y crear "clientes" que
     en realidad son ella misma.
     """
     schemas = _leer("src/application/dto/schemas.py")
-    assert 'MODOS_CUENTA = ("ESTUDIO", "EMPRESA")' in schemas
+    assert 'MODOS_CUENTA = ("ESTUDIO", "EMPRESA", "HOGAR")' in schemas
     assert "class PerfilCuenta" in schemas
 
     modelos = _leer("src/infrastructure/database/models.py")
@@ -175,9 +175,17 @@ def test_la_cuenta_distingue_estudio_contable_de_empresa():
     assert "DEFAULT 'ESTUDIO'" in sql
     assert "CHECK (modo_cuenta IN ('ESTUDIO', 'EMPRESA'))" in sql
 
+    sql_hogar = _leer("migrations/067_modo_cuenta_hogar.sql")
+    assert "CHECK (modo_cuenta IN ('ESTUDIO', 'EMPRESA', 'HOGAR'))" in sql_hogar
+
     ui = _leer("src/ui_page.py")
     assert "function elegirModoCuenta(" in ui and "function aplicarModoCuenta(" in ui
     assert "modo_cuenta:modoElegidoAlCrear" in ui
+    assert "Tengo personal en casa" in ui
+    assert "function configurarFormularioHogar(" in ui
+    assert "function configurarMapaModo(" in ui
+    assert "Personal de Casas Particulares · Ley 26.844" in ui
+    assert "!esCasasParticulares && proporcionJornada>LIMITE_JORNADA_PARCIAL" in ui
     # En modo empresa se esconde la capa de clientes entera.
     for oculto in ("btnNuevaEmpresaLateral", "btnNuevaEmpresaSeccion",
                    "campoNuevaEmpresaGrupo", "col-grupo-cliente"):

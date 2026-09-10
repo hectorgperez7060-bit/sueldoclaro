@@ -38,8 +38,8 @@ HTML = r"""<!DOCTYPE html>
   button:hover{background:var(--verde2)}
   button.secundario{background:#fff;color:var(--verde);border:1px solid var(--verde)}
   button.chico{padding:6px 12px;font-size:.85rem;margin-top:0}
-  .tabs{display:flex;gap:8px;margin-bottom:16px}
-  .tabs button{margin-top:0;flex:1}
+  .tabs{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
+  .tabs button{margin-top:0;flex:1 1 145px}
   .tabs button.inactivo{background:#e5e7eb;color:#374151}
   table{width:100%;border-collapse:collapse;font-size:.9rem;margin-top:10px}
   th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--borde)}
@@ -173,6 +173,15 @@ tr:last-child td{border-bottom:0}tbody tr:hover{background:#f8fcfb}
 .mapa-uso-paso small{display:block;color:var(--muted);font-size:.79rem;line-height:1.35;font-weight:450}
 .mapa-uso-flecha{position:absolute;right:11px;top:11px;color:#79a7a1;font-size:.9rem}
 .mapa-uso-aviso{margin-top:13px;padding:12px 14px;border-radius:12px;background:#edf8f5;color:#315d58;font-size:.82rem;line-height:1.45}
+.inicio-hogar{display:none;position:relative;overflow:hidden;margin:0 0 18px;padding:22px;border-radius:18px;background:linear-gradient(125deg,#073b3a,#0b615b 62%,#11877b);color:#fff;box-shadow:0 18px 42px rgba(6,78,73,.18)}
+.inicio-hogar:after{content:'⌂';position:absolute;right:18px;top:-34px;font-size:150px;line-height:1;color:rgba(255,255,255,.07);font-weight:900}
+.inicio-hogar .etiqueta-hogar{display:inline-flex;padding:5px 10px;border-radius:999px;background:rgba(53,224,197,.16);border:1px solid rgba(106,240,219,.35);color:#b9fff3;font-size:.74rem;font-weight:800;text-transform:uppercase;letter-spacing:.05em}
+.inicio-hogar h2{color:#fff;margin:11px 0 7px;font-size:clamp(1.35rem,3vw,2rem)}
+.inicio-hogar p{max-width:720px;margin:0;color:#d9fffa;line-height:1.5}
+.inicio-hogar-flujo{display:grid;grid-template-columns:1fr auto 1fr auto 1fr;gap:10px;align-items:center;margin:18px 0}
+.inicio-hogar-paso{padding:11px 12px;border:1px solid rgba(255,255,255,.18);border-radius:12px;background:rgba(255,255,255,.08);font-size:.82rem}
+.inicio-hogar-flecha{color:#6af0db;font-weight:900}
+@media(max-width:650px){.inicio-hogar{padding:18px}.inicio-hogar-flujo{grid-template-columns:1fr}.inicio-hogar-flecha{transform:rotate(90deg);text-align:center}.inicio-hogar:after{font-size:110px}}
 @media(max-width:900px){.mapa-uso-pasos{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:560px){.mapa-uso-pasos{grid-template-columns:1fr}.mapa-uso-paso{min-height:0}}
 @media(display-mode:standalone){
@@ -213,10 +222,11 @@ tr:last-child td{border-bottom:0}tbody tr:hover{background:#f8fcfb}
         <div id="rzModo" class="tabs" style="margin-bottom:12px">
           <button type="button" id="rzModoEmpresa" onclick="elegirModoCuenta('EMPRESA')">Soy una empresa</button>
           <button type="button" id="rzModoEstudio" class="inactivo" onclick="elegirModoCuenta('ESTUDIO')">Soy un estudio contable</button>
+          <button type="button" id="rzModoHogar" class="inactivo" onclick="elegirModoCuenta('HOGAR')">Tengo personal en casa</button>
         </div>
         <p id="rzModoAyuda" style="font-size:.82rem;color:#6b7280;margin:-6px 0 12px">Cargás tus datos una sola vez. Si tenés varios locales, los agregás como establecimientos y elegís por empleado dónde trabaja y dónde cobra.</p>
         <label id="rzRazonEtiqueta">Razón social de tu empresa</label><input id="rzRazon" placeholder="Mi Empresa S.R.L.">
-        <label>CUIT (11 dígitos)</label><input id="rzCuit" placeholder="30123456789" maxlength="13">
+        <label id="rzCuitEtiqueta">CUIT (11 dígitos)</label><input id="rzCuit" placeholder="30123456789" maxlength="13">
         <label>Email</label><input id="rzEmail" type="email" placeholder="tu@email.com">
         <label>Contraseña (mínimo 8)</label><input id="rzPass" type="password">
         <label>Código de invitación</label><input id="rzCodigoInvitacion" autocomplete="one-time-code" placeholder="Código proporcionado por Sueldo Claro">
@@ -245,9 +255,9 @@ tr:last-child td{border-bottom:0}tbody tr:hover{background:#f8fcfb}
         <nav class="navegacion">
           <button class="activo" onclick="irA('seccionInicio',this)"><span class="icono">🏠</span>Inicio</button>
           <button onclick="irA('seccionEmpresas',this)"><span class="icono">🏢</span><span id="navEmpresas">Empresas</span></button>
-          <button onclick="irA('seccionConvenios',this)"><span class="icono">📚</span>Convenios y escalas</button>
-          <button onclick="irA('seccionEstablecimientos',this)"><span class="icono">📍</span>Establecimientos</button>
-          <button onclick="irA('seccionEmpleados',this)"><span class="icono">👥</span>Empleados</button>
+          <button id="navConvenios" onclick="irA('seccionConvenios',this)"><span class="icono">📚</span>Convenios y escalas</button>
+          <button id="navEstablecimientos" onclick="irA('seccionEstablecimientos',this)"><span class="icono">📍</span>Establecimientos</button>
+          <button onclick="irA('seccionEmpleados',this)"><span class="icono">👥</span><span id="navEmpleados">Empleados</span></button>
           <button onclick="irA('seccionNovedades',this)"><span class="icono">🗓</span>Novedades</button>
           <button onclick="irA('seccionLiquidar',this)"><span class="icono">🧮</span>Liquidar</button>
           <button onclick="irA('seccionHistorial',this)"><span class="icono">📁</span>Recibos e historial</button>
@@ -260,9 +270,9 @@ tr:last-child td{border-bottom:0}tbody tr:hover{background:#f8fcfb}
       </aside>
       <main class="contenido-app">
         <button id="botonMenu" class="boton-menu secundario" onclick="alternarMenu()" aria-expanded="false">☰ Menú</button>
-        <div class="contexto-empresa"><span><b id="empresaNombreActiva">Empresa</b><br><small>Los empleados y liquidaciones visibles pertenecen únicamente a esta empresa.</small></span><span id="empresaRol" class="etiqueta"></span></div>
+        <div class="contexto-empresa"><span><b id="empresaNombreActiva">Empresa</b><br><small id="contextoEmpresaAyuda">Los empleados y liquidaciones visibles pertenecen únicamente a esta empresa.</small></span><span id="empresaRol" class="etiqueta"></span></div>
         <div id="estadoCargaApp" role="status" aria-live="polite" style="display:none;align-items:center;gap:8px;margin:0 0 10px;padding:9px 12px;border:1px solid #b9d9d4;border-radius:9px;background:#f2fbf9;color:#245b54;font-size:.84rem;font-weight:700"></div>
-        <div class="pasos" aria-label="Camino de trabajo"><div class="paso activo"><b>1</b>Cliente / grupo</div><div class="paso activo"><b>2</b>Sociedad / CUIT</div><div class="paso"><b>3</b>Establecimiento</div><div class="paso"><b>4</b>Empleado</div><div class="paso"><b>5</b>Novedades</div><div class="paso"><b>6</b>Liquidación</div><div class="paso"><b>7</b>Recibo</div></div>
+        <div class="pasos" id="pasosTrabajo" aria-label="Camino de trabajo"><div class="paso activo"><b>1</b>Cliente / grupo</div><div class="paso activo"><b>2</b>Sociedad / CUIT</div><div class="paso"><b>3</b>Establecimiento</div><div class="paso"><b>4</b>Empleado</div><div class="paso"><b>5</b>Novedades</div><div class="paso"><b>6</b>Liquidación</div><div class="paso"><b>7</b>Recibo</div></div>
         <div id="nuevaEmpresa" class="tarjeta" style="display:none">
           <div class="cabecera-seccion"><h2>Nueva empresa o cliente</h2><button class="chico secundario" onclick="mostrarNuevaEmpresa(false)">Cerrar</button></div>
           <p style="font-size:.88rem;color:#6b7280">Se creará un espacio independiente. Sus empleados y liquidaciones nunca se mezclarán con otra empresa.</p>
@@ -271,18 +281,29 @@ tr:last-child td{border-bottom:0}tbody tr:hover{background:#f8fcfb}
         </div>
     <div class="tarjeta seccion-app" id="seccionInicio">
       <div class="cabecera-seccion"><div><h2>Inicio</h2><p style="font-size:.85rem;color:#6b7280;margin:4px 0 0">Resumen de la empresa activa y accesos rápidos.</p></div></div>
+      <section id="inicioHogar" class="inicio-hogar" aria-labelledby="tituloInicioHogar">
+        <span class="etiqueta-hogar">Personal de Casas Particulares · Ley 26.844</span>
+        <h2 id="tituloInicioHogar">Tu hogar, una liquidación clara.</h2>
+        <p>Contanos quién trabaja en tu casa y qué ocurrió durante el mes. Sueldo Claro ordena el sueldo, la antigüedad, las horas extra, los aportes y la ART.</p>
+        <div class="inicio-hogar-flujo" aria-label="Recorrido para liquidar personal de casas particulares">
+          <div class="inicio-hogar-paso"><b>1. La persona</b><br>Categoría, modalidad y horas</div><span class="inicio-hogar-flecha">→</span>
+          <div class="inicio-hogar-paso"><b>2. El mes</b><br>Extras, ausencias y licencias</div><span class="inicio-hogar-flecha">→</span>
+          <div class="inicio-hogar-paso"><b>3. El resultado</b><br>Sueldo, aportes, ART y F.102/RT</div>
+        </div>
+        <button type="button" onclick="irA('seccionEmpleados')">Agregar a la persona que trabaja en casa</button>
+      </section>
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-top:14px">
         <div style="border:1px solid var(--borde);border-radius:12px;padding:14px;background:#f8fafc">
-          <div style="font-size:.72rem;color:#6b7280;text-transform:uppercase;letter-spacing:.03em">Empresa activa</div>
+          <div id="kpiEmpresaEtiqueta" style="font-size:.72rem;color:#6b7280;text-transform:uppercase;letter-spacing:.03em">Empresa activa</div>
           <div id="kpiEmpresa" style="font-size:1.05rem;font-weight:700;color:var(--verde);margin-top:4px;line-height:1.15">—</div>
           <div id="kpiEmpresaCuit" style="font-size:.78rem;color:#6b7280;margin-top:3px"></div>
         </div>
         <div style="border:1px solid var(--borde);border-radius:12px;padding:14px;background:#f8fafc">
-          <div style="font-size:.72rem;color:#6b7280;text-transform:uppercase;letter-spacing:.03em">Empleados</div>
+          <div id="kpiEmpleadosEtiqueta" style="font-size:.72rem;color:#6b7280;text-transform:uppercase;letter-spacing:.03em">Empleados</div>
           <div id="kpiEmpleados" style="font-size:1.7rem;font-weight:800;color:var(--verde);margin-top:2px;line-height:1">0</div>
-          <div style="font-size:.78rem;color:#6b7280;margin-top:3px">en esta empresa</div>
+          <div id="kpiEmpleadosAyuda" style="font-size:.78rem;color:#6b7280;margin-top:3px">en esta empresa</div>
         </div>
-        <div style="border:1px solid var(--borde);border-radius:12px;padding:14px;background:#f8fafc">
+        <div id="kpiCajaEstablecimientos" style="border:1px solid var(--borde);border-radius:12px;padding:14px;background:#f8fafc">
           <div style="font-size:.72rem;color:#6b7280;text-transform:uppercase;letter-spacing:.03em">Establecimientos</div>
           <div id="kpiEstablecimientos" style="font-size:1.7rem;font-weight:800;color:var(--verde);margin-top:2px;line-height:1">0</div>
           <div style="font-size:.78rem;color:#6b7280;margin-top:3px">activos</div>
@@ -302,9 +323,9 @@ tr:last-child td{border-bottom:0}tbody tr:hover{background:#f8fcfb}
       <section class="mapa-uso" aria-labelledby="tituloMapaUso">
         <div class="mapa-uso-cabecera">
           <h3 id="tituloMapaUso">Cómo usar Sueldo Claro</h3>
-          <p>No necesitás saber contabilidad. Seguí estos pasos en orden; cada tarjeta te lleva al lugar correspondiente.</p>
+          <p id="bajadaMapaUso">No necesitás saber contabilidad. Seguí estos pasos en orden; cada tarjeta te lleva al lugar correspondiente.</p>
         </div>
-        <div class="mapa-uso-pasos">
+        <div class="mapa-uso-pasos" id="pasosMapaUso">
           <button type="button" class="mapa-uso-paso" onclick="irA('seccionEmpresas')"><span class="mapa-uso-numero">1</span><span><strong>Cargá la empresa</strong><small>Ingresá la razón social, el CUIT y la información básica del empleador.</small></span><span class="mapa-uso-flecha">→</span></button>
           <button type="button" class="mapa-uso-paso" onclick="irA('seccionEstablecimientos')"><span class="mapa-uso-numero">2</span><span><strong>Indicá dónde trabajan</strong><small>Agregá los domicilios de trabajo y los datos reales de la ART contratada.</small></span><span class="mapa-uso-flecha">→</span></button>
           <button type="button" class="mapa-uso-paso" onclick="irA('seccionEmpleados')"><span class="mapa-uso-numero">3</span><span><strong>Agregá los empleados</strong><small>Cargá sus datos, la tarea que realizan, el convenio y la categoría.</small></span><span class="mapa-uso-flecha">→</span></button>
@@ -319,7 +340,7 @@ tr:last-child td{border-bottom:0}tbody tr:hover{background:#f8fcfb}
         <button class="chico" onclick="irA('seccionEmpleados')">👥 Empleados</button>
         <button class="chico secundario" onclick="irA('seccionNovedades')">🗓 Novedades</button>
         <button class="chico secundario" onclick="irA('seccionLiquidar')">🧮 Liquidar</button>
-        <button class="chico secundario" onclick="irA('seccionEstablecimientos')">📍 Establecimientos</button>
+        <button id="btnAccesoEstablecimientos" class="chico secundario" onclick="irA('seccionEstablecimientos')">📍 Establecimientos</button>
         <button class="chico secundario" onclick="irA('seccionHistorial')">📁 Recibos e historial</button>
       </div>
     </div>
@@ -357,10 +378,10 @@ tr:last-child td{border-bottom:0}tbody tr:hover{background:#f8fcfb}
     </div>
     <div class="tarjeta seccion-app" id="seccionEmpleados">
       <div class="cabecera-seccion">
-        <h2>Empleados</h2>
+        <h2 id="tituloEmpleados">Empleados</h2>
         <div style="display:flex;gap:6px;flex-wrap:wrap">
-          <button class="chico secundario" onclick="toggleAlta()">+ Agregar manual</button>
-          <label class="chico secundario" style="cursor:pointer;display:inline-flex;align-items:center;margin:0">+ Importar Excel (.xlsx)<input type="file" id="inputExcel" accept=".xlsx" style="display:none" onchange="subirExcelPreview(this)"></label>
+          <button id="btnAgregarEmpleado" class="chico secundario" onclick="toggleAlta()">+ Agregar manual</button>
+          <label id="btnImportarEmpleados" class="chico secundario" style="cursor:pointer;display:inline-flex;align-items:center;margin:0">+ Importar Excel (.xlsx)<input type="file" id="inputExcel" accept=".xlsx" style="display:none" onchange="subirExcelPreview(this)"></label>
           <button class="chico secundario" onclick="descargarPlantillaExcel()" title="Descargar plantilla para importar empleados">📥 Plantilla de empleados</button>
         </div>
       </div>
@@ -409,18 +430,18 @@ tr:last-child td{border-bottom:0}tbody tr:hover{background:#f8fcfb}
         <div class="fila">
           <div><label>Fecha de ingreso</label><input id="eFecha" type="text" inputmode="numeric" placeholder="DD/MM/AAAA" maxlength="10" oninput="formatearFecha(this)"><small style="color:#6b7280">Escribí solo números.</small></div>
           <div><label>Legajo</label><input id="eLegajo" placeholder="0001"></div>
-          <div><label>Actividad del establecimiento</label>
+          <div id="campoActividadEmpleado"><label>Actividad del establecimiento</label>
             <select id="eActividad" onchange="llenarConvenios()"></select></div>
-          <div style="grid-column:1/-1"><label>Tarea principal efectivamente realizada</label>
+          <div id="campoTareaEmpleado" style="grid-column:1/-1"><label>Tarea principal efectivamente realizada</label>
             <input id="eTareaPrincipal" placeholder="Ej.: atención de mostrador y validación de recetas">
             <small style="color:#6b7280">Se usa para orientar el convenio y la categoría; no alcanza por sí sola.</small></div>
-          <div style="grid-column:1/-1">
+          <div id="campoEncuadramientoEmpleado" style="grid-column:1/-1">
             <button type="button" class="chico secundario" onclick="analizarEncuadramiento()">Analizar convenio aplicable</button>
             <div id="resultadoEncuadramiento" style="display:none;margin-top:8px;padding:10px;border:1px solid #bfdbfe;background:#eff6ff;border-radius:8px"></div>
           </div>
-          <div><label>Convenio colectivo aplicable</label>
+          <div id="campoConvenioEmpleado"><label>Convenio colectivo aplicable</label>
             <select id="eConvenio" onchange="llenarCategorias()"></select></div>
-          <div><label>Sindicato / federación del convenio</label>
+          <div id="campoSindicatoEmpleado"><label>Sindicato / federación del convenio</label>
             <input id="eSindicato" readonly placeholder="Se completa según el convenio"></div>
           <div><label>Categoría</label>
             <select id="eCategoria"></select></div>
@@ -442,9 +463,9 @@ tr:last-child td{border-bottom:0}tbody tr:hover{background:#f8fcfb}
             <input id="eHorasSemanales" type="hidden">
             <small id="eHorasAyuda" style="display:block;color:#6b7280;margin-top:8px"></small>
             <small style="display:block;color:#6b7280;margin-top:4px">Las faltas, licencias y vacaciones no se cargan acá: van en Novedades del mes y se descuentan solas.</small></div>
-          <div><label>Obra social (independiente del sindicato)</label><input id="eObraSocial" list="obrasSociales" placeholder="Elegí o escribí la obra social"><datalist id="obrasSociales"><option value="OSADEF - Obra Social de las Asociaciones de Empleados de Farmacia"><option value="OSPSA - Obra Social del Personal de la Sanidad Argentina"><option value="OSECAC - Obra Social de Empleados de Comercio"><option value="OSPF - Obra Social del Personal de Farmacia"></datalist></div>
-          <div><label>Establecimiento / lugar de trabajo</label><select id="eEstablecimiento" onchange="datosEstablecimientoParaEncuadramiento()"><option value="">Sin establecimiento asignado</option></select></div>
-          <div><label>Trabaja allí desde</label><input id="eLugarDesde" type="text" inputmode="numeric" placeholder="DD/MM/AAAA" maxlength="10" oninput="formatearFecha(this)"><small style="color:#6b7280">Solo completalo al asignar o cambiar el lugar.</small></div>
+          <div id="campoObraSocialEmpleado"><label>Obra social (independiente del sindicato)</label><input id="eObraSocial" list="obrasSociales" placeholder="Elegí o escribí la obra social"><datalist id="obrasSociales"><option value="OSADEF - Obra Social de las Asociaciones de Empleados de Farmacia"><option value="OSPSA - Obra Social del Personal de la Sanidad Argentina"><option value="OSECAC - Obra Social de Empleados de Comercio"><option value="OSPF - Obra Social del Personal de Farmacia"></datalist></div>
+          <div id="campoEstablecimientoEmpleado"><label>Establecimiento / lugar de trabajo</label><select id="eEstablecimiento" onchange="datosEstablecimientoParaEncuadramiento()"><option value="">Sin establecimiento asignado</option></select></div>
+          <div id="campoLugarDesdeEmpleado"><label>Trabaja allí desde</label><input id="eLugarDesde" type="text" inputmode="numeric" placeholder="DD/MM/AAAA" maxlength="10" oninput="formatearFecha(this)"><small style="color:#6b7280">Solo completalo al asignar o cambiar el lugar.</small></div>
           <div><label>Remuneración pactada (si supera el básico)</label><input id="eRemun" type="number" min="0" placeholder="opcional"></div>
         </div>
 
@@ -455,13 +476,13 @@ tr:last-child td{border-bottom:0}tbody tr:hover{background:#f8fcfb}
           <div><label id="lblCbu">CBU (22 dígitos)</label><input id="eCbu" maxlength="22" placeholder="opcional"></div>
         </div>
 
-        <h3 style="font-size:.9rem;color:var(--verde);margin:14px 0 6px">Datos sindicales (para cuota de afiliado según el convenio)</h3>
+        <h3 id="tituloDatosSindicales" style="font-size:.9rem;color:var(--verde);margin:14px 0 6px">Datos sindicales (para cuota de afiliado según el convenio)</h3>
         <div class="fila">
           <div><label>Localidad / jurisdicción</label><input id="eLocalidad" placeholder="Ej.: CABA, Rosario, Córdoba"></div>
-          <div><label>Filial sindical (si aplica)</label><input id="eFilial" placeholder="opcional"></div>
+          <div id="campoFilialEmpleado"><label>Filial sindical (si aplica)</label><input id="eFilial" placeholder="opcional"></div>
         </div>
 
-        <details style="margin-top:14px;border:1px solid var(--borde);border-radius:10px;padding:10px">
+        <details id="datosArcaGeneralEmpleado" style="margin-top:14px;border:1px solid var(--borde);border-radius:10px;padding:10px">
           <summary style="cursor:pointer;font-weight:700;color:var(--verde)">Datos registrales ARCA — Libro de Sueldos Digital</summary>
           <p style="font-size:.8rem;color:#6b7280;margin:8px 0">Copiá estos códigos de Simplificación Registral. No se completan automáticamente.</p>
           <div class="fila">
@@ -829,6 +850,7 @@ function ajustarCampoHoras(){
 
   const completa = horasJornadaConvenio();
   const declara = convenioDeclaraJornada();
+  const esCasasParticulares = $('eConvenio') && $('eConvenio').value==='LEY 26844';
   const ayuda = $('eHorasAyuda');
   const oculto = $('eHorasSemanales');
 
@@ -864,6 +886,14 @@ function ajustarCampoHoras(){
   const proporcion = semanales / completa;
   const pct = nHoras(proporcion*100) + '%';
   const sobre = nHoras(semanales) + ' de las ' + nHoras(completa) + ' h del convenio';
+
+  if(esCasasParticulares){
+    ayuda.style.color = '#315d58';
+    ayuda.textContent = semanales < 24
+      ? 'Trabaja '+nHoras(semanales)+' h por semana: el mínimo se calcula con el valor por hora y las horas reales del mes.'
+      : 'Trabaja '+sobre+' ('+pct+'): el mínimo mensual se calcula en proporción a 48 h semanales.';
+    return;
+  }
 
   if(proporcion > LIMITE_JORNADA_PARCIAL && proporcion < 1){
     ayuda.style.color = '#b45309';
@@ -902,56 +932,133 @@ function mostrarTab(t){
 }
 function mostrarError(id,msg){ const e=$(id); e.textContent=msg; e.style.display='block'; }
 
-// --- Estudio contable o empresa --------------------------------------------
-// Un estudio lleva varias empresas clientes y necesita esa capa. Una empresa
-// se liquida a si misma: verla de mas solo le complica la carga, asi que la
-// aplicacion la esconde entera.
+// --- Estudio contable, empresa u hogar -------------------------------------
+// El hogar usa el mismo motor y aislamiento de datos, pero con palabras y un
+// recorrido propios del régimen de casas particulares.
 let modoCuenta='ESTUDIO';
 let modoElegidoAlCrear='EMPRESA';
 
 const AYUDA_MODO={
   EMPRESA:'Cargás tus datos una sola vez. Si tenés varios locales, los agregás como establecimientos y elegís por empleado dónde trabaja y dónde cobra.',
-  ESTUDIO:'Cargás una empresa por cada cliente, cada una con su CUIT, y vas cambiando de una a otra. Los datos de cada cliente nunca se mezclan.'
+  ESTUDIO:'Cargás una empresa por cada cliente, cada una con su CUIT, y vas cambiando de una a otra. Los datos de cada cliente nunca se mezclan.',
+  HOGAR:'Cargás a la persona que trabaja en tu casa, su categoría, modalidad y horas. La aplicación te guía sin mostrar convenios ni pantallas empresariales que no necesitás.'
 };
 
 function elegirModoCuenta(modo){
   modoElegidoAlCrear=modo;
-  $('rzModoEmpresa').className = modo==='EMPRESA'?'':'inactivo';
-  $('rzModoEstudio').className = modo==='ESTUDIO'?'':'inactivo';
+  ['EMPRESA','ESTUDIO','HOGAR'].forEach(m=>{
+    const boton=$('rzModo'+m.charAt(0)+m.slice(1).toLowerCase());
+    if(boton) boton.className=modo===m?'':'inactivo';
+  });
   $('rzModoAyuda').textContent = AYUDA_MODO[modo];
-  $('rzRazonEtiqueta').textContent = modo==='EMPRESA'
-    ? 'Razón social de tu empresa' : 'Nombre del estudio contable';
-  $('rzRazon').placeholder = modo==='EMPRESA'
-    ? 'Mi Empresa S.R.L.' : 'Estudio Contable Pérez';
+  const hogar=modo==='HOGAR';
+  $('rzRazonEtiqueta').textContent = hogar ? 'Nombre del hogar o familia'
+    : modo==='EMPRESA' ? 'Razón social de tu empresa' : 'Nombre del estudio contable';
+  $('rzCuitEtiqueta').textContent = hogar ? 'CUIT de la persona empleadora (11 dígitos)' : 'CUIT (11 dígitos)';
+  $('rzRazon').placeholder = hogar ? 'Ej.: Familia Pérez'
+    : modo==='EMPRESA' ? 'Mi Empresa S.R.L.' : 'Estudio Contable Pérez';
 }
 
 function aplicarModoCuenta(modo, empresas){
-  modoCuenta = modo==='EMPRESA' ? 'EMPRESA' : 'ESTUDIO';
+  modoCuenta = ['EMPRESA','HOGAR'].includes(modo) ? modo : 'ESTUDIO';
   const esEmpresa = modoCuenta==='EMPRESA';
+  const esHogar = modoCuenta==='HOGAR';
+  const esEstudio = modoCuenta==='ESTUDIO';
+  const esCuentaUnica = !esEstudio;
   const mostrar=(id,visible,display)=>{ const el=$(id); if(el) el.style.display = visible?(display||'block'):'none'; };
 
-  // Una sola empresa y modo empresa: el selector no elige nada.
+  // Una empresa o un hogar con un único CUIT no necesita selector de clientes.
   const selector=document.querySelector('.selector-empresa');
-  if(selector) selector.style.display = (esEmpresa && (empresas||1)<=1) ? 'none' : '';
-  mostrar('btnNuevaEmpresaLateral', !esEmpresa);
-  mostrar('btnNuevaEmpresaSeccion', !esEmpresa, 'inline-block');
-  mostrar('campoNuevaEmpresaGrupo', !esEmpresa);
-  document.querySelectorAll('.col-grupo-cliente').forEach(el=>{ el.style.display = esEmpresa?'none':''; });
+  if(selector) selector.style.display = (esCuentaUnica && (empresas||1)<=1) ? 'none' : '';
+  mostrar('btnNuevaEmpresaLateral', esEstudio);
+  mostrar('btnNuevaEmpresaSeccion', esEstudio, 'inline-block');
+  mostrar('campoNuevaEmpresaGrupo', esEstudio);
+  document.querySelectorAll('.col-grupo-cliente').forEach(el=>{ el.style.display = esEstudio?'':'none'; });
+  mostrar('navConvenios', !esHogar, 'block');
+  mostrar('navEstablecimientos', !esHogar, 'block');
+  mostrar('btnAccesoEstablecimientos', !esHogar, 'inline-block');
+  mostrar('perfilLaboralEmpresa', !esHogar);
+  mostrar('inicioHogar', esHogar);
+  mostrar('kpiCajaEstablecimientos', !esHogar);
+  mostrar('btnImportarEmpleados', !esHogar, 'inline-flex');
 
-  if($('navEmpresas')) $('navEmpresas').textContent = esEmpresa?'Mi empresa':'Empresas';
-  if($('tituloSeccionEmpresas')) $('tituloSeccionEmpresas').textContent = esEmpresa?'Mi empresa':'Empresas y clientes';
-  if($('bajadaSeccionEmpresas')) $('bajadaSeccionEmpresas').textContent = esEmpresa
+  if($('navEmpresas')) $('navEmpresas').textContent = esHogar?'Mi hogar':esEmpresa?'Mi empresa':'Empresas';
+  if($('navEmpleados')) $('navEmpleados').textContent = esHogar?'Personas':'Empleados';
+  if($('tituloEmpleados')) $('tituloEmpleados').textContent = esHogar?'Personas que trabajan en tu hogar':'Empleados';
+  if($('btnAgregarEmpleado')) $('btnAgregarEmpleado').textContent = esHogar?'+ Agregar persona':'+ Agregar manual';
+  if($('kpiEmpleadosEtiqueta')) $('kpiEmpleadosEtiqueta').textContent = esHogar?'Personas':'Empleados';
+  if($('kpiEmpleadosAyuda')) $('kpiEmpleadosAyuda').textContent = esHogar?'en este hogar':'en esta empresa';
+  if($('kpiEmpresaEtiqueta')) $('kpiEmpresaEtiqueta').textContent = esHogar?'Hogar empleador':'Empresa activa';
+  if($('contextoEmpresaAyuda')) $('contextoEmpresaAyuda').textContent = esHogar
+    ? 'Los datos y liquidaciones pertenecen únicamente a este hogar.'
+    : 'Los empleados y liquidaciones visibles pertenecen únicamente a esta empresa.';
+  if($('tituloSeccionEmpresas')) $('tituloSeccionEmpresas').textContent = esHogar?'Datos de tu hogar':esEmpresa?'Mi empresa':'Empresas y clientes';
+  if($('bajadaSeccionEmpresas')) $('bajadaSeccionEmpresas').textContent = esHogar
+    ? 'Este espacio identifica a la persona empleadora. No se mezcla con otros hogares ni empresas.'
+    : esEmpresa
     ? 'Los datos del empleador. Los distintos locales se cargan en Establecimientos.'
     : 'Cada sociedad (CUIT) es un espacio independiente. Elegí la activa o creá una nueva.';
 
-  const pasoUno=document.querySelector('.pasos .paso');
-  if(pasoUno) pasoUno.innerHTML = esEmpresa ? '<b>1</b>Tu empresa' : '<b>1</b>Cliente / grupo';
+  const pasosTrabajo=[...document.querySelectorAll('#pasosTrabajo .paso')];
+  const nombresPasos=esHogar
+    ? ['Tu hogar','La persona','Categoría y horas','Novedades','Cálculo','F.102/RT','Historial']
+    : [esEmpresa?'Tu empresa':'Cliente / grupo','Sociedad / CUIT','Establecimiento','Empleado','Novedades','Liquidación','Recibo'];
+  pasosTrabajo.forEach((paso,i)=>{paso.innerHTML='<b>'+(i+1)+'</b>'+nombresPasos[i];});
+
+  configurarMapaModo(esHogar);
+  configurarFormularioHogar();
 
   const cambiar=$('cambiarModoCuenta');
   if(cambiar){
-    cambiar.innerHTML = esEmpresa
-      ? '¿Empezaste a llevar los sueldos de otras sociedades? <a href="#" onclick="cambiarModoCuenta(&quot;ESTUDIO&quot;);return false">Pasar a estudio contable</a>.'
-      : '¿Llevás una sola empresa? <a href="#" onclick="cambiarModoCuenta(&quot;EMPRESA&quot;);return false">Simplificar a modo empresa</a>.';
+    cambiar.innerHTML = esHogar
+      ? '¿También liquidás una empresa o varios clientes? <a href="#" onclick="cambiarModoCuenta(&quot;EMPRESA&quot;);return false">Pasar a empresa</a> · <a href="#" onclick="cambiarModoCuenta(&quot;ESTUDIO&quot;);return false">Pasar a estudio</a>.'
+      : esEmpresa
+      ? '¿Tenés personal trabajando en tu casa? <a href="#" onclick="cambiarModoCuenta(&quot;HOGAR&quot;);return false">Usar el modo hogar</a> · ¿Llevás otras sociedades? <a href="#" onclick="cambiarModoCuenta(&quot;ESTUDIO&quot;);return false">Pasar a estudio</a>.'
+      : '¿Llevás una sola empresa? <a href="#" onclick="cambiarModoCuenta(&quot;EMPRESA&quot;);return false">Simplificar a modo empresa</a> · ¿Es para tu casa? <a href="#" onclick="cambiarModoCuenta(&quot;HOGAR&quot;);return false">Usar el modo hogar</a>.';
+  }
+}
+
+function configurarMapaModo(esHogar){
+  if($('tituloMapaUso')) $('tituloMapaUso').textContent=esHogar?'Cómo liquidar a quien trabaja en tu casa':'Cómo usar Sueldo Claro';
+  if($('bajadaMapaUso')) $('bajadaMapaUso').textContent=esHogar
+    ? 'No necesitás conocer las fórmulas. Respondé estas preguntas en orden y revisá el resultado.'
+    : 'No necesitás saber contabilidad. Seguí estos pasos en orden; cada tarjeta te lleva al lugar correspondiente.';
+  const hogar=[
+    ['seccionEmpresas','Identificá tu hogar','Ingresá el nombre del hogar y el CUIT de la persona empleadora.'],
+    ['seccionEmpleados','Agregá a la persona','Cargá sus datos, fecha de ingreso y forma de pago.'],
+    ['seccionEmpleados','Elegí categoría y horas','Indicá la tarea, si es con o sin retiro y cuántas horas trabaja.'],
+    ['seccionNovedades','Contá qué pasó este mes','Informá horas extra, ausencias, licencias y el valor pactado si corresponde.'],
+    ['seccionLiquidar','Calculá y revisá','Revisá sueldo, antigüedad, adicionales, aportes y ART.'],
+    ['seccionHistorial','Guardá el resultado','Conservá el cálculo y prepará la información del F.102/RT para ARCA.']
+  ];
+  const general=[
+    ['seccionEmpresas','Cargá la empresa','Ingresá la razón social, el CUIT y la información básica del empleador.'],
+    ['seccionEstablecimientos','Indicá dónde trabajan','Agregá los domicilios de trabajo y los datos reales de la ART contratada.'],
+    ['seccionEmpleados','Agregá los empleados','Cargá sus datos, la tarea que realizan, el convenio y la categoría.'],
+    ['seccionNovedades','Contá qué pasó este mes','Informá faltas, horas extra, feriados, vacaciones, premios y otros cambios.'],
+    ['seccionLiquidar','Calculá y revisá','La app muestra sueldo bruto, descuentos, sueldo neto y cualquier dato pendiente.'],
+    ['seccionHistorial','Descargá y conservá','Obtené el recibo y consultá después cada versión guardada en el historial.']
+  ];
+  [...document.querySelectorAll('#pasosMapaUso .mapa-uso-paso')].forEach((paso,i)=>{
+    const cfg=(esHogar?hogar:general)[i];
+    paso.querySelector('strong').textContent=cfg[1];
+    paso.querySelector('small').textContent=cfg[2];
+    paso.onclick=()=>irA(cfg[0]);
+  });
+}
+
+function configurarFormularioHogar(){
+  const esHogar=modoCuenta==='HOGAR';
+  ['campoActividadEmpleado','campoTareaEmpleado','campoEncuadramientoEmpleado','campoConvenioEmpleado',
+   'campoSindicatoEmpleado','campoObraSocialEmpleado','campoEstablecimientoEmpleado','campoLugarDesdeEmpleado',
+   'campoFilialEmpleado','datosArcaGeneralEmpleado'].forEach(id=>{const el=$(id);if(el)el.style.display=esHogar?'none':'';});
+  if($('tituloDatosSindicales')) $('tituloDatosSindicales').textContent=esHogar?'Lugar donde trabaja':'Datos sindicales (para cuota de afiliado según el convenio)';
+  if(esHogar && !editandoEmpleadoId){
+    const regimen=convenios.find(c=>c.numero==='LEY 26844');
+    if(regimen){
+      $('eActividad').value=actividadConvenio(regimen);
+      llenarConvenios('LEY 26844');
+    }
   }
 }
 
@@ -1384,7 +1491,11 @@ async function entrar(){
   const recuperados=restaurarBorrador();
   if(recuperados) avisarBorradorRecuperado(recuperados);
 }
-function toggleAlta(){ const a=$('alta'); a.style.display = a.style.display==='none'?'block':'none'; }
+function toggleAlta(){
+  const a=$('alta');
+  a.style.display = a.style.display==='none'?'block':'none';
+  if(a.style.display==='block') configurarFormularioHogar();
+}
 function toggleEstablecimiento(){ const a=$('formEstablecimiento'); a.style.display=a.style.display==='none'?'block':'none'; }
 async function cargarEstablecimientos(){
   const verInactivos=$('verInactivosEst') && $('verInactivosEst').checked;
@@ -1492,7 +1603,7 @@ async function cargarEmpresasSeccion(){
     // Las celdas se crean de nuevo en cada carga: hay que volver a esconder
     // la columna de cliente si la cuenta es de una sola empresa.
     document.querySelectorAll('.col-grupo-cliente').forEach(el=>{
-      el.style.display = modoCuenta==='EMPRESA'?'none':'';
+      el.style.display = modoCuenta==='ESTUDIO'?'':'none';
     });
     $('sinEmpresas').style.display=empresas.length?'none':'block';
     if(!empresas.length) $('sinEmpresas').textContent='Todavía no tenés empresas cargadas.';
@@ -1563,7 +1674,10 @@ function mostrarSiguientePaso(nEmp, activos, estado){
   let titulo='Contá qué pasó este mes';
   let ayuda='Cargá faltas, horas extra, feriados o vacaciones. Si no hubo cambios, podés seguir.';
   let boton='Ir a novedades';
-  if(!activos){
+  if(modoCuenta==='HOGAR' && !nEmp){
+    destino='seccionEmpleados'; titulo='Agregá a la persona que trabaja en tu casa';
+    ayuda='Te vamos a pedir su categoría, modalidad, fecha de ingreso y horas habituales.'; boton='Agregar persona';
+  }else if(modoCuenta!=='HOGAR' && !activos){
     destino='seccionEstablecimientos'; titulo='Primero cargá el lugar de trabajo';
     ayuda='Ahí también se guardan los datos reales de la ART.'; boton='Agregar establecimiento';
   }else if(!nEmp){
@@ -1598,7 +1712,7 @@ async function cargarInicio(){
     }
   }catch(e){ /* período sin carpetas: queda Sin generar */ }
   $('kpiPendientes').textContent = nEmp ? pend : '—';
-  $('kpiEstadoLiq').textContent = nEmp ? ('Mes '+periodo+' · '+estado) : 'Cargá empleados para liquidar';
+  $('kpiEstadoLiq').textContent = nEmp ? ('Mes '+periodo+' · '+estado) : modoCuenta==='HOGAR'?'Agregá una persona para comenzar':'Cargá empleados para liquidar';
   mostrarSiguientePaso(nEmp, activos, estado);
 }
 
@@ -1666,6 +1780,7 @@ async function cargarConvenios(){
     const primeroVigente=convenios.find(c=>c.tiene_escala_vigente);
     if(primeroVigente) selActividad.value=actividadConvenio(primeroVigente);
     llenarConvenios(primeroVigente?primeroVigente.numero:null);
+    configurarFormularioHogar();
   }catch(e){ mostrarError('empError','No se pudieron cargar los convenios: '+e.message); }
 }
 function llenarConvenios(preseleccion=null){
@@ -2937,6 +3052,7 @@ function cancelarEdicion(){
   $('btnCancelarEmp').style.display = 'none';
   ocultar('empError'); ocultar('empOk');
   toggleCbu();
+  configurarFormularioHogar();
 }
 
 function limpiarContextoEmpresa(){
@@ -3116,11 +3232,12 @@ function cancelarVistaPreviaExcel(){
 async function crearEmpleado(){
   ocultar('empError'); ocultar('empOk');
   const fp=$('eFormaPago').value;
-  if(!fp){ mostrarError('empError','Elegí la forma de pago: la exige ARCA para el recibo y el F.931.'); return; }
+  if(!fp){ mostrarError('empError',modoCuenta==='HOGAR'?'Elegí la forma de pago: se necesita para preparar el F.102/RT.':'Elegí la forma de pago: la exige ARCA para el recibo y el F.931.'); return; }
   if(fp==='3' && $('eCbu').value.replace(/\D/g,'').length!==22){
     mostrarError('empError','Acreditación en cuenta: el CBU es obligatorio y debe tener 22 dígitos.'); return; }
   const horasCompletas=horasJornadaConvenio();
   const jornadaCompleta=$('eTipoJornada').value!=='reducida';
+  const esCasasParticulares=$('eConvenio').value==='LEY 26844';
   // Jornada completa es 1 exacto, sin dividir: así el empleado se liquida bien
   // aunque el convenio todavía no tenga cargadas sus horas.
   let proporcionJornada=1;
@@ -3131,7 +3248,7 @@ async function crearEmpleado(){
     if(horasSemanales>horasCompletas){
       mostrarError('empError','Esas horas ('+nHoras(horasSemanales)+' por semana) superan la jornada completa del convenio ('+nHoras(horasCompletas)+' h). Si trabaja más, son horas extra y se cargan en Novedades del mes.'); return; }
     proporcionJornada=horasSemanales/horasCompletas;
-    if(proporcionJornada>LIMITE_JORNADA_PARCIAL && proporcionJornada<1){
+    if(!esCasasParticulares && proporcionJornada>LIMITE_JORNADA_PARCIAL && proporcionJornada<1){
       mostrarError('empError','Con esas horas trabaja el '+nHoras(proporcionJornada*100)+'% de la jornada, y eso supera las dos terceras partes. Por el art. 92 ter de la LCT le corresponde el sueldo de jornada completa: elegí "Jornada completa", o bajá las horas si de verdad trabaja menos.'); return; }
   }
   const lugarElegido=$('eEstablecimiento').value || null;

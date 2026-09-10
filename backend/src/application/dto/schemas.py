@@ -11,7 +11,7 @@ from domain.value_objects.cuil import es_cuil_valido
 
 
 # --- Auth ---
-MODOS_CUENTA = ("ESTUDIO", "EMPRESA")
+MODOS_CUENTA = ("ESTUDIO", "EMPRESA", "HOGAR")
 
 
 def validar_cuit_empresa(valor: str) -> str:
@@ -41,7 +41,8 @@ class RegistroEstudio(BaseModel):
     @classmethod
     def _validar_cuit(cls, v: str) -> str:
         return validar_cuit_empresa(v)
-    # ESTUDIO lleva empresas clientes; EMPRESA es una sola, con menos datos.
+    # ESTUDIO lleva empresas clientes; EMPRESA es una sola; HOGAR simplifica
+    # la experiencia para empleadores de personal de casas particulares.
     modo_cuenta: str = "ESTUDIO"
 
     @field_validator("modo_cuenta")
@@ -49,7 +50,7 @@ class RegistroEstudio(BaseModel):
     def _modo_valido(cls, valor: str) -> str:
         valor = (valor or "ESTUDIO").upper()
         if valor not in MODOS_CUENTA:
-            raise ValueError("Elegí si la cuenta es de un estudio contable o de una empresa")
+            raise ValueError("Elegí si la cuenta es de un estudio, una empresa o un hogar")
         return valor
 
 
@@ -61,7 +62,7 @@ class ModoCuenta(BaseModel):
     def _modo_valido(cls, valor: str) -> str:
         valor = (valor or "").upper()
         if valor not in MODOS_CUENTA:
-            raise ValueError("Elegí si la cuenta es de un estudio contable o de una empresa")
+            raise ValueError("Elegí si la cuenta es de un estudio, una empresa o un hogar")
         return valor
 
 
