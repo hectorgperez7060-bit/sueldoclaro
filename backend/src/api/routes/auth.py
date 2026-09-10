@@ -103,7 +103,7 @@ async def refresh(body: RefreshRequest):
 
 @router.get("/perfil", response_model=PerfilCuenta)
 async def perfil_cuenta(principal: Principal = Depends(get_principal)):
-    """Cómo se usa la cuenta: estudio contable con clientes, o una sola empresa."""
+    """Cómo se usa la cuenta: estudio, empresa o empleador de un hogar."""
     usuario_id = uuid.UUID(principal.usuario_id)
     async with plain_session() as s:
         usuario = await s.get(m.Usuario, usuario_id)
@@ -121,10 +121,10 @@ async def perfil_cuenta(principal: Principal = Depends(get_principal)):
 async def cambiar_modo_cuenta(
     body: ModoCuenta, principal: Principal = Depends(get_principal),
 ):
-    """Pasar de empresa a estudio contable, o al revés.
+    """Cambiar entre estudio, empresa y hogar.
 
-    No toca ningún dato: solo cambia qué muestra la aplicación. Una empresa que
-    empieza a llevar otras sociedades pasa a estudio sin recargar nada.
+    No toca ningún dato: solo cambia qué muestra la aplicación. El modo hogar
+    guía la carga del régimen de casas particulares sin mezclar otros convenios.
     """
     usuario_id = uuid.UUID(principal.usuario_id)
     async with plain_session() as s:
