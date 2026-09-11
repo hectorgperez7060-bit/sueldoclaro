@@ -111,6 +111,20 @@ def test_no_contiene_el_total_a_depositar_del_f931():
     assert "F.931" not in texto
 
 
+def test_casas_particulares_genera_preliquidacion_y_no_recibo_para_firma():
+    datos = _datos(tipo_documento="preliquidacion_casas")
+    datos["empleado"] = {**datos["empleado"], "cct_numero": "LEY 26844"}
+    datos["cargas_sociales"] = None
+    _, _, texto = _texto(datos)
+    assert "PRELIQUIDACIÓN · CASAS PARTICULARES" in texto
+    assert "SIN VALIDEZ COMO RECIBO" in texto
+    assert "EL RECIBO OFICIAL SE GENERA EN ARCA" in texto
+    assert "El F.102/RT sirve para pagar aportes, contribuciones y ART" in texto
+    assert "no acredita el pago ni reemplaza el recibo digital oficial de ARCA" in texto
+    assert "Firma del empleador" not in texto
+    assert "LCT arts. 139 y 140" not in texto
+
+
 def test_sin_art_no_dice_costo_total_y_declara_el_subtotal():
     _, _, texto = _texto(_datos())
     assert "Costo total" not in texto
