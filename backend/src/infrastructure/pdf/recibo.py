@@ -1,4 +1,4 @@
-"""Recibo de haberes A4.
+"""Recibo de haberes A4 y preliquidación para casas particulares.
 
 Requisitos legales que el documento debe satisfacer:
 
@@ -19,6 +19,10 @@ Reglas de construcción:
 - Un importe pendiente nunca se muestra como $ 0,00: se muestra como pendiente.
 - Los porcentajes del gráfico se derivan de los mismos importes mostrados y su
   redondeo visible suma exactamente 100,0 %.
+
+La preliquidación de casas particulares es deliberadamente distinta: sirve
+como papel de trabajo y nunca se presenta como recibo legal. El comprobante
+oficial de ese régimen se genera en el servicio de ARCA.
 """
 from __future__ import annotations
 
@@ -40,6 +44,7 @@ AMBER_BG, AMBER_LINE, AMBER_INK = Color(1, .96, .80), Color(.85, .55, 0), Color(
 NO_INFORMADO = "No informado"
 DEPOSITO_PENDIENTE = "Datos del último depósito pendientes de completar"
 PARA_FIRMA = "EMITIDO POR EL EMPLEADOR — PENDIENTE DE FIRMA Y CONSTANCIA DE ENTREGA"
+PRELIQUIDACION_ARCA = "SIN VALIDEZ COMO RECIBO — EL RECIBO OFICIAL SE GENERA EN ARCA"
 
 # Encuadre vertical del cuerpo. Todo lo que se dibuja de la seccion 2 en
 # adelante se apoya en un "borde": la coordenada del borde inferior de lo
@@ -157,8 +162,9 @@ def validar_datos_legales(data: dict[str, Any]) -> None:
                 raise ValueError(f"Concepto {index}: falta {field}")
         if concept.get("base_calculo") is None and concept.get("codigo") != "ART_IMPORTE_DECLARADO":
             raise ValueError(f"Concepto {index}: falta base_calculo")
-    for path in ("cargas_sociales.fecha", "cargas_sociales.periodo", "cargas_sociales.banco"):
-        _require(data, path)
+    if data.get("tipo_documento") != "preliquidacion_casas":
+        for path in ("cargas_sociales.fecha", "cargas_sociales.periodo", "cargas_sociales.banco"):
+            _require(data, path)
 
 
 # --------------------------------------------------------------------------- #
@@ -572,6 +578,21 @@ def _bloque_deposito(c: Canvas, y: float, data: dict[str, Any]) -> float:
     return y - alto - 4
 
 
+def _bloque_emision_arca(c: Canvas, y: float) -> float:
+    """Aclara el paso oficial sin confundir el F.102/RT con un recibo."""
+    alto = 32
+    c.setFillColor(AMBER_BG); c.setStrokeColor(AMBER_LINE); c.setLineWidth(.35)
+    c.rect(28, y + 6 - alto, 540, alto, fill=1, stroke=1)
+    _text(c, 34, y - 2, "COMPROBANTE OFICIAL", 6.2, True, AMBER_INK)
+    _draw_fit(
+        c, 34, y - 14,
+        "Generalo en Personal de Casas Particulares de ARCA. El F.102/RT sirve "
+        "para pagar aportes, contribuciones y ART; no reemplaza el recibo digital.",
+        520, 6.8, bold=True, color=AMBER_INK, max_lines=2, min_size=5.5,
+    )
+    return y - alto - 4
+
+
 def _bloque_firmas(c: Canvas, data: dict[str, Any], firma: dict[str, Any] | None,
                    tope: float) -> None:
     """Espacios de firma, fecha de recepción y constancia de copia fiel.
@@ -614,10 +635,36 @@ def _bloque_firmas(c: Canvas, data: dict[str, Any], firma: dict[str, Any] | None
                     "y al artículo 12 de la Ley 17.250", 547, 6, False, GRAY)
 
 
+def _bloque_preliquidacion(c: Canvas, tope: float) -> None:
+    """Cierre inequívoco para el papel de trabajo de casas particulares."""
+    alto = max(42.0, min(180.0, tope - 42))
+    c.setFillColor(AMBER_BG); c.setStrokeColor(AMBER_LINE); c.setLineWidth(.6)
+    c.rect(28, 42, 540, alto, fill=1, stroke=1)
+    _text(c, 38, 42 + alto - 15, "SIGUIENTE PASO: GENERAR EL RECIBO DIGITAL EN ARCA",
+          7.2, True, AMBER_INK)
+    _draw_fit(
+        c, 38, 42 + alto - 30,
+        "Usá estos importes como guía y cargá la liquidación en el servicio "
+        "Personal de Casas Particulares de ARCA. El comprobante oficial es el "
+        "que emite ARCA con su numeración y código QR.",
+        520, 7, color=AMBER_INK, max_lines=3, min_size=6,
+    )
+    c.setFillColor(PALE); c.rect(20, 12, 555, 22, fill=1, stroke=0)
+    _texto_centrado(
+        c, 297.5, 24,
+        "Documento de cálculo: no acredita el pago ni reemplaza el recibo digital oficial de ARCA.",
+        547, 6.4, True, GRAY,
+    )
+    _texto_centrado(c, 297.5, 16, "Régimen de personal de casas particulares · Ley 26.844",
+                    547, 5.8, False, GRAY)
+
+
 def generar_recibo_pdf(data: dict[str, Any]) -> bytes:
     validar_datos_legales(data)
+    es_preliquidacion = data.get("tipo_documento") == "preliquidacion_casas"
     output = BytesIO(); c = Canvas(output, pagesize=A4, pageCompression=1)
-    c.setTitle(f"Recibo de haberes {data['periodo']}"); c.setAuthor(str(data["empresa"]["razon_social"]))
+    titulo_pdf = "Preliquidación para ARCA" if es_preliquidacion else "Recibo de haberes"
+    c.setTitle(f"{titulo_pdf} {data['periodo']}"); c.setAuthor(str(data["empresa"]["razon_social"]))
     concepts = list(data["conceptos"])
     contributions = [r for r in concepts if r["tipo"] == "contribucion"]
     worker = [r for r in concepts if r["tipo"] != "contribucion"]
@@ -628,18 +675,22 @@ def generar_recibo_pdf(data: dict[str, Any]) -> bytes:
 
     # Encabezado documental compacto.
     c.setFillColor(GREEN); c.setStrokeColor(GREEN); c.rect(20, 808, 555, 25, fill=1, stroke=0)
-    titulo = "RECIBO DE HABERES" if firma else "RECIBO DE HABERES · PARA FIRMA Y ENTREGA"
+    titulo = ("PRELIQUIDACIÓN · CASAS PARTICULARES" if es_preliquidacion else
+              ("RECIBO DE HABERES" if firma else "RECIBO DE HABERES · PARA FIRMA Y ENTREGA"))
     _text(c, 28, 817, titulo, 9.2, True, white)
     _text(c, 567, 817, f"PERÍODO {data['periodo']}", 8, True, white, right=True)
 
     y = 800
-    if not firma:
+    if es_preliquidacion or not firma:
         c.setFillColor(AMBER_BG); c.setStrokeColor(AMBER_LINE)
         c.rect(24, y - 11, 547, 15, fill=1, stroke=1)
-        _texto_centrado(c, 297.5, y - 6, PARA_FIRMA, 539, 6.8, True, AMBER_INK)
+        aviso = PRELIQUIDACION_ARCA if es_preliquidacion else PARA_FIRMA
+        _texto_centrado(c, 297.5, y - 6, aviso, 539, 6.8, True, AMBER_INK)
         y -= 17
 
-    y = _section(c, y + 3, "1. DATOS DEL EMPLEADOR, TRABAJADOR Y PAGO")
+    seccion_datos = ("1. DATOS PARA CARGAR EN ARCA" if es_preliquidacion else
+                     "1. DATOS DEL EMPLEADOR, TRABAJADOR Y PAGO")
+    y = _section(c, y + 3, seccion_datos)
     e, w = data["empresa"], data["empleado"]
     left = (("Empleador", e["razon_social"]), ("CUIT", e["cuit"]),
             ("Domicilio legal", e["domicilio"]))
@@ -665,7 +716,7 @@ def generar_recibo_pdf(data: dict[str, Any]) -> bytes:
     y -= 56
 
     y = _bloque_pago(c, y, data)
-    y = _bloque_deposito(c, y, data)
+    y = _bloque_emision_arca(c, y) if es_preliquidacion else _bloque_deposito(c, y, data)
 
     # Alto de fila calculado con el espacio realmente disponible: se descuenta
     # todo lo que ocupa un alto fijo y el resto se reparte entre las líneas.
@@ -733,5 +784,8 @@ def generar_recibo_pdf(data: dict[str, Any]) -> bytes:
     y = _composition_block(c, y - 2, _decimal(data["neto"]), worker, contributions)
     if y < PISO_DEL_CUERPO:
         raise ValueError("El recibo excede una hoja A4; deben agruparse líneas equivalentes")
-    _bloque_firmas(c, data, firma, y)
+    if es_preliquidacion:
+        _bloque_preliquidacion(c, y)
+    else:
+        _bloque_firmas(c, data, firma, y)
     c.showPage(); c.save(); return output.getvalue()

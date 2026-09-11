@@ -260,7 +260,7 @@ tr:last-child td{border-bottom:0}tbody tr:hover{background:#f8fcfb}
           <button onclick="irA('seccionEmpleados',this)"><span class="icono">👥</span><span id="navEmpleados">Empleados</span></button>
           <button onclick="irA('seccionNovedades',this)"><span class="icono">🗓</span>Novedades</button>
           <button onclick="irA('seccionLiquidar',this)"><span class="icono">🧮</span>Liquidar</button>
-          <button onclick="irA('seccionHistorial',this)"><span class="icono">📁</span>Recibos e historial</button>
+          <button onclick="irA('seccionHistorial',this)"><span class="icono">📁</span><span id="navHistorial">Recibos e historial</span></button>
         </nav>
         <div class="lateral-pie">
           <button id="instalarApp" class="chico" onclick="instalarAplicacion()">⬇ Instalar Sueldo Claro</button>
@@ -288,7 +288,11 @@ tr:last-child td{border-bottom:0}tbody tr:hover{background:#f8fcfb}
         <div class="inicio-hogar-flujo" aria-label="Recorrido para liquidar personal de casas particulares">
           <div class="inicio-hogar-paso"><b>1. La persona</b><br>Categoría, modalidad y horas</div><span class="inicio-hogar-flecha">→</span>
           <div class="inicio-hogar-paso"><b>2. El mes</b><br>Extras, ausencias y licencias</div><span class="inicio-hogar-flecha">→</span>
-          <div class="inicio-hogar-paso"><b>3. El resultado</b><br>Sueldo, aportes, ART y F.102/RT</div>
+          <div class="inicio-hogar-paso"><b>3. El resultado</b><br>Cálculo claro y datos para ARCA</div>
+        </div>
+        <div style="margin:14px 0 0;padding:12px 14px;border:1px solid #f3c96b;border-radius:10px;background:#fffbeb;color:#713f12;font-size:.86rem">
+          <b>El recibo oficial se genera en ARCA.</b> Sueldo Claro prepara la liquidación y los importes; después ingresás al servicio Personal de Casas Particulares para emitir el recibo digital con número y QR.
+          <a href="https://www.afip.gob.ar/casasparticulares/" target="_blank" rel="noopener" style="display:inline-block;margin-left:6px;font-weight:800;color:#087f73">Abrir ARCA</a>
         </div>
         <button type="button" onclick="irA('seccionEmpleados')">Agregar a la persona que trabaja en casa</button>
       </section>
@@ -770,7 +774,7 @@ tr:last-child td{border-bottom:0}tbody tr:hover{background:#f8fcfb}
 
     <div class="tarjeta seccion-app" id="seccionHistorial">
       <div class="cabecera-seccion">
-        <h2>Recibos e historial</h2>
+        <h2 id="tituloHistorial">Recibos e historial</h2>
         <button class="chico secundario" onclick="cargarCarpetas()">Actualizar historial</button>
       </div>
       <p style="font-size:.85rem;color:#6b7280">Cada liquidación conserva una versión de sólo lectura. Las correcciones no borran las anteriores.</p>
@@ -785,8 +789,8 @@ tr:last-child td{border-bottom:0}tbody tr:hover{background:#f8fcfb}
         <div class="cabecera-seccion"><h3 id="panelVersionTitulo">Versión</h3><button class="chico secundario" onclick="cerrarPanelVersion()">Cerrar</button></div>
         <p id="panelVersionMeta" style="font-size:.85rem;color:#4b5563"></p>
         <div class="aviso" id="panelVersionFaltantes" style="display:none"></div>
-        <div style="margin:10px 0;display:flex;gap:8px;flex-wrap:wrap"><button class="chico" onclick="descargarRecibosDeVersion()">Descargar recibos para firma</button><button class="chico secundario" onclick="controlarArcaVersion()">Controlar ARCA</button><button class="chico secundario" onclick="descargarArcaVersion()">Descargar TXT ARCA</button><button class="chico secundario" onclick="descargarMapaArcaVersion()">Mapa de conceptos ARCA</button><button class="chico secundario" onclick="descargarSindicalVersion()">Boletas sindicales (CSV)</button><button class="chico secundario" id="btnSoecraVersion" onclick="descargarSoecraVersion()">Planilla SOECRA</button></div>
-        <div class="fila" style="max-width:520px;margin:8px 0"><div><label>Fecha de pago para ARCA</label><input id="fechaArcaPago" type="date"></div><div><label>Fecha de rúbrica (si corresponde)</label><input id="fechaArcaRubrica" type="date"></div></div>
+        <div style="margin:10px 0;display:flex;gap:8px;flex-wrap:wrap"><button id="btnDescargarVersion" class="chico" onclick="descargarRecibosDeVersion()">Descargar recibos para firma</button><a id="btnArcaCasasVersion" class="chico" href="https://www.afip.gob.ar/casasparticulares/" target="_blank" rel="noopener" style="display:none;text-decoration:none">Abrir ARCA y emitir el recibo oficial</a><button id="btnControlArcaVersion" class="chico secundario" onclick="controlarArcaVersion()">Controlar ARCA</button><button id="btnTxtArcaVersion" class="chico secundario" onclick="descargarArcaVersion()">Descargar TXT ARCA</button><button id="btnMapaArcaVersion" class="chico secundario" onclick="descargarMapaArcaVersion()">Mapa de conceptos ARCA</button><button id="btnSindicalVersion" class="chico secundario" onclick="descargarSindicalVersion()">Boletas sindicales (CSV)</button><button class="chico secundario" id="btnSoecraVersion" onclick="descargarSoecraVersion()">Planilla SOECRA</button></div>
+        <div id="camposArcaEmpresa" class="fila" style="max-width:520px;margin:8px 0"><div><label>Fecha de pago para ARCA</label><input id="fechaArcaPago" type="date"></div><div><label>Fecha de rúbrica (si corresponde)</label><input id="fechaArcaRubrica" type="date"></div></div>
         <div class="error" id="arcaDescargaError"></div>
         <table id="tablaVersionDetalle" class="tabla-movil"><thead><tr><th>Empleado</th><th class="num">Bruto</th><th class="num">Descuentos</th><th class="num">Neto</th><th>Conceptos</th><th></th></tr></thead><tbody></tbody></table>
       </div>
@@ -937,6 +941,11 @@ function mostrarError(id,msg){ const e=$(id); e.textContent=msg; e.style.display
 // recorrido propios del régimen de casas particulares.
 let modoCuenta='ESTUDIO';
 let modoElegidoAlCrear='EMPRESA';
+const URL_ARCA_CASAS='https://www.afip.gob.ar/casasparticulares/';
+
+function esCasasParticulares(empleado){
+  return String(empleado&&empleado.cct_numero||'').trim().toUpperCase()==='LEY 26844';
+}
 
 const AYUDA_MODO={
   EMPRESA:'Cargás tus datos una sola vez. Si tenés varios locales, los agregás como establecimientos y elegís por empleado dónde trabaja y dónde cobra.',
@@ -983,6 +992,8 @@ function aplicarModoCuenta(modo, empresas){
   mostrar('btnImportarEmpleados', !esHogar, 'inline-flex');
 
   if($('navEmpresas')) $('navEmpresas').textContent = esHogar?'Mi hogar':esEmpresa?'Mi empresa':'Empresas';
+  if($('navHistorial')) $('navHistorial').textContent = esHogar?'Cálculos e historial':'Recibos e historial';
+  if($('tituloHistorial')) $('tituloHistorial').textContent = esHogar?'Cálculos e historial':'Recibos e historial';
   if($('navEmpleados')) $('navEmpleados').textContent = esHogar?'Personas':'Empleados';
   if($('tituloEmpleados')) $('tituloEmpleados').textContent = esHogar?'Personas que trabajan en tu hogar':'Empleados';
   if($('btnAgregarEmpleado')) $('btnAgregarEmpleado').textContent = esHogar?'+ Agregar persona':'+ Agregar manual';
@@ -1001,7 +1012,7 @@ function aplicarModoCuenta(modo, empresas){
 
   const pasosTrabajo=[...document.querySelectorAll('#pasosTrabajo .paso')];
   const nombresPasos=esHogar
-    ? ['Tu hogar','La persona','Categoría y horas','Novedades','Cálculo','F.102/RT','Historial']
+    ? ['Tu hogar','La persona','Categoría y horas','Novedades','Cálculo','Recibo digital ARCA','Historial']
     : [esEmpresa?'Tu empresa':'Cliente / grupo','Sociedad / CUIT','Establecimiento','Empleado','Novedades','Liquidación','Recibo'];
   pasosTrabajo.forEach((paso,i)=>{paso.innerHTML='<b>'+(i+1)+'</b>'+nombresPasos[i];});
 
@@ -1029,7 +1040,7 @@ function configurarMapaModo(esHogar){
     ['seccionEmpleados','Elegí categoría y horas','Indicá la tarea, si es con o sin retiro y cuántas horas trabaja.'],
     ['seccionNovedades','Contá qué pasó este mes','Informá horas extra, ausencias, licencias y el valor pactado si corresponde.'],
     ['seccionLiquidar','Calculá y revisá','Revisá sueldo, antigüedad, adicionales, aportes y ART.'],
-    ['seccionHistorial','Guardá el resultado','Conservá el cálculo y prepará la información del F.102/RT para ARCA.']
+    ['seccionHistorial','Emití el recibo en ARCA','Conservá la preliquidación y abrí ARCA para generar el recibo digital oficial.']
   ];
   const general=[
     ['seccionEmpresas','Cargá la empresa','Ingresá la razón social, el CUIT y la información básica del empleador.'],
@@ -2253,6 +2264,13 @@ function datosDocumentales(carpeta, empleadoId){
   return emp.documental||{};
 }
 
+function detalleCasasParticulares(carpeta, detalle){
+  const doc=datosDocumentales(carpeta,detalle.empleado_id);
+  const snap=(carpeta.contenido&&carpeta.contenido.snapshot_parametros)||{};
+  const empSnap=(snap.empleados&&snap.empleados[detalle.empleado_id])||{};
+  return String(doc.cct_numero||empSnap.cct||detalle.cct_numero||'').trim().toUpperCase()==='LEY 26844';
+}
+
 function faltantesDeCarpeta(carpeta){
   const snap=(carpeta.contenido&&carpeta.contenido.snapshot_parametros)||{};
   const empresa=snap.empresa||{};
@@ -2271,6 +2289,7 @@ async function verVersion(id){
   const carpeta=carpetasCache[id]||await api('/carpetas-mensuales/'+id);
   carpetasCache[id]=carpeta; versionAbierta=id;
   const detalles=(carpeta.contenido&&carpeta.contenido.detalles)||[];
+  const soloCasas=detalles.length>0&&detalles.every(d=>detalleCasasParticulares(carpeta,d));
   $('panelVersionTitulo').textContent=`Liquidación conservada — ${carpeta.periodo} v${carpeta.version}`;
   $('panelVersionMeta').innerHTML=`Estado: <b>${esc(carpeta.estado)}</b> · Creada: ${fechaHora(carpeta.created_at)} · `
     +`Empleados: <b>${detalles.length}</b><br>Huella SHA-256: <code style="font-size:.72rem">${esc(carpeta.hash_sha256||'—')}</code>`;
@@ -2278,10 +2297,14 @@ async function verVersion(id){
   const aviso=$('panelVersionFaltantes');
   if(faltan.length){
     aviso.style.display='block';
-    aviso.innerHTML='<b>Para imprimir el recibo de esta carpeta falta información documental:</b><br>'
+    aviso.innerHTML='<b>'+(soloCasas?'Para preparar la preliquidación de esta carpeta falta información:':'Para imprimir el recibo de esta carpeta falta información documental:')+'</b><br>'
       +faltan.map(f=>'• '+esc(f)).join('<br>')
-      +'<br><small>Se pide al descargar cada recibo. Los importes y conceptos no se tocan.</small>';
+      +'<br><small>'+(soloCasas?'Se pide al descargar cada preliquidación. El recibo oficial se genera en ARCA.':'Se pide al descargar cada recibo. Los importes y conceptos no se tocan.')+'</small>';
   } else { aviso.style.display='none'; }
+  $('btnDescargarVersion').textContent=soloCasas?'Descargar preliquidaciones para ARCA':'Descargar recibos para firma';
+  $('btnArcaCasasVersion').style.display=soloCasas?'inline-block':'none';
+  ['btnControlArcaVersion','btnTxtArcaVersion','btnMapaArcaVersion','btnSindicalVersion','btnSoecraVersion','camposArcaEmpresa']
+    .forEach(id=>{ if($(id)) $(id).style.display=soloCasas?'none':''; });
   const tb=$('tablaVersionDetalle').querySelector('tbody'); tb.innerHTML='';
   detalles.forEach(d=>{
     const tr=document.createElement('tr');
@@ -2291,7 +2314,7 @@ async function verVersion(id){
       +`<td data-label="Descuentos" class="num">$ ${fmt(Number(d.total_deducciones))}</td>`
       +`<td data-label="Neto" class="num">$ ${fmt(Number(d.neto))}</td>`
       +`<td data-label="Conceptos"><button class="chico secundario" onclick="verConceptosVersion('${d.empleado_id}')">${conceptos} conceptos</button></td>`
-      +`<td data-label="Recibo"><button class="chico secundario" onclick="descargarReciboHistorico('${d.empleado_id}')">PDF</button></td>`;
+      +`<td data-label="${detalleCasasParticulares(carpeta,d)?'Preliquidación':'Recibo'}"><button class="chico secundario" onclick="descargarReciboHistorico('${d.empleado_id}')">${detalleCasasParticulares(carpeta,d)?'PDF de cálculo':'PDF'}</button></td>`;
     tb.appendChild(tr);
   });
   $('panelVersion').style.display='block';
@@ -2448,6 +2471,8 @@ async function pedirMetadatosRecibo(carpeta){
   if(metadatosRecibo && metadatosRecibo.carpeta===carpeta.id) return metadatosRecibo;
   const snap=(carpeta.contenido&&carpeta.contenido.snapshot_parametros)||{};
   const empresa=snap.empresa||{};
+  const detalles=(carpeta.contenido&&carpeta.contenido.detalles)||[];
+  const casas=detalles.length>0&&detalles.every(d=>detalleCasasParticulares(carpeta,d));
   const guardado=k=>datoEmpresaLeer(k);
   const campos=[];
   if(!empresa.razon_social) campos.push({id:'razon',etiqueta:'Razón social del empleador',
@@ -2461,6 +2486,8 @@ async function pedirMetadatosRecibo(carpeta){
     {id:'lugarPago',etiqueta:'Lugar de pago',valor:guardado('sc_lugar_pago')},
     {id:'formaPago',etiqueta:'Forma de pago',valor:guardado('sc_forma_pago'),
      ayuda:'Efectivo, acreditación en cuenta…'},
+  );
+  if(!casas) campos.push(
     {id:'cargasFecha',etiqueta:'Fecha del último depósito de aportes',tipo:'date',
      valor:guardado('sc_fecha_cargas'),patron:FECHA_ISO,mensaje:'Escribí la fecha completa: año, mes y día.'},
     {id:'cargasPeriodo',etiqueta:'Período al que corresponde ese depósito',tipo:'month',
@@ -2468,25 +2495,29 @@ async function pedirMetadatosRecibo(carpeta){
     {id:'cargasBanco',etiqueta:'Banco o entidad donde se depositó',valor:guardado('sc_banco_cargas')},
   );
   const v=await pedirEnFormulario(
-    'Datos del recibo',
-    'La ley pide estos datos en el recibo (LCT arts. 139 y 140 y Ley 17.250). '
-    +'Quedan guardados en este dispositivo: la próxima vez ya vienen completos.',
+    casas?'Datos para la preliquidación':'Datos del recibo',
+    casas
+      ? 'Estos datos completan el papel de trabajo. El PDF no es el recibo legal: el comprobante oficial se genera en ARCA.'
+      : 'La ley pide estos datos en el recibo (LCT arts. 139 y 140 y Ley 17.250). '
+        +'Quedan guardados en este dispositivo: la próxima vez ya vienen completos.',
     campos);
   if(!v) return null;
   datoEmpresaGuardar('sc_empresa_domicilio',v.domicilio);
   datoEmpresaGuardar('sc_fecha_pago_hist',v.fechaPago);
   datoEmpresaGuardar('sc_lugar_pago',v.lugarPago);
   datoEmpresaGuardar('sc_forma_pago',v.formaPago);
-  datoEmpresaGuardar('sc_fecha_cargas',v.cargasFecha);
-  datoEmpresaGuardar('sc_periodo_cargas',v.cargasPeriodo);
-  datoEmpresaGuardar('sc_banco_cargas',v.cargasBanco);
+  if(!casas){
+    datoEmpresaGuardar('sc_fecha_cargas',v.cargasFecha);
+    datoEmpresaGuardar('sc_periodo_cargas',v.cargasPeriodo);
+    datoEmpresaGuardar('sc_banco_cargas',v.cargasBanco);
+  }
   metadatosRecibo={
     carpeta:carpeta.id,
     razon: empresa.razon_social||v.razon,
     cuit: empresa.cuit||v.cuit,
     domicilio:v.domicilio, fechaPago:v.fechaPago, lugarPago:v.lugarPago,
-    formaPago:v.formaPago, cargasFecha:v.cargasFecha,
-    cargasPeriodo:v.cargasPeriodo, cargasBanco:v.cargasBanco,
+    formaPago:v.formaPago, cargasFecha:v.cargasFecha||'',
+    cargasPeriodo:v.cargasPeriodo||'', cargasBanco:v.cargasBanco||'',
   };
   return metadatosRecibo;
 }
@@ -2538,12 +2569,14 @@ function cuerpoReciboHistorico(carpeta, detalle, meta, doc){
     antiguedad: antigTexto(doc.fecha_ingreso,carpeta.periodo),
   };
   return {
+    tipo_documento: detalleCasasParticulares(carpeta,detalle)?'preliquidacion_casas':'recibo_lct',
     periodo: carpeta.periodo,
     empresa:{razon_social:meta.razon,cuit:meta.cuit,domicilio:meta.domicilio},
     empleado,
     pago:{fecha:meta.fechaPago,lugar:meta.lugarPago,forma:meta.formaPago,
           establecimiento:doc.lugar_trabajo||'',domicilio_trabajo:''},
-    cargas_sociales:{fecha:meta.cargasFecha,periodo:meta.cargasPeriodo,banco:meta.cargasBanco},
+    cargas_sociales:detalleCasasParticulares(carpeta,detalle)?null:
+      {fecha:meta.cargasFecha,periodo:meta.cargasPeriodo,banco:meta.cargasBanco},
     conceptos:(detalle.conceptos||[]).map(c=>({
       codigo:c.codigo||'',descripcion:c.descripcion,tipo:c.tipo,importe:c.importe,
       base_calculo:c.base_calculo,unidad:c.unidad,cantidad:c.cantidad,
@@ -2581,7 +2614,8 @@ async function descargarReciboHistorico(empleadoId){
   try{
     const body=cuerpoReciboHistorico(carpeta,detalle,meta,doc);
     const apellido=(body.empleado.apellido||'empleado').replace(/\s+/g,'-');
-    await pedirPdf(body,`recibo-${carpeta.periodo}-v${carpeta.version}-${apellido}.pdf`);
+    const prefijo=body.tipo_documento==='preliquidacion_casas'?'preliquidacion-arca':'recibo';
+    await pedirPdf(body,`${prefijo}-${carpeta.periodo}-v${carpeta.version}-${apellido}.pdf`);
   }catch(e){ alert(e.message); }
 }
 
@@ -2598,7 +2632,8 @@ async function descargarRecibosDeVersion(){
       if(!doc){ fallados.push(`${quien}: faltan datos y se canceló la carga`); continue; }
       const body=cuerpoReciboHistorico(carpeta,detalle,meta,doc);
       const apellido=(body.empleado.apellido||'empleado').replace(/\s+/g,'-');
-      await pedirPdf(body,`recibo-${carpeta.periodo}-v${carpeta.version}-${apellido}.pdf`);
+      const prefijo=body.tipo_documento==='preliquidacion_casas'?'preliquidacion-arca':'recibo';
+      await pedirPdf(body,`${prefijo}-${carpeta.periodo}-v${carpeta.version}-${apellido}.pdf`);
     }catch(e){ fallados.push(`${quien}: ${e.message}`); }
   }
   // Decir cual fallo y por que. Antes solo se contaban y no se sabia nada.
@@ -3232,7 +3267,7 @@ function cancelarVistaPreviaExcel(){
 async function crearEmpleado(){
   ocultar('empError'); ocultar('empOk');
   const fp=$('eFormaPago').value;
-  if(!fp){ mostrarError('empError',modoCuenta==='HOGAR'?'Elegí la forma de pago: se necesita para preparar el F.102/RT.':'Elegí la forma de pago: la exige ARCA para el recibo y el F.931.'); return; }
+  if(!fp){ mostrarError('empError',modoCuenta==='HOGAR'?'Elegí la forma de pago: se necesita para preparar los datos del recibo digital de ARCA.':'Elegí la forma de pago: la exige ARCA para el recibo y el F.931.'); return; }
   if(fp==='3' && $('eCbu').value.replace(/\D/g,'').length!==22){
     mostrarError('empError','Acreditación en cuenta: el CBU es obligatorio y debe tener 22 dígitos.'); return; }
   const horasCompletas=horasJornadaConvenio();
@@ -3444,6 +3479,7 @@ function renderLiquidacion(){
     let html='';
     d.detalles.forEach(det=>{
       const emp = empleadosCache[det.empleado_id] || {apellido:'Empleado',nombre:'',cct_numero:''};
+      const casas=esCasasParticulares(emp);
       let filas='';
       det.conceptos.forEach(c=>{
         const tipo = nombreTipoConcepto(c.tipo);
@@ -3459,8 +3495,9 @@ function renderLiquidacion(){
           <span class="neto">Neto a cobrar: $ ${fmt(det.neto)}</span>
         </div>
         <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
-          <button class="chico" onclick="abrirAjusteManual('${det.empleado_id}')">✏️ Revisar y ajustar antes de imprimir</button>
-          <button class="chico secundario" onclick="abrirDatosRecibo('${det.empleado_id}')">📄 Emitir recibo para firma</button>
+          <button class="chico" onclick="abrirAjusteManual('${det.empleado_id}')">✏️ Revisar y ajustar antes de ${casas?'guardar':'imprimir'}</button>
+          <button class="chico secundario" onclick="abrirDatosRecibo('${det.empleado_id}')">📄 ${casas?'Preparar preliquidación para ARCA':'Emitir recibo para firma'}</button>
+          ${casas?`<a class="chico" href="${URL_ARCA_CASAS}" target="_blank" rel="noopener" style="text-decoration:none">Abrir ARCA y emitir el recibo oficial</a>`:''}
         </div>
         <div id="datos-recibo-${det.empleado_id}"></div><div id="ajuste-${det.empleado_id}"></div>
         </div>`;
@@ -3565,6 +3602,7 @@ function verRecibo(empId){
   const det = ultimaLiq.detalles.find(x=>x.empleado_id===empId);
   if(!det) return;
   const emp = empleadosCache[empId] || {};
+  if(esCasasParticulares(emp)){ abrirDatosRecibo(empId); return; }
   const per = ultimaLiq.periodo;
   const haberes = det.conceptos.filter(c=>c.tipo==='remunerativo'||c.tipo==='no_remunerativo');
   const deduc = det.conceptos.filter(c=>c.tipo==='deduccion');
@@ -3651,26 +3689,29 @@ function claveArt(empId,campo){
 function abrirDatosRecibo(empId){
   if(!ultimaLiq) return;
   const emp=empleadosCache[empId]||{};
+  const casas=esCasasParticulares(emp);
   const det=ultimaLiq.detalles.find(x=>x.empleado_id===empId);
   if(!det) return;
   const artCalculada=(det.conceptos||[]).find(esConceptoArt);
   const formasPago={'1':'Efectivo','2':'Cheque','3':'Acreditación en cuenta','4':'Otra'};
   const panel=$('datos-recibo-'+empId); if(!panel) return;
   panel.innerHTML=`<div style="margin-top:12px;padding:14px;border:1px solid #8dd8ce;border-radius:12px;background:#f2fbf9">
-    <b style="color:var(--verde)">Emitir recibo por el empleador</b>
-    <p style="font-size:.82rem;color:#52706d;margin:4px 0 10px">Completá los datos marcados. Se generará el ejemplar para firmar y entregar al trabajador; no necesita aprobación previa de un contador.</p>
+    <b style="color:var(--verde)">${casas?'Preparar preliquidación para ARCA':'Emitir recibo por el empleador'}</b>
+    <p style="font-size:.82rem;color:#52706d;margin:4px 0 10px">${casas?'El PDF organiza el cálculo para cargarlo en ARCA. No es el recibo legal ni acredita el pago: el comprobante oficial se genera en el servicio Personal de Casas Particulares.':'Completá los datos marcados. Se generará el ejemplar para firmar y entregar al trabajador; no necesita aprobación previa de un contador.'}</p>
     <div class="fila">
       <div><label>Domicilio legal del empleador *</label><input id="recDomicilio-${empId}" value="${esc(datoEmpresaLeer('sc_empresa_domicilio'))}"></div>
       <div><label>Fecha efectiva de pago *</label><input id="recFecha-${empId}" type="date" value="${new Date().toISOString().slice(0,10)}"></div>
       <div><label>Lugar de pago *</label><input id="recLugar-${empId}" value="${esc(emp.lugar_trabajo||datoEmpresaLeer('sc_lugar_pago'))}"></div>
       <div><label>Forma de pago *</label><input id="recForma-${empId}" value="${esc(formasPago[emp.forma_pago]||datoEmpresaLeer('sc_forma_pago'))}"></div>
+      ${casas?'':`
       <div><label>Fecha del último depósito de aportes *</label><input id="recCargasFecha-${empId}" type="date" value="${esc(datoEmpresaLeer('sc_fecha_cargas'))}"></div>
       <div><label>Período de ese depósito *</label><input id="recCargasPeriodo-${empId}" type="month" value="${esc(datoEmpresaLeer('sc_periodo_cargas'))}"></div>
-      <div><label>Banco o entidad del depósito *</label><input id="recCargasBanco-${empId}" value="${esc(datoEmpresaLeer('sc_banco_cargas'))}"></div>
+      <div><label>Banco o entidad del depósito *</label><input id="recCargasBanco-${empId}" value="${esc(datoEmpresaLeer('sc_banco_cargas'))}"></div>`}
     </div>
     ${artCalculada?`<div style="margin:10px 0;padding:9px;border:1px solid #86c8be;border-radius:8px;background:#e7f5f2"><b>ART ya incluida:</b> ${esc(artCalculada.descripcion)} · $ ${fmt(artCalculada.importe)}</div>`:`<div style="margin:10px 0;padding:10px;border:1px solid #b9d9d4;border-radius:8px;background:#fff"><b>ART de este trabajador *</b><p style="font-size:.82rem;color:#4b5563;margin:5px 0 8px">Copiá el importe individual exacto de la póliza, factura o detalle mensual. Si sólo tenés un porcentaje y una suma fija, no los multipliques a ojo: pedí a la ART el detalle por trabajador.</p><div class="fila"><div><label>Aseguradora *</label><input id="recArtAseguradora-${empId}" value="${esc(localStorage.getItem(claveArt(empId,'aseguradora'))||'')}"></div><div><label>Importe mensual individual *</label><input id="recArtImporte-${empId}" type="number" min="0.01" step="0.01" value="${esc(localStorage.getItem(claveArt(empId,'importe'))||'')}"></div><div><label>Póliza, factura o referencia *</label><input id="recArtReferencia-${empId}" value="${esc(localStorage.getItem(claveArt(empId,'referencia'))||'')}"></div></div></div>`}
     <div id="recError-${empId}" class="error"></div>
-    <button class="chico" onclick="descargarReciboPdf('${empId}')">Generar recibo para firma</button>
+    <button class="chico" onclick="descargarReciboPdf('${empId}')">${casas?'Descargar preliquidación':'Generar recibo para firma'}</button>
+    ${casas?`<a class="chico secundario" href="${URL_ARCA_CASAS}" target="_blank" rel="noopener" style="text-decoration:none">Ir a ARCA</a>`:''}
     <button class="chico secundario" onclick="$('datos-recibo-${empId}').innerHTML=''">Cancelar</button>
   </div>`;
   panel.scrollIntoView({behavior:'smooth',block:'nearest'});
@@ -3680,6 +3721,7 @@ async function descargarReciboPdf(empId, reintento=true){
   if(!ultimaLiq) return;
   const det=ultimaLiq.detalles.find(x=>x.empleado_id===empId);
   const emp=empleadosCache[empId]||{};
+  const casas=esCasasParticulares(emp);
   if(!det) return;
   const valor=id=>($(id)?.value||'').trim();
   const domicilioEmpresa=valor('recDomicilio-'+empId);
@@ -3694,8 +3736,8 @@ async function descargarReciboPdf(empId, reintento=true){
   const artImporte=artCalculada?0:Number(valor('recArtImporte-'+empId)||0);
   const artReferencia=artCalculada?'':valor('recArtReferencia-'+empId);
   if(!domicilioEmpresa||!fechaPago||!lugarPago||!formaPago
-      ||!fechaCargas||!/^\d{4}-\d{2}$/.test(periodoCargas)||!bancoCargas){
-    mostrarError('recError-'+empId,'Completá los datos del empleador, del pago y los tres datos del último depósito.'); return;
+      ||(!casas&&(!fechaCargas||!/^\d{4}-\d{2}$/.test(periodoCargas)||!bancoCargas))){
+    mostrarError('recError-'+empId,casas?'Completá los datos del empleador y del pago.':'Completá los datos del empleador, del pago y los tres datos del último depósito.'); return;
   }
   if(!artCalculada&&(!artAseguradora||artImporte<=0||!artReferencia)){
     mostrarError('recError-'+empId,'Completá aseguradora, importe individual y referencia de ART.'); return;
@@ -3703,9 +3745,11 @@ async function descargarReciboPdf(empId, reintento=true){
   datoEmpresaGuardar('sc_empresa_domicilio',domicilioEmpresa);
   datoEmpresaGuardar('sc_lugar_pago',lugarPago);
   datoEmpresaGuardar('sc_forma_pago',formaPago);
-  datoEmpresaGuardar('sc_fecha_cargas',fechaCargas);
-  datoEmpresaGuardar('sc_periodo_cargas',periodoCargas);
-  datoEmpresaGuardar('sc_banco_cargas',bancoCargas);
+  if(!casas){
+    datoEmpresaGuardar('sc_fecha_cargas',fechaCargas);
+    datoEmpresaGuardar('sc_periodo_cargas',periodoCargas);
+    datoEmpresaGuardar('sc_banco_cargas',bancoCargas);
+  }
   if(!artCalculada){
     localStorage.setItem(claveArt(empId,'aseguradora'),artAseguradora);
     localStorage.setItem(claveArt(empId,'importe'),String(artImporte));
@@ -3726,12 +3770,13 @@ async function descargarReciboPdf(empId, reintento=true){
     });
   }
   const body={
+    tipo_documento:casas?'preliquidacion_casas':'recibo_lct',
     periodo:ultimaLiq.periodo,
     empresa:{...empresaCache,domicilio:domicilioEmpresa},
     empleado:{...emp,antiguedad:antigTexto(emp.fecha_ingreso,ultimaLiq.periodo),
               jornada:det.jornada||''},
     pago:{fecha:fechaPago,lugar:lugarPago,forma:formaPago},
-    cargas_sociales:{fecha:fechaCargas,periodo:periodoCargas,banco:bancoCargas},
+    cargas_sociales:casas?null:{fecha:fechaCargas,periodo:periodoCargas,banco:bancoCargas},
     conceptos,
     bruto:det.bruto,total_deducciones:det.total_deducciones,neto:det.neto
   };
@@ -3747,7 +3792,8 @@ async function descargarReciboPdf(empId, reintento=true){
   const blob=await r.blob();
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');
-  a.href=url; a.download=`recibo-${ultimaLiq.periodo}-${(emp.apellido||'empleado').replace(/\\s+/g,'-')}.pdf`;
+  const prefijo=casas?'preliquidacion-arca':'recibo';
+  a.href=url; a.download=`${prefijo}-${ultimaLiq.periodo}-${(emp.apellido||'empleado').replace(/\\s+/g,'-')}.pdf`;
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(()=>URL.revokeObjectURL(url),60000);
 }

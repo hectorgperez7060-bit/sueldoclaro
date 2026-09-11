@@ -267,6 +267,14 @@ def test_el_recibo_actual_se_prepara_en_un_formulario_sin_ventanas_prompt():
     assert "Completá aseguradora, importe individual y referencia de ART" in descarga
 
 
+def test_casas_particulares_se_presenta_como_preliquidacion_y_deriva_el_recibo_a_arca():
+    assert "const URL_ARCA_CASAS='https://www.afip.gob.ar/casasparticulares/'" in UI
+    assert "El recibo oficial se genera en ARCA" in UI
+    assert "tipo_documento:casas?'preliquidacion_casas':'recibo_lct'" in UI
+    assert "Preparar preliquidación para ARCA" in UI
+    assert "Abrir ARCA y emitir el recibo oficial" in UI
+
+
 def test_bajar_un_recibo_no_abre_una_fila_de_ventanitas_que_falla_sin_avisar():
     """Descargar un recibo del historial era una cadena de prompt().
 

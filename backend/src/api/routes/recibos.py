@@ -7,7 +7,7 @@ from typing import Literal, Optional
 
 from fastapi import APIRouter, Depends
 from fastapi.responses import Response
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 from api.dependencies.auth import Principal, require_rol
 from infrastructure.pdf.recibo import generar_recibo_pdf
@@ -48,15 +48,22 @@ class DatosCargasPdf(BaseModel):
 
 
 class ReciboPdfIn(BaseModel):
+    tipo_documento: Literal["recibo_lct", "preliquidacion_casas"] = "recibo_lct"
     periodo: str
     empresa: dict
     empleado: dict
     pago: DatosPagoPdf
-    cargas_sociales: DatosCargasPdf
+    cargas_sociales: Optional[DatosCargasPdf] = None
     conceptos: list[ConceptoPdf]
     bruto: Decimal
     total_deducciones: Decimal
     neto: Decimal
+
+    @model_validator(mode="after")
+    def validar_cargas_segun_documento(self):
+        if self.tipo_documento == "recibo_lct" and self.cargas_sociales is None:
+            raise ValueError("El recibo LCT requiere los datos del último depósito")
+        return self
 
 
 @router.post("/pdf")
@@ -65,7 +72,8 @@ async def descargar_pdf(
     _: Principal = Depends(require_rol("admin", "liquidador")),
 ):
     pdf = generar_recibo_pdf(body.model_dump())
-    filename = f"recibo-{body.periodo}.pdf"
+    prefijo = "preliquidacion-arca" if body.tipo_documento == "preliquidacion_casas" else "recibo"
+    filename = f"{prefijo}-{body.periodo}.pdf"
     return Response(
         pdf,
         media_type="application/pdf",
