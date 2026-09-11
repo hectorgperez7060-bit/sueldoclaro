@@ -19,6 +19,11 @@ def test_recibo_no_acepta_un_estado_contable_declarado_por_el_navegador():
     assert "pendiente_aprobacion_contador" not in ReciboPdfIn.model_fields
 
 
+def test_pdf_distingue_recibo_lct_de_preliquidacion_de_casas_particulares():
+    campo = ReciboPdfIn.model_fields["tipo_documento"]
+    assert campo.default == "recibo_lct"
+
+
 def test_ultimo_deposito_exige_fecha_periodo_y_banco():
     with pytest.raises(ValidationError):
         DatosCargasPdf(fecha="2026-08-10", periodo="", banco="")
